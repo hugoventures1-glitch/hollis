@@ -2,7 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that never require authentication
-const PUBLIC_PREFIXES = ["/login", "/signup", "/api/auth"];
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/signup",
+  "/api/auth",
+  // COI public portal (client-facing, no login needed)
+  "/certificates/request",
+  "/api/coi/request",
+  "/api/coi/agent-info",
+];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
