@@ -40,5 +40,5 @@ export async function signUpAction(formData: {
     return { needsConfirmation: true };
   }
 
-  redirect("/dashboard");
+  redirect("/overview");
 }

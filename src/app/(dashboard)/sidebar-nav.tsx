@@ -37,7 +37,7 @@ interface NavItemProps {
 
 function NavItem({ href, icon: Icon, label, badge, pathname }: NavItemProps) {
   const active =
-    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+    href === "/overview" ? pathname === "/overview" : pathname.startsWith(href);
   return (
     <Link
       href={href}
@@ -136,7 +136,7 @@ export default function SidebarNav() {
         </Link>
 
         <SectionHeading>Workspace</SectionHeading>
-        <NavItem href="/dashboard"  icon={LayoutGrid}     label="Overview"          pathname={pathname} />
+        <NavItem href="/overview"   icon={LayoutGrid}     label="Overview"          pathname={pathname} />
         <NavItem href="/renewals"   icon={RefreshCw}      label="Renewals"  badge="14" pathname={pathname} />
         <NavItem href="/coi"        icon={ShieldCheck}    label="Certificates"      pathname={pathname} />
         <NavItem href="/policies"   icon={Layers}         label="Policy Audit"      pathname={pathname} />
