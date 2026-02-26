@@ -58,6 +58,8 @@ function autoMapColumns(csvHeaders: string[]): ColumnMapping {
     // Normalize: lowercase, collapse underscores/hyphens to spaces, trim
     const normalized = csvHeader.toLowerCase().trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
     for (const [field, synonyms] of Object.entries(SYNONYMS)) {
+      // Never map agent-prefixed email columns to client_email — they are different fields.
+      if (field === "client_email" && /\bagent\b/.test(normalized)) continue;
       if (synonyms.includes(normalized)) {
         mapping[csvHeader] = field as keyof CSVPolicyRow;
         break;

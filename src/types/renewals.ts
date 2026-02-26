@@ -19,7 +19,7 @@ export interface Policy {
   user_id: string;
   policy_name: string;
   client_name: string;
-  client_email: string;
+  client_email?: string | null;
   client_phone?: string | null;
   expiration_date: string; // ISO date string (YYYY-MM-DD)
   carrier: string;
@@ -75,7 +75,7 @@ export interface EmailTemplate {
 export interface CSVPolicyRow {
   policy_name: string;
   client_name: string;
-  client_email: string;
+  client_email?: string;
   client_phone?: string;
   expiration_date: string;
   carrier: string;
