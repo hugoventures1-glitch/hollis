@@ -9,13 +9,16 @@ import type { CSVPolicyRow, ColumnMapping } from "@/types/renewals";
 type Step = "upload" | "map" | "preview" | "done";
 
 const REQUIRED_FIELDS: (keyof CSVPolicyRow)[] = [
-  "policy_name",
   "client_name",
-  "client_email",
   "expiration_date",
-  "carrier",
 ];
-const OPTIONAL_FIELDS: (keyof CSVPolicyRow)[] = ["client_phone", "premium"];
+const OPTIONAL_FIELDS: (keyof CSVPolicyRow)[] = [
+  "policy_name",
+  "client_email",
+  "carrier",
+  "client_phone",
+  "premium",
+];
 const ALL_FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
 const FIELD_LABELS: Record<keyof CSVPolicyRow, string> = {
@@ -40,18 +43,20 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
 
 function autoMapColumns(csvHeaders: string[]): ColumnMapping {
   const mapping: ColumnMapping = {};
+  // All synonyms use spaces (no underscores); headers are normalized the same way.
   const SYNONYMS: Record<keyof CSVPolicyRow, string[]> = {
-    policy_name:     ["policy_name", "policy name", "policy", "plan name", "plan"],
-    client_name:     ["client_name", "client name", "client", "insured", "name", "full name"],
-    client_email:    ["client_email", "email", "email address", "client email"],
-    expiration_date: ["expiration_date", "expiration date", "expiry", "expiry date", "end date", "exp date"],
-    carrier:         ["carrier", "insurance carrier", "insurer", "company"],
-    client_phone:    ["client_phone", "phone", "phone number", "mobile", "cell"],
-    premium:         ["premium", "annual premium", "amount", "price"],
+    policy_name:     ["policy name", "policy", "plan name", "plan", "policy number", "policy num", "policy no", "pol number", "pol no"],
+    client_name:     ["client name", "client", "insured", "name", "full name", "customer name", "account name", "named insured"],
+    client_email:    ["client email", "email", "email address", "e mail", "e-mail"],
+    expiration_date: ["expiration date", "expiry", "expiry date", "end date", "exp date", "expires", "expiration", "renewal date"],
+    carrier:         ["carrier", "insurance carrier", "insurer", "company", "insurance company", "provider", "underwriter"],
+    client_phone:    ["client phone", "phone", "phone number", "mobile", "cell", "telephone", "contact number"],
+    premium:         ["premium", "annual premium", "amount", "price", "total premium", "premium amount"],
   };
 
   for (const csvHeader of csvHeaders) {
-    const normalized = csvHeader.toLowerCase().trim();
+    // Normalize: lowercase, collapse underscores/hyphens to spaces, trim
+    const normalized = csvHeader.toLowerCase().trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
     for (const [field, synonyms] of Object.entries(SYNONYMS)) {
       if (synonyms.includes(normalized)) {
         mapping[csvHeader] = field as keyof CSVPolicyRow;
@@ -353,11 +358,11 @@ export default function UploadPage() {
                   <tbody>
                     {previewRows.slice(0, 8).map((row, i) => (
                       <tr key={i} className="border-b border-[#1e1e2a]/60 last:border-b-0">
-                        <td className="px-4 py-2.5 text-[13px] text-[#f5f5f7] whitespace-nowrap">{row.policy_name || <span className="text-red-400">Missing</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#f5f5f7] whitespace-nowrap">{row.policy_name || <span className="text-[#505057]">—</span>}</td>
                         <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.client_name || <span className="text-red-400">Missing</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.client_email || <span className="text-red-400">Missing</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.client_email || <span className="text-[#505057]">—</span>}</td>
                         <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.expiration_date || <span className="text-red-400">Missing</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.carrier || <span className="text-red-400">Missing</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.carrier || <span className="text-[#505057]">—</span>}</td>
                         <td className="px-4 py-2.5 text-[13px] text-[#505057] whitespace-nowrap">{row.client_phone || "—"}</td>
                         <td className="px-4 py-2.5 text-[13px] text-[#505057] whitespace-nowrap">
                           {row.premium ? `$${Number(row.premium).toLocaleString()}` : "—"}

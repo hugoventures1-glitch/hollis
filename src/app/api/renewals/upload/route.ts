@@ -27,10 +27,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  // Validate required fields
+  // Validate required fields (only client_name and expiration_date are required)
   for (const [i, p] of policies.entries()) {
     const missing = (
-      ["policy_name", "client_name", "client_email", "expiration_date", "carrier"] as const
+      ["client_name", "expiration_date"] as const
     ).filter((f) => !p[f]?.toString().trim());
 
     if (missing.length > 0) {
@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
       .from("policies")
       .insert({
         user_id: user.id,
-        policy_name: row.policy_name.trim(),
+        policy_name: row.policy_name?.trim() || null,
         client_name: row.client_name.trim(),
-        client_email: row.client_email.trim().toLowerCase(),
+        client_email: row.client_email?.trim().toLowerCase() || null,
         client_phone: row.client_phone?.trim() || null,
         expiration_date: row.expiration_date,
-        carrier: row.carrier.trim(),
+        carrier: row.carrier?.trim() || null,
         premium: row.premium ?? null,
         status: "active",
         campaign_stage: "pending",
