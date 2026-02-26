@@ -92,7 +92,7 @@ export async function extractPolicyFromPDF(
   // Use Claude's native PDF document support (beta)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const message = await (client.beta.messages.create as unknown as (p: Record<string, unknown>) => Promise<{ content: Array<{ type: string; text?: string }> }>)({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5",
     max_tokens: 4096,
     betas: ["pdfs-2024-09-25"],
     system: EXTRACTION_SYSTEM_PROMPT,
