@@ -105,7 +105,7 @@ export default async function PolicyDetailPage({ params }: PageProps) {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-[#1e1e2a]">
               <InfoBlock label="Client" value={p.client_name} />
-              <InfoBlock label="Email" value={p.client_email} />
+              <InfoBlock label="Email" value={p.client_email ?? "—"} />
               <InfoBlock label="Phone" value={p.client_phone ?? "—"} />
               <InfoBlock
                 label="Premium"
