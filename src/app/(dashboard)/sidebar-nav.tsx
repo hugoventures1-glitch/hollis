@@ -138,7 +138,7 @@ export default function SidebarNav() {
         <SectionHeading>Workspace</SectionHeading>
         <NavItem href="/overview"   icon={LayoutGrid}     label="Overview"          pathname={pathname} />
         <NavItem href="/renewals"   icon={RefreshCw}      label="Renewals"  badge="14" pathname={pathname} />
-        <NavItem href="/coi"        icon={ShieldCheck}    label="Certificates"      pathname={pathname} />
+        <NavItem href="/certificates" icon={ShieldCheck}    label="Certificates"      pathname={pathname} />
         <NavItem href="/policies"   icon={Layers}         label="Policy Audit"      pathname={pathname} />
 
         <SectionHeading>CRM</SectionHeading>
