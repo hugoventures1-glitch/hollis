@@ -1,18 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, ChevronRight, AlertTriangle, Clock, CheckCircle, FileText } from "lucide-react";
+import {
+  Plus,
+  ChevronRight,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  FileText,
+  Send,
+  Eye,
+} from "lucide-react";
 import type { COIRequest, Certificate, COIRequestStatus, CertificateStatus } from "@/types/coi";
 import { COVERAGE_TYPE_LABELS, formatLimit } from "@/types/coi";
 import { RejectButton } from "./_components/RejectButton";
+import { ApproveButton } from "./_components/ApproveButton";
 
 export const dynamic = "force-dynamic";
 
 const REQUEST_STATUS_STYLES: Record<COIRequestStatus, string> = {
-  pending:  "bg-amber-900/30 text-amber-400 border border-amber-700/30",
-  approved: "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
-  rejected: "bg-red-900/30 text-red-400 border border-red-700/30",
-  sent:     "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
+  pending:            "bg-amber-900/30 text-amber-400 border border-amber-700/30",
+  approved:           "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
+  rejected:           "bg-red-900/30 text-red-400 border border-red-700/30",
+  sent:               "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
+  ready_for_approval: "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
+  needs_review:       "bg-amber-900/30 text-amber-400 border border-amber-700/30",
 };
 
 const CERT_STATUS_STYLES: Record<CertificateStatus, string> = {
@@ -23,14 +35,24 @@ const CERT_STATUS_STYLES: Record<CertificateStatus, string> = {
 };
 
 function StatusBadge({ status, table }: { status: string; table: "request" | "cert" }) {
-  const styles = table === "request"
-    ? REQUEST_STATUS_STYLES
-    : CERT_STATUS_STYLES;
-  const label = table === "request"
-    ? { pending: "Pending", approved: "Approved", rejected: "Rejected", sent: "Sent" }
-    : { draft: "Draft", sent: "Sent", expired: "Expired", outdated: "Outdated" };
+  const styles = table === "request" ? REQUEST_STATUS_STYLES : CERT_STATUS_STYLES;
+  const label =
+    table === "request"
+      ? {
+          pending:            "Pending",
+          approved:           "Approved",
+          rejected:           "Rejected",
+          sent:               "Sent",
+          ready_for_approval: "Ready to Send",
+          needs_review:       "Needs Review",
+        }
+      : { draft: "Draft", sent: "Sent", expired: "Expired", outdated: "Outdated" };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${styles[status as keyof typeof styles] ?? ""}`}>
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+        styles[status as keyof typeof styles] ?? ""
+      }`}
+    >
       {label[status as keyof typeof label] ?? status}
     </span>
   );
@@ -48,7 +70,9 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
   const { tab = "requests" } = await searchParams;
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const [{ data: requestsData }, { data: certsData }] = await Promise.all([
@@ -67,8 +91,15 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
   const requests = (requestsData ?? []) as COIRequest[];
   const certs = (certsData ?? []) as Certificate[];
 
-  const pendingCount = requests.filter(r => r.status === "pending").length;
-  const staleCount = certs.filter(c => c.status === "expired" || c.status === "outdated").length;
+  // Approval queue — separated from regular pending count
+  const readyItems = requests.filter((r) => r.status === "ready_for_approval");
+  const needsReviewItems = requests.filter((r) => r.status === "needs_review");
+  const hasQueue = readyItems.length > 0 || needsReviewItems.length > 0;
+
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const staleCount = certs.filter(
+    (c) => c.status === "expired" || c.status === "outdated"
+  ).length;
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12]">
@@ -101,15 +132,27 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
       {/* Stats */}
       <div className="flex items-center gap-0 px-10 py-7 border-b border-[#252530] shrink-0">
         <div className="pr-10">
-          <div className="text-[28px] font-bold text-[#f5f5f7] leading-none">{certs.filter(c => c.status === "sent").length}</div>
+          <div className="text-[28px] font-bold text-[#f5f5f7] leading-none">
+            {certs.filter((c) => c.status === "sent").length}
+          </div>
           <div className="text-[12px] text-[#8a8b91] mt-1.5">Issued</div>
         </div>
         <div className="px-10 border-l border-[#1e1e2a]">
           <div className="text-[28px] font-bold text-amber-400 leading-none">{pendingCount}</div>
           <div className="text-[12px] text-[#8a8b91] mt-1.5">Pending Requests</div>
         </div>
+        {readyItems.length > 0 && (
+          <div className="px-10 border-l border-[#1e1e2a]">
+            <div className="text-[28px] font-bold text-[#00d4aa] leading-none">
+              {readyItems.length}
+            </div>
+            <div className="text-[12px] text-[#8a8b91] mt-1.5">Ready to Send</div>
+          </div>
+        )}
         <div className="px-10 border-l border-[#1e1e2a]">
-          <div className="text-[28px] font-bold text-[#8a8b91] leading-none">{certs.filter(c => c.has_gap).length}</div>
+          <div className="text-[28px] font-bold text-[#8a8b91] leading-none">
+            {certs.filter((c) => c.has_gap).length}
+          </div>
           <div className="text-[12px] text-[#8a8b91] mt-1.5">Coverage Gaps</div>
         </div>
         {staleCount > 0 && (
@@ -125,16 +168,67 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
         <div className="flex items-center gap-3 px-10 py-3 bg-orange-950/30 border-b border-orange-800/30 shrink-0">
           <AlertTriangle size={14} className="text-orange-400 shrink-0" />
           <span className="text-[13px] text-orange-300">
-            {staleCount} certificate{staleCount !== 1 ? "s" : ""} {staleCount !== 1 ? "are" : "is"} expired or outdated and may need reissuing.
+            {staleCount} certificate{staleCount !== 1 ? "s" : ""}{" "}
+            {staleCount !== 1 ? "are" : "is"} expired or outdated and may need reissuing.
           </span>
-          <button
-            onClick={undefined}
-            className="ml-auto text-[12px] text-orange-400 hover:text-orange-300 underline"
-          >
+          <button className="ml-auto text-[12px] text-orange-400 hover:text-orange-300 underline">
             View
           </button>
         </div>
       )}
+
+      {/* ── Approval Queue ─────────────────────────────────────────────────── */}
+      {hasQueue ? (
+        <div className="shrink-0 border-b border-[#1e1e2a] bg-[#0a0a10]">
+
+          {/* Ready to Send */}
+          {readyItems.length > 0 && (
+            <div className="px-10 pt-6 pb-4">
+              <div className="flex items-center gap-2.5 mb-4">
+                <Send size={14} className="text-[#00d4aa]" />
+                <h2 className="text-[13px] font-semibold text-[#f5f5f7]">Ready to Send</h2>
+                <span className="text-[11px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 border border-[#00d4aa]/20 rounded-full px-1.5 py-0.5">
+                  {readyItems.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {readyItems.map((req) => (
+                  <ReadyCard key={req.id} req={req} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Needs Review */}
+          {needsReviewItems.length > 0 && (
+            <div
+              className={`px-10 pb-6 ${
+                readyItems.length > 0 ? "pt-2 border-t border-[#1e1e2a]" : "pt-6"
+              }`}
+            >
+              <div className="flex items-center gap-2.5 mb-4">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <h2 className="text-[13px] font-semibold text-[#f5f5f7]">Needs Review</h2>
+                <span className="text-[11px] font-semibold text-amber-400 bg-amber-900/20 border border-amber-700/30 rounded-full px-1.5 py-0.5">
+                  {needsReviewItems.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {needsReviewItems.map((req) => (
+                  <NeedsReviewCard key={req.id} req={req} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="px-10 py-3.5 border-b border-[#1e1e2a] shrink-0 bg-[#0a0a10]">
+          <p className="text-[13px] text-[#505057]">
+            All caught up — no pending COI requests.
+          </p>
+        </div>
+      )}
+      {/* ─────────────────────────────────────────────────────────────────── */}
 
       {/* Tabs */}
       <div className="flex items-center gap-1 px-10 py-3 border-b border-[#1e1e2a] shrink-0">
@@ -153,9 +247,11 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
           >
             {label}
             {count > 0 && (
-              <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${
-                tab === key ? "bg-[#00d4aa]/20 text-[#00d4aa]" : "text-[#505057]"
-              }`}>
+              <span
+                className={`text-[11px] px-1.5 py-0.5 rounded-full ${
+                  tab === key ? "bg-[#00d4aa]/20 text-[#00d4aa]" : "text-[#505057]"
+                }`}
+              >
                 {count}
               </span>
             )}
@@ -167,25 +263,26 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
       <div className="flex-1 overflow-y-auto">
 
         {/* ── Requests tab ── */}
-        {tab === "requests" && (
-          requests.length === 0 ? (
+        {tab === "requests" &&
+          (requests.filter((r) => r.status === "pending").length === 0 ? (
             <EmptyState
               icon={<Clock size={24} className="text-[#8a8b91]" />}
               title="No COI requests yet"
-              description={`Share your portal link with clients to receive requests. Go to Certificates and copy your portal link.`}
+              description="Share your portal link with clients to receive requests. Go to Certificates and copy your portal link."
             />
           ) : (
             <div className="divide-y divide-[#1e1e2a]">
-              {requests.map(req => (
-                <RequestRow key={req.id} req={req} userId={user.id} />
-              ))}
+              {requests
+                .filter((r) => r.status === "pending")
+                .map((req) => (
+                  <RequestRow key={req.id} req={req} userId={user.id} />
+                ))}
             </div>
-          )
-        )}
+          ))}
 
         {/* ── Certificates tab ── */}
-        {tab === "certificates" && (
-          certs.length === 0 ? (
+        {tab === "certificates" &&
+          (certs.length === 0 ? (
             <EmptyState
               icon={<FileText size={24} className="text-[#8a8b91]" />}
               title="No certificates issued yet"
@@ -203,16 +300,28 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
             <table className="w-full">
               <thead className="sticky top-0 bg-[#0d0d12] z-10">
                 <tr className="border-b border-[#1e1e2a]">
-                  <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Certificate</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Holder</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Coverage</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Issued</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Expires</th>
-                  <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Status</th>
+                  <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+                    Certificate
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+                    Holder
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+                    Coverage
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+                    Issued
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+                    Expires
+                  </th>
+                  <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {certs.map(cert => (
+                {certs.map((cert) => (
                   <tr
                     key={cert.id}
                     className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors ${
@@ -222,7 +331,9 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
                     <td className="px-10 py-3">
                       <Link href={`/certificates/${cert.id}`} className="block">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] text-[#505057]">{cert.certificate_number}</span>
+                          <span className="font-mono text-[11px] text-[#505057]">
+                            {cert.certificate_number}
+                          </span>
                           {cert.has_gap && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-red-400">
                               <AlertTriangle size={10} /> Gap
@@ -238,7 +349,9 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
                       <div className="text-[13px] text-[#c5c5cb]">{cert.holder_name}</div>
                       {cert.holder_city && (
                         <div className="text-[11px] text-[#505057]">
-                          {[cert.holder_city, cert.holder_state].filter(Boolean).join(", ")}
+                          {[cert.holder_city, cert.holder_state]
+                            .filter(Boolean)
+                            .join(", ")}
                         </div>
                       )}
                     </td>
@@ -246,16 +359,28 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
                       <div className="flex flex-wrap gap-1">
                         {cert.coverage_snapshot.gl?.enabled && <CovTag label="GL" />}
                         {cert.coverage_snapshot.auto?.enabled && <CovTag label="Auto" />}
-                        {cert.coverage_snapshot.umbrella?.enabled && <CovTag label="Umb" />}
+                        {cert.coverage_snapshot.umbrella?.enabled && (
+                          <CovTag label="Umb" />
+                        )}
                         {cert.coverage_snapshot.wc?.enabled && <CovTag label="WC" />}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
-                      {new Date(cert.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(cert.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </td>
                     <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
                       {cert.expiration_date
-                        ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                        ? new Date(
+                            cert.expiration_date + "T00:00:00"
+                          ).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
                         : "—"}
                     </td>
                     <td className="px-10 py-3">
@@ -265,14 +390,134 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
                 ))}
               </tbody>
             </table>
-          )
+          ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Ready to Send card ────────────────────────────────────────
+
+function ReadyCard({ req }: { req: COIRequest }) {
+  return (
+    <div className="flex items-center justify-between gap-4 bg-[#111118] border border-[#1e1e2a] rounded-xl px-5 py-4 hover:border-[#2e2e3a] transition-colors">
+      <div className="flex items-center gap-4 min-w-0">
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center shrink-0">
+          <span className="text-[12px] font-bold text-[#00d4aa]">
+            {req.insured_name.charAt(0).toUpperCase()}
+          </span>
+        </div>
+        {/* Info */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+            <span className="text-[14px] font-semibold text-[#f5f5f7] truncate">
+              {req.insured_name}
+            </span>
+            {req.auto_generated && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20 shrink-0">
+                <CheckCircle size={9} />
+                Coverage ✓
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-[12px] text-[#505057] flex-wrap">
+            <span>Holder: {req.holder_name}</span>
+            {req.holder_city && (
+              <span>
+                {[req.holder_city, req.holder_state].filter(Boolean).join(", ")}
+              </span>
+            )}
+            {req.coverage_types.length > 0 && (
+              <span className="flex items-center gap-1">
+                {req.coverage_types.map((t) => (
+                  <CovTag
+                    key={t}
+                    label={COVERAGE_TYPE_LABELS[t]?.split(" ")[0] ?? t}
+                  />
+                ))}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        <ApproveButton requestId={req.id} />
+        {req.certificate_id && (
+          <Link
+            href={`/certificates/${req.certificate_id}`}
+            className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#2e2e3a] text-[12px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+          >
+            <Eye size={12} />
+            Review
+          </Link>
         )}
       </div>
     </div>
   );
 }
 
-// ── Request row (expanded card) ───────────────────────────────
+// ── Needs Review card ─────────────────────────────────────────
+
+function NeedsReviewCard({ req }: { req: COIRequest }) {
+  return (
+    <div className="bg-[#111118] border border-amber-800/30 rounded-xl px-5 py-4 hover:border-amber-700/50 transition-colors">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4 min-w-0 flex-1">
+          {/* Avatar */}
+          <div className="w-8 h-8 rounded-full bg-amber-900/20 border border-amber-700/30 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-[12px] font-bold text-amber-400">
+              {req.insured_name.charAt(0).toUpperCase()}
+            </span>
+          </div>
+          {/* Info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[14px] font-semibold text-[#f5f5f7] truncate">
+                {req.insured_name}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[12px] text-[#505057] mb-2.5 flex-wrap">
+              <span>Holder: {req.holder_name}</span>
+              {req.coverage_types.length > 0 && (
+                <span className="flex items-center gap-1">
+                  {req.coverage_types.map((t) => (
+                    <CovTag
+                      key={t}
+                      label={COVERAGE_TYPE_LABELS[t]?.split(" ")[0] ?? t}
+                    />
+                  ))}
+                </span>
+              )}
+            </div>
+            {/* Coverage gap warning callout */}
+            {req.coverage_check_notes && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-950/30 border border-amber-800/30">
+                <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[12px] text-amber-300 leading-relaxed">
+                  {req.coverage_check_notes}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href={`/certificates/new?request=${req.id}`}
+            className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-[#1a1a24] border border-[#2e2e3a] text-[12px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+          >
+            Generate COI
+          </Link>
+          <RejectButton requestId={req.id} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Request row (existing pending requests) ───────────────────
 
 function RequestRow({ req, userId }: { req: COIRequest; userId: string }) {
   const isActionable = req.status === "pending";
@@ -341,7 +586,9 @@ function RequestRow({ req, userId }: { req: COIRequest; userId: string }) {
           )}
 
           {req.project_description && (
-            <div className="mt-2 text-[12px] text-[#505057] italic">"{req.project_description}"</div>
+            <div className="mt-2 text-[12px] text-[#505057] italic">
+              &ldquo;{req.project_description}&rdquo;
+            </div>
           )}
         </div>
 

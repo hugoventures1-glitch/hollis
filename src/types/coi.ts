@@ -71,7 +71,13 @@ export interface CoverageCheckResult {
 
 // ── Database row types ───────────────────────────────────────
 
-export type COIRequestStatus = "pending" | "approved" | "rejected" | "sent";
+export type COIRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "sent"
+  | "ready_for_approval"
+  | "needs_review";
 export type CertificateStatus = "draft" | "sent" | "expired" | "outdated";
 export type CoverageType = "gl" | "auto" | "umbrella" | "wc";
 
@@ -99,6 +105,10 @@ export interface COIRequest {
   rejection_reason: string | null;
   coverage_check_result: CoverageCheckResult | null;
   certificate_id: string | null;
+  // Auto-generation tracking (added in migration 006)
+  auto_generated: boolean;
+  coverage_check_passed: boolean | null;
+  coverage_check_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -191,10 +201,12 @@ export const COI_STATUS_LABELS: Record<CertificateStatus, string> = {
 };
 
 export const COI_REQUEST_STATUS_LABELS: Record<COIRequestStatus, string> = {
-  pending:  "Pending Review",
-  approved: "Approved",
-  rejected: "Rejected",
-  sent:     "Sent",
+  pending:             "Pending Review",
+  approved:            "Approved",
+  rejected:            "Rejected",
+  sent:                "Sent",
+  ready_for_approval:  "Ready to Send",
+  needs_review:        "Needs Review",
 };
 
 export const COVERAGE_TYPE_LABELS: Record<CoverageType, string> = {
