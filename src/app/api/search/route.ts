@@ -94,7 +94,9 @@ export async function POST(request: NextRequest) {
       if (filters.premium_gte != null) q = q.gte("premium", Number(filters.premium_gte));
       if (filters.premium_lte != null) q = q.lte("premium", Number(filters.premium_lte));
       if (filters.text_search)
-        q = q.ilike("client_name", `%${filters.text_search}%`);
+        q = q.or(
+          `client_name.ilike.%${filters.text_search}%,carrier.ilike.%${filters.text_search}%,policy_name.ilike.%${filters.text_search}%`
+        );
 
       const { data } = await q.order("expiration_date").limit(25);
       if (data) results.push(...data.map((r) => ({ ...r, _type: "policy" })));

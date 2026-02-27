@@ -75,6 +75,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<SearchResponse | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -85,6 +86,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     if (isOpen) {
       setQuery("");
       setResponse(null);
+      setSearchError(null);
       setTimeout(() => inputRef.current?.focus(), 30);
     }
   }, [isOpen]);
@@ -99,18 +101,23 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   }, [onClose]);
 
   const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) { setResponse(null); return; }
+    if (!q.trim()) { setResponse(null); setSearchError(null); return; }
     setLoading(true);
+    setSearchError(null);
     try {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q }),
       });
+      if (!res.ok) {
+        setSearchError("Something went wrong. Try again.");
+        return;
+      }
       const data: SearchResponse = await res.json();
       setResponse(data);
     } catch {
-      // silently ignore network errors
+      setSearchError("Something went wrong. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -195,13 +202,21 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
           />
           {query && (
             <button
-              onClick={() => { setQuery(""); setResponse(null); }}
+              onClick={() => { setQuery(""); setResponse(null); setSearchError(null); }}
               className="text-[#3a3a42] hover:text-[#8a8b91] transition-colors p-1"
             >
               <X size={14} />
             </button>
           )}
         </div>
+
+        {/* Error banner */}
+        {searchError && (
+          <div className="flex items-center gap-2.5 px-5 py-2.5 bg-red-950/40 border-b border-red-800/30 text-[13px] text-red-400">
+            <span className="shrink-0">⚠</span>
+            {searchError}
+          </div>
+        )}
 
         {/* Body */}
         <div className="overflow-y-auto max-h-[460px]">
