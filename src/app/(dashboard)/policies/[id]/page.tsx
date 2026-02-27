@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,6 +16,9 @@ import {
   Loader2,
   ArrowLeft,
   Clock,
+  Zap,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   SEVERITY_BADGE_STYLES,
@@ -27,8 +30,10 @@ import {
   type PolicyCheckWithDetails,
   type PolicyCheckFlag,
   type AnnotationStatus,
+  type ResolutionStatus,
   type SummaryVerdict,
   type FlagSeverity,
+  type ActionType,
 } from "@/types/policies";
 
 // ── Badge helpers ─────────────────────────────────────────────
@@ -58,27 +63,47 @@ function formatDate(iso: string) {
   });
 }
 
+// ── Tab type ──────────────────────────────────────────────────
+
+type ResolutionTab = "open" | "actioned" | "dismissed";
+
 // ── Flag card ─────────────────────────────────────────────────
 
 interface FlagCardProps {
   flag: PolicyCheckFlag;
   checkId: string;
+  clientName: string;
+  carrier: string | null;
   expanded: boolean;
   onToggle: () => void;
   onAnnotate: (status: AnnotationStatus, reason?: string) => Promise<void>;
+  onResolve: (status: ResolutionStatus) => Promise<void>;
   annotating: boolean;
+  resolving: boolean;
 }
 
 function FlagCard({
   flag,
-  checkId: _checkId,
+  checkId,
+  clientName,
+  carrier,
   expanded,
   onToggle,
   onAnnotate,
+  onResolve,
   annotating,
+  resolving,
 }: FlagCardProps) {
+  // E&O annotation state
   const [dismissMode, setDismissMode] = useState(false);
   const [dismissReason, setDismissReason] = useState("");
+
+  // Resolution draft state
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const borderColor =
     flag.severity === "critical"
@@ -88,11 +113,63 @@ function FlagCard({
       : "border-l-blue-500";
 
   const isAnnotated = !!flag.annotation_status;
+  const isResolved =
+    flag.resolution_status === "actioned" ||
+    flag.resolution_status === "dismissed";
 
   async function handleAnnotate(status: AnnotationStatus, reason?: string) {
     await onAnnotate(status, reason);
     setDismissMode(false);
     setDismissReason("");
+  }
+
+  async function handleAct() {
+    if (draftOpen && draft) {
+      // Already have a draft — just toggle closed
+      setDraftOpen(false);
+      return;
+    }
+    setDraftOpen(true);
+    setDraft(null);
+    setDraftError(null);
+    setDraftLoading(true);
+    try {
+      const res = await fetch(
+        `/api/policy-checks/${checkId}/flags/${flag.id}/draft`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            draft_prompt: flag.draft_prompt ?? `Address the coverage flag: ${flag.title}. Issue: ${flag.what_found}. Expected: ${flag.what_expected}.`,
+            action_type: flag.action_type ?? "email_client",
+            client_name: clientName,
+            carrier,
+          }),
+        }
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Draft generation failed");
+      }
+      const json = await res.json();
+      setDraft(json.draft ?? "");
+    } catch (err) {
+      setDraftError(err instanceof Error ? err.message : "Failed to generate draft");
+    } finally {
+      setDraftLoading(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!draft) return;
+    await navigator.clipboard.writeText(draft);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleMarkActioned() {
+    await onResolve("actioned");
+    setDraftOpen(false);
   }
 
   return (
@@ -108,6 +185,15 @@ function FlagCard({
         <span className="flex-1 text-[13px] font-medium text-[#f5f5f7] text-left">
           {flag.title}
         </span>
+
+        {/* Action chip */}
+        {flag.action_label && !isResolved && (
+          <span className="hidden sm:inline-flex items-center gap-1 shrink-0 text-[10px] font-medium text-[#00d4aa] bg-[#00d4aa]/[0.12] border border-[#00d4aa]/20 rounded-full px-2 py-0.5">
+            <Zap size={9} />
+            {flag.action_label}
+          </span>
+        )}
+
         {flag.coverage_line && (
           <span className="text-[10px] text-[#505057] bg-[#ffffff06] border border-[#ffffff0e] rounded px-1.5 py-0.5 shrink-0">
             {flag.coverage_line.toUpperCase()}
@@ -180,8 +266,136 @@ function FlagCard({
             </div>
           </div>
 
-          {/* Annotation area */}
+          {/* ── Resolution section ──────────────────────────── */}
           <div className="mt-4 pt-3 border-t border-[#1e1e2a]/60">
+            <div className="text-[10px] font-semibold text-[#505057] uppercase tracking-wider mb-2.5">
+              Resolve Flag
+            </div>
+
+            {flag.resolution_status === "actioned" ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={13} className="text-[#00d4aa]" />
+                <span className="text-[12px] text-[#8a8b91]">
+                  Marked as <span className="text-[#00d4aa] font-medium">Actioned</span>
+                </span>
+                <button
+                  onClick={() => onResolve("open")}
+                  disabled={resolving}
+                  className="ml-auto text-[11px] text-[#505057] hover:text-[#f5f5f7] transition-colors"
+                >
+                  Undo
+                </button>
+              </div>
+            ) : flag.resolution_status === "dismissed" ? (
+              <div className="flex items-center gap-2">
+                <X size={13} className="text-[#505057]" />
+                <span className="text-[12px] text-[#8a8b91]">
+                  Dismissed
+                </span>
+                <button
+                  onClick={() => onResolve("open")}
+                  disabled={resolving}
+                  className="ml-auto text-[11px] text-[#505057] hover:text-[#f5f5f7] transition-colors"
+                >
+                  Undo
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Action chip full-width (mobile fallback) */}
+                {flag.action_label && (
+                  <div className="flex items-center gap-1.5 mb-3 text-[11px] font-medium text-[#00d4aa]">
+                    <Zap size={10} />
+                    {flag.action_label}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleAct}
+                    disabled={resolving || draftLoading}
+                    className="h-7 px-3 rounded-md bg-[#00d4aa]/10 border border-[#00d4aa]/25 text-[#00d4aa] text-[12px] font-medium hover:bg-[#00d4aa]/20 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                  >
+                    {draftLoading ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : (
+                      <Zap size={11} />
+                    )}
+                    {draftOpen && !draftLoading ? "Close Draft" : "Act"}
+                  </button>
+                  <button
+                    onClick={() => onResolve("dismissed")}
+                    disabled={resolving || draftLoading}
+                    className="h-7 px-3 rounded-md border border-[#2e2e3a] text-[12px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors disabled:opacity-40"
+                  >
+                    {resolving ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : (
+                      "Dismiss"
+                    )}
+                  </button>
+                </div>
+
+                {/* Inline draft area */}
+                {draftOpen && (
+                  <div className="mt-3 rounded-lg bg-[#0d0d12] border border-[#2e2e3a] overflow-hidden">
+                    {draftLoading && (
+                      <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-[#505057]">
+                        <Loader2 size={12} className="animate-spin text-[#00d4aa]" />
+                        Generating draft…
+                      </div>
+                    )}
+                    {draftError && (
+                      <div className="px-3 py-3 text-[12px] text-red-400">
+                        {draftError}
+                      </div>
+                    )}
+                    {draft !== null && !draftLoading && (
+                      <>
+                        <textarea
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          rows={10}
+                          className="w-full bg-transparent px-3 py-3 text-[12px] text-[#c5c5cb] font-mono leading-relaxed outline-none resize-none"
+                        />
+                        <div className="flex items-center gap-2 px-3 py-2 border-t border-[#2e2e3a] bg-[#ffffff03]">
+                          <button
+                            onClick={handleCopy}
+                            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#2e2e3a] text-[12px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+                          >
+                            {copied ? (
+                              <Check size={11} className="text-[#00d4aa]" />
+                            ) : (
+                              <Copy size={11} />
+                            )}
+                            {copied ? "Copied" : "Copy"}
+                          </button>
+                          <button
+                            onClick={handleMarkActioned}
+                            disabled={resolving}
+                            className="h-7 px-3 flex items-center gap-1.5 rounded-md bg-[#00d4aa]/10 border border-[#00d4aa]/25 text-[#00d4aa] text-[12px] font-medium hover:bg-[#00d4aa]/20 transition-colors disabled:opacity-40"
+                          >
+                            {resolving ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <CheckCircle2 size={11} />
+                            )}
+                            Mark as Actioned
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ── E&O annotation section ──────────────────────── */}
+          <div className="mt-4 pt-3 border-t border-[#1e1e2a]/60">
+            <div className="text-[10px] font-semibold text-[#505057] uppercase tracking-wider mb-2.5">
+              E&amp;O Documentation
+            </div>
             {isAnnotated ? (
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-[#00d4aa]" />
@@ -266,6 +480,61 @@ function FlagCard({
   );
 }
 
+// ── Flag group section ────────────────────────────────────────
+
+interface FlagGroupProps {
+  label: string;
+  labelColor: string;
+  flags: PolicyCheckFlag[];
+  checkId: string;
+  clientName: string;
+  carrier: string | null;
+  expandedFlags: Set<string>;
+  annotatingFlags: Set<string>;
+  resolvingFlags: Set<string>;
+  onToggle: (id: string) => void;
+  onAnnotate: (id: string, status: AnnotationStatus, reason?: string) => Promise<void>;
+  onResolve: (id: string, status: ResolutionStatus) => Promise<void>;
+  nounSingular: string;
+  nounPlural: string;
+}
+
+function FlagGroup({
+  label, labelColor, flags, checkId, clientName, carrier,
+  expandedFlags, annotatingFlags, resolvingFlags,
+  onToggle, onAnnotate, onResolve,
+  nounSingular, nounPlural,
+}: FlagGroupProps) {
+  if (flags.length === 0) return null;
+  return (
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`text-[11px] font-semibold uppercase tracking-wider ${labelColor}`}>
+          {label}
+        </span>
+        <span className="text-[11px] text-[#505057]">
+          {flags.length} {flags.length === 1 ? nounSingular : nounPlural}
+        </span>
+      </div>
+      {flags.map((flag) => (
+        <FlagCard
+          key={flag.id}
+          flag={flag}
+          checkId={checkId}
+          clientName={clientName}
+          carrier={carrier}
+          expanded={expandedFlags.has(flag.id)}
+          onToggle={() => onToggle(flag.id)}
+          onAnnotate={(status, reason) => onAnnotate(flag.id, status, reason)}
+          onResolve={(status) => onResolve(flag.id, status)}
+          annotating={annotatingFlags.has(flag.id)}
+          resolving={resolvingFlags.has(flag.id)}
+        />
+      ))}
+    </section>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────
 
 export default function PolicyCheckDetailPage() {
@@ -277,6 +546,8 @@ export default function PolicyCheckDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedFlags, setExpandedFlags] = useState<Set<string>>(new Set());
   const [annotating, setAnnotating] = useState<Set<string>>(new Set());
+  const [resolving, setResolving] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<ResolutionTab>("open");
 
   useEffect(() => {
     async function load() {
@@ -304,11 +575,11 @@ export default function PolicyCheckDetailPage() {
     });
   }
 
-  async function handleAnnotate(
+  const handleAnnotate = useCallback(async (
     flagId: string,
     status: AnnotationStatus,
     reason?: string
-  ) {
+  ) => {
     setAnnotating((a) => new Set([...a, flagId]));
     try {
       const res = await fetch(`/api/policy-checks/${id}/flags/${flagId}`, {
@@ -345,7 +616,43 @@ export default function PolicyCheckDetailPage() {
         return next;
       });
     }
-  }
+  }, [id]);
+
+  const handleResolve = useCallback(async (
+    flagId: string,
+    status: ResolutionStatus
+  ) => {
+    setResolving((r) => new Set([...r, flagId]));
+    try {
+      const res = await fetch(`/api/policy-checks/${id}/flags/${flagId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resolution_status: status }),
+      });
+      if (res.ok) {
+        setCheck((prev) =>
+          prev
+            ? {
+                ...prev,
+                policy_check_flags: prev.policy_check_flags.map((f) =>
+                  f.id === flagId ? { ...f, resolution_status: status } : f
+                ),
+              }
+            : null
+        );
+        // Auto-switch tab when a flag is resolved away from current tab
+        if (status !== activeTab && status !== "open") {
+          // keep user on current tab after resolving — they'll see it disappear
+        }
+      }
+    } finally {
+      setResolving((r) => {
+        const next = new Set(r);
+        next.delete(flagId);
+        return next;
+      });
+    }
+  }, [id, activeTab]);
 
   // ── Loading / error ────────────────────────────────────────
 
@@ -390,12 +697,23 @@ export default function PolicyCheckDetailPage() {
   // ── Derived data ───────────────────────────────────────────
 
   const flags = check.policy_check_flags ?? [];
-  const criticalFlags = flags.filter((f) => f.severity === "critical");
-  const warningFlags = flags.filter((f) => f.severity === "warning");
-  const advisoryFlags = flags.filter((f) => f.severity === "advisory");
-  const unannotated = flags.filter((f) => !f.annotation_status).length;
+  const totalFlags = flags.length;
+
+  const openFlags      = flags.filter((f) => f.resolution_status === "open");
+  const actionedFlags  = flags.filter((f) => f.resolution_status === "actioned");
+  const dismissedFlags = flags.filter((f) => f.resolution_status === "dismissed");
+
+  const resolvedCount = actionedFlags.length + dismissedFlags.length;
+  const progressPct = totalFlags > 0 ? Math.round((resolvedCount / totalFlags) * 100) : 0;
+
+  const criticalFlags  = flags.filter((f) => f.severity === "critical");
+  const warningFlags   = flags.filter((f) => f.severity === "warning");
+  const advisoryFlags  = flags.filter((f) => f.severity === "advisory");
+  const unannotated    = flags.filter((f) => !f.annotation_status).length;
 
   const clientName = check.clients?.name ?? "Ad-hoc Check";
+  const carrier: string | null =
+    (check.policy_check_documents?.[0]?.extracted_carrier as string | null) ?? null;
   const verdict = check.summary_verdict;
   const verdictStyle = verdict ? VERDICT_STYLES[verdict] : null;
   const verdictLabel = verdictStyle?.label ?? "Pending";
@@ -403,6 +721,24 @@ export default function PolicyCheckDetailPage() {
   const failedDocs = (check.policy_check_documents ?? []).filter(
     (d) => d.extraction_status === "failed"
   );
+
+  // Active tab's flags split by severity
+  const tabFlags: PolicyCheckFlag[] =
+    activeTab === "open"
+      ? openFlags
+      : activeTab === "actioned"
+      ? actionedFlags
+      : dismissedFlags;
+
+  const tabCritical  = tabFlags.filter((f) => f.severity === "critical");
+  const tabWarning   = tabFlags.filter((f) => f.severity === "warning");
+  const tabAdvisory  = tabFlags.filter((f) => f.severity === "advisory");
+
+  const TABS: { key: ResolutionTab; label: string; count: number }[] = [
+    { key: "open",      label: "Open",      count: openFlags.length },
+    { key: "actioned",  label: "Actioned",  count: actionedFlags.length },
+    { key: "dismissed", label: "Dismissed", count: dismissedFlags.length },
+  ];
 
   // ── Render ─────────────────────────────────────────────────
 
@@ -466,7 +802,7 @@ export default function PolicyCheckDetailPage() {
 
             {/* Failed doc notice */}
             {failedDocs.length > 0 && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 px-4 py-3 mb-6">
+              <div className="flex items-start gap-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 px-4 py-3 mb-5">
                 <AlertTriangle
                   size={14}
                   className="text-amber-400 shrink-0 mt-0.5"
@@ -479,6 +815,54 @@ export default function PolicyCheckDetailPage() {
                     {failedDocs.map((d) => d.original_filename).join(", ")}
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Progress bar (only when there are flags) */}
+            {totalFlags > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] text-[#505057]">Resolution progress</span>
+                  <span className="text-[11px] text-[#8a8b91] tabular-nums">
+                    {resolvedCount} / {totalFlags} resolved
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-[#1e1e2a] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#00d4aa] transition-all duration-500"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Tab filter */}
+            {totalFlags > 0 && (
+              <div className="flex items-center gap-1 mb-5 bg-[#0d0d12] border border-[#1e1e2a] rounded-lg p-1 w-fit">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium transition-colors ${
+                      activeTab === tab.key
+                        ? "bg-[#1e1e2a] text-[#f5f5f7]"
+                        : "text-[#505057] hover:text-[#8a8b91]"
+                    }`}
+                  >
+                    {tab.label}
+                    <span
+                      className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] tabular-nums font-semibold ${
+                        activeTab === tab.key
+                          ? tab.key === "open"
+                            ? "bg-amber-900/30 text-amber-400"
+                            : "bg-[#00d4aa]/10 text-[#00d4aa]"
+                          : "bg-[#ffffff08] text-[#505057]"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
 
@@ -497,89 +881,65 @@ export default function PolicyCheckDetailPage() {
               </div>
             )}
 
-            {/* Critical flags */}
-            {criticalFlags.length > 0 && (
-              <section className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[11px] font-semibold text-red-400 uppercase tracking-wider">
-                    Critical
-                  </span>
-                  <span className="text-[11px] text-[#505057]">
-                    {criticalFlags.length}{" "}
-                    {criticalFlags.length === 1 ? "issue" : "issues"}
-                  </span>
+            {/* Empty tab state */}
+            {totalFlags > 0 && tabFlags.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <CheckCircle2 size={20} className="text-[#505057] mb-3" />
+                <div className="text-[13px] text-[#505057]">
+                  No {activeTab} flags
                 </div>
-                {criticalFlags.map((flag) => (
-                  <FlagCard
-                    key={flag.id}
-                    flag={flag}
-                    checkId={id}
-                    expanded={expandedFlags.has(flag.id)}
-                    onToggle={() => toggleFlag(flag.id)}
-                    onAnnotate={(status, reason) =>
-                      handleAnnotate(flag.id, status, reason)
-                    }
-                    annotating={annotating.has(flag.id)}
-                  />
-                ))}
-              </section>
+              </div>
             )}
 
-            {/* Warning flags */}
-            {warningFlags.length > 0 && (
-              <section className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
-                    Warnings
-                  </span>
-                  <span className="text-[11px] text-[#505057]">
-                    {warningFlags.length}{" "}
-                    {warningFlags.length === 1 ? "issue" : "issues"}
-                  </span>
-                </div>
-                {warningFlags.map((flag) => (
-                  <FlagCard
-                    key={flag.id}
-                    flag={flag}
-                    checkId={id}
-                    expanded={expandedFlags.has(flag.id)}
-                    onToggle={() => toggleFlag(flag.id)}
-                    onAnnotate={(status, reason) =>
-                      handleAnnotate(flag.id, status, reason)
-                    }
-                    annotating={annotating.has(flag.id)}
-                  />
-                ))}
-              </section>
-            )}
-
-            {/* Advisory flags */}
-            {advisoryFlags.length > 0 && (
-              <section className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">
-                    Advisory
-                  </span>
-                  <span className="text-[11px] text-[#505057]">
-                    {advisoryFlags.length}{" "}
-                    {advisoryFlags.length === 1 ? "note" : "notes"}
-                  </span>
-                </div>
-                {advisoryFlags.map((flag) => (
-                  <FlagCard
-                    key={flag.id}
-                    flag={flag}
-                    checkId={id}
-                    expanded={expandedFlags.has(flag.id)}
-                    onToggle={() => toggleFlag(flag.id)}
-                    onAnnotate={(status, reason) =>
-                      handleAnnotate(flag.id, status, reason)
-                    }
-                    annotating={annotating.has(flag.id)}
-                  />
-                ))}
-              </section>
-            )}
+            {/* Flag groups for active tab */}
+            <FlagGroup
+              label="Critical"
+              labelColor="text-red-400"
+              flags={tabCritical}
+              checkId={id}
+              clientName={clientName}
+              carrier={carrier}
+              expandedFlags={expandedFlags}
+              annotatingFlags={annotating}
+              resolvingFlags={resolving}
+              onToggle={toggleFlag}
+              onAnnotate={handleAnnotate}
+              onResolve={handleResolve}
+              nounSingular="issue"
+              nounPlural="issues"
+            />
+            <FlagGroup
+              label="Warnings"
+              labelColor="text-amber-400"
+              flags={tabWarning}
+              checkId={id}
+              clientName={clientName}
+              carrier={carrier}
+              expandedFlags={expandedFlags}
+              annotatingFlags={annotating}
+              resolvingFlags={resolving}
+              onToggle={toggleFlag}
+              onAnnotate={handleAnnotate}
+              onResolve={handleResolve}
+              nounSingular="issue"
+              nounPlural="issues"
+            />
+            <FlagGroup
+              label="Advisory"
+              labelColor="text-blue-400"
+              flags={tabAdvisory}
+              checkId={id}
+              clientName={clientName}
+              carrier={carrier}
+              expandedFlags={expandedFlags}
+              annotatingFlags={annotating}
+              resolvingFlags={resolving}
+              onToggle={toggleFlag}
+              onAnnotate={handleAnnotate}
+              onResolve={handleResolve}
+              nounSingular="note"
+              nounPlural="notes"
+            />
 
           </div>
         </div>
@@ -728,6 +1088,14 @@ export default function PolicyCheckDetailPage() {
                     </span>
                   </div>
                 )}
+                {resolvedCount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[#505057]">Resolved</span>
+                    <span className="text-[11px] text-[#00d4aa]">
+                      {resolvedCount} / {totalFlags}
+                    </span>
+                  </div>
+                )}
                 {check.client_industry && (
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-[#505057]">Industry</span>
@@ -740,13 +1108,10 @@ export default function PolicyCheckDetailPage() {
             </div>
 
             {/* E&O notice */}
-            <div className="flex items-start gap-2 px-1">
-              <X size={10} className="text-[#505057] shrink-0 mt-0.5 hidden" />
-              <p className="text-[10px] text-[#505057] leading-relaxed">
-                All flag annotations are logged with timestamp for E&amp;O
-                documentation.
-              </p>
-            </div>
+            <p className="text-[10px] text-[#505057] leading-relaxed px-1">
+              All flag annotations are logged with timestamp for E&amp;O
+              documentation.
+            </p>
 
           </div>
         </div>

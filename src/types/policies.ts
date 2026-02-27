@@ -21,6 +21,21 @@ export type FlagType =
   | "expiry_issue"
   | "other";
 
+export type ActionType =
+  | "email_client"
+  | "email_carrier"
+  | "internal_note"
+  | "request_document";
+
+export type ResolutionStatus = "open" | "actioned" | "dismissed";
+
+export interface SuggestedAction {
+  flag_id: string;
+  action_label: string;       // e.g. "Email client about missing endorsement"
+  action_type: ActionType;
+  draft_prompt: string;       // full prompt for the draft Claude call
+}
+
 // ── Extracted data structure (returned by Claude, stored as JSONB) ──
 
 export interface ExtractedCoverageLine {
@@ -183,6 +198,11 @@ export interface PolicyCheckFlag {
   annotated_at: string | null;
   annotated_by: string | null;
   sort_order: number;
+  // ── Resolution workflow (added in migration 007) ──────────
+  action_label: string | null;
+  action_type: ActionType | null;
+  draft_prompt: string | null;
+  resolution_status: ResolutionStatus;
   created_at: string;
   updated_at: string;
 }
@@ -280,6 +300,19 @@ export const ANNOTATION_LABELS: Record<AnnotationStatus, string> = {
   accepted:  "Accepted",
   dismissed: "Dismissed",
   escalated: "Escalated",
+};
+
+export const ACTION_TYPE_LABELS: Record<ActionType, string> = {
+  email_client:     "Email Client",
+  email_carrier:    "Email Carrier",
+  internal_note:    "Internal Note",
+  request_document: "Request Document",
+};
+
+export const RESOLUTION_STATUS_LABELS: Record<ResolutionStatus, string> = {
+  open:      "Open",
+  actioned:  "Actioned",
+  dismissed: "Dismissed",
 };
 
 // ── Helpers ───────────────────────────────────────────────────
