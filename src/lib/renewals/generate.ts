@@ -30,6 +30,8 @@ Policy details:
 - Carrier: ${policy.carrier}
 - Expiry: ${policy.expiration_date} (${days} days away)
 ${premiumLine(policy)}
+- Agent name: ${policy.agent_name ?? ""}
+- Agent email: ${policy.agent_email ?? ""}
 
 Tone: ${tone}
 
@@ -39,6 +41,7 @@ Rules:
 - 2–3 short paragraphs, conversational but professional
 - Clear single call-to-action (reply to this email or call the agent)
 - No generic filler — make it feel personal
+- End the email with a real signature using the Agent name and Agent email above. Two line breaks, then the agent's name, then the agent's email on the next line. No placeholders like [Your Name] or [Contact Information].
 
 Respond with ONLY valid JSON: {"subject": "...", "body": "..."}
 The body should be plain text (no HTML), with line breaks between paragraphs.`;

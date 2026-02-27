@@ -21,6 +21,8 @@ export interface Policy {
   client_name: string;
   client_email?: string | null;
   client_phone?: string | null;
+  agent_name?: string | null;
+  agent_email?: string | null;
   expiration_date: string; // ISO date string (YYYY-MM-DD)
   carrier: string;
   premium?: number | null;
