@@ -10,6 +10,8 @@ const PUBLIC_PREFIXES = [
   "/certificates/request",
   "/api/coi/request",
   "/api/coi/agent-info",
+  // Cron jobs — protected by CRON_SECRET header inside the route handler
+  "/api/cron",
 ];
 
 export async function middleware(request: NextRequest) {
