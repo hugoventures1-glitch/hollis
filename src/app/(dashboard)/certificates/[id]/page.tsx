@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronRight, AlertTriangle, CheckCircle, ExternalLink, Send } from "lucide-react";
 import type { Certificate } from "@/types/coi";
 import { formatLimit } from "@/types/coi";
+import { FollowUpSection } from "../_components/FollowUpSection";
 
 export const dynamic = "force-dynamic";
 
@@ -257,6 +258,14 @@ export default async function CertificateDetailPage({ params }: PageProps) {
                 <InfoBlock label="Created" value={new Date(cert.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} />
                 {cert.request_id && <InfoBlock label="Source Request" value={cert.request_id.slice(0, 8) + "…"} />}
               </div>
+
+              {/* Holder Follow-Up */}
+              <FollowUpSection
+                certificateId={cert.id}
+                holderName={cert.holder_name}
+                holderEmail={cert.holder_email ?? null}
+                expirationDate={cert.expiration_date ?? null}
+              />
             </div>
           </div>
         </div>

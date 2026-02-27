@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   ChevronDown,
   LogOut,
+  Mail,
 } from "lucide-react";
 import SearchModal from "@/components/search/SearchModal";
 
@@ -40,7 +41,15 @@ interface NavItemProps {
 
 function NavItem({ href, icon: Icon, label, badge, pathname }: NavItemProps) {
   const active =
-    href === "/overview" ? pathname === "/overview" : pathname.startsWith(href);
+    href === "/overview"
+      ? pathname === "/overview"
+      // Exact match, OR starts with href + "/" — but exclude deeper fixed sub-routes
+      // that have their own nav item (e.g. /certificates/sequences vs /certificates)
+      : href === "/certificates"
+      ? pathname === "/certificates" ||
+        (pathname.startsWith("/certificates/") &&
+          !pathname.startsWith("/certificates/sequences"))
+      : pathname === href || pathname.startsWith(href + "/");
   return (
     <Link
       href={href}
@@ -199,10 +208,11 @@ export default function SidebarNav() {
           </Link>
 
           <SectionHeading>Workspace</SectionHeading>
-          <NavItem href="/overview"     icon={LayoutGrid}     label="Overview"         pathname={pathname} />
-          <NavItem href="/renewals"     icon={RefreshCw}      label="Renewals" badge="14" pathname={pathname} />
-          <NavItem href="/certificates" icon={ShieldCheck}    label="Certificates"     pathname={pathname} />
-          <NavItem href="/policies"     icon={Layers}         label="Policy Audit"     pathname={pathname} />
+          <NavItem href="/overview"               icon={LayoutGrid}  label="Overview"         pathname={pathname} />
+          <NavItem href="/renewals"               icon={RefreshCw}   label="Renewals" badge="14" pathname={pathname} />
+          <NavItem href="/certificates"           icon={ShieldCheck} label="Certificates"     pathname={pathname} />
+          <NavItem href="/certificates/sequences" icon={Mail}        label="Follow-Ups"       pathname={pathname} />
+          <NavItem href="/policies"               icon={Layers}      label="Policy Audit"     pathname={pathname} />
 
           <SectionHeading>CRM</SectionHeading>
           <NavItem href="/clients"   icon={Users}          label="Clients"          pathname={pathname} />
