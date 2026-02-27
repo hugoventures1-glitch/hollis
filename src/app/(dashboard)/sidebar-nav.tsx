@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   Zap,
   Search,
+  Send,
   Inbox,
   LayoutGrid,
   RefreshCw,
@@ -74,6 +75,19 @@ export default function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [pendingDrafts, setPendingDrafts] = useState<number>(0);
+
+  // Fetch pending draft count on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("outbox_drafts")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending")
+      .then(({ count }) => {
+        if (count !== null) setPendingDrafts(count);
+      });
+  }, []);
 
   // Global ⌘K / Ctrl+K shortcut
   useEffect(() => {
@@ -135,6 +149,36 @@ export default function SidebarNav() {
               ⌘K
             </span>
           </button>
+
+          {/* Outbox */}
+          <Link
+            href="/outbox"
+            className={`w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] transition-colors group ${
+              pathname.startsWith("/outbox")
+                ? "bg-[rgba(255,255,255,0.06)] text-[#f5f5f7]"
+                : "text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7]"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Send
+                size={18}
+                strokeWidth={pathname.startsWith("/outbox") ? 2 : 1.5}
+                className={
+                  pathname.startsWith("/outbox")
+                    ? "text-[#00d4aa]"
+                    : "text-[#8a8b91] group-hover:text-[#f5f5f7] transition-colors"
+                }
+              />
+              <span className="text-[15px] font-medium leading-none tracking-tight">
+                Outbox
+              </span>
+            </div>
+            {pendingDrafts > 0 && (
+              <span className="text-[11px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 border border-[#00d4aa]/20 rounded-full px-1.5 py-0.5 leading-none">
+                {pendingDrafts}
+              </span>
+            )}
+          </Link>
 
           {/* Inbox */}
           <Link
