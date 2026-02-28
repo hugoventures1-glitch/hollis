@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Users, Plus, ArrowRight, Mail, Phone } from "lucide-react";
+import { Users, Plus } from "lucide-react";
+import { ClientsTable } from "./_components/ClientsTable";
 
 export const dynamic = "force-dynamic";
 
@@ -61,64 +62,7 @@ export default async function ClientsPage() {
             </Link>
           </div>
         ) : (
-          <div className="px-6 py-4">
-            {/* Column headers */}
-            <div className="grid grid-cols-12 px-4 pb-2 border-b border-[#1e1e2a] mb-1">
-              <div className="col-span-4 text-[11px] font-medium text-[#505057] uppercase tracking-wider">Name</div>
-              <div className="col-span-4 text-[11px] font-medium text-[#505057] uppercase tracking-wider">Contact</div>
-              <div className="col-span-2 text-[11px] font-medium text-[#505057] uppercase tracking-wider">Type</div>
-              <div className="col-span-2 text-[11px] font-medium text-[#505057] uppercase tracking-wider">State</div>
-            </div>
-
-            {/* Rows */}
-            {rows.map((client) => (
-              <Link
-                key={client.id}
-                href={`/clients/${client.id}`}
-                className="grid grid-cols-12 items-center px-4 py-3 rounded-lg hover:bg-white/[0.03] transition-colors group border border-transparent hover:border-[#1e1e2a]"
-              >
-                <div className="col-span-4 flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center shrink-0">
-                    <span className="text-[12px] font-bold text-[#00d4aa]">
-                      {client.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="text-[14px] font-medium text-[#f5f5f7] truncate">{client.name}</span>
-                </div>
-
-                <div className="col-span-4 min-w-0">
-                  {client.email && (
-                    <div className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] truncate">
-                      <Mail size={11} className="shrink-0 text-[#505057]" />
-                      {client.email}
-                    </div>
-                  )}
-                  {client.phone && (
-                    <div className="flex items-center gap-1.5 text-[12px] text-[#505057] mt-0.5">
-                      <Phone size={11} className="shrink-0" />
-                      {client.phone}
-                    </div>
-                  )}
-                </div>
-
-                <div className="col-span-2">
-                  {client.business_type && (
-                    <span className="text-[12px] text-[#505057] capitalize">
-                      {client.business_type.replace(/_/g, " ")}
-                    </span>
-                  )}
-                </div>
-
-                <div className="col-span-2 flex items-center justify-between">
-                  <span className="text-[12px] text-[#505057]">{client.primary_state ?? "—"}</span>
-                  <ArrowRight
-                    size={13}
-                    className="text-[#3a3a42] opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-              </Link>
-            ))}
-          </div>
+          <ClientsTable clients={rows} />
         )}
       </div>
     </div>

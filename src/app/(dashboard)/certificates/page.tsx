@@ -11,10 +11,11 @@ import {
   Send,
   Eye,
 } from "lucide-react";
-import type { COIRequest, Certificate, COIRequestStatus, CertificateStatus } from "@/types/coi";
+import type { COIRequest, COIRequestStatus, CertificateStatus } from "@/types/coi";
 import { COVERAGE_TYPE_LABELS, formatLimit } from "@/types/coi";
 import { RejectButton } from "./_components/RejectButton";
 import { ApproveButton } from "./_components/ApproveButton";
+import { CertsTable, type CertWithSequences } from "./_components/CertsTable";
 
 export const dynamic = "force-dynamic";
 
@@ -83,13 +84,13 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
       .order("created_at", { ascending: false }),
     supabase
       .from("certificates")
-      .select("*")
+      .select("*, holder_followup_sequences!left(id, sequence_status)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
 
   const requests = (requestsData ?? []) as COIRequest[];
-  const certs = (certsData ?? []) as Certificate[];
+  const certs = (certsData ?? []) as CertWithSequences[];
 
   // Approval queue — separated from regular pending count
   const readyItems = requests.filter((r) => r.status === "ready_for_approval");
@@ -297,100 +298,9 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
               </Link>
             </EmptyState>
           ) : (
-            <table className="w-full">
-              <thead className="sticky top-0 bg-[#0d0d12] z-10">
-                <tr className="border-b border-[#1e1e2a]">
-                  <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-                    Certificate
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-                    Holder
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-                    Coverage
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-                    Issued
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-                    Expires
-                  </th>
-                  <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {certs.map((cert) => (
-                  <tr
-                    key={cert.id}
-                    className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors ${
-                      cert.has_gap ? "bg-red-950/[0.06]" : ""
-                    }`}
-                  >
-                    <td className="px-10 py-3">
-                      <Link href={`/certificates/${cert.id}`} className="block">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] text-[#505057]">
-                            {cert.certificate_number}
-                          </span>
-                          {cert.has_gap && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-red-400">
-                              <AlertTriangle size={10} /> Gap
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[14px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors mt-0.5">
-                          {cert.insured_name}
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-[13px] text-[#c5c5cb]">{cert.holder_name}</div>
-                      {cert.holder_city && (
-                        <div className="text-[11px] text-[#505057]">
-                          {[cert.holder_city, cert.holder_state]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {cert.coverage_snapshot.gl?.enabled && <CovTag label="GL" />}
-                        {cert.coverage_snapshot.auto?.enabled && <CovTag label="Auto" />}
-                        {cert.coverage_snapshot.umbrella?.enabled && (
-                          <CovTag label="Umb" />
-                        )}
-                        {cert.coverage_snapshot.wc?.enabled && <CovTag label="WC" />}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
-                      {new Date(cert.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
-                      {cert.expiration_date
-                        ? new Date(
-                            cert.expiration_date + "T00:00:00"
-                          ).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })
-                        : "—"}
-                    </td>
-                    <td className="px-10 py-3">
-                      <StatusBadge status={cert.status} table="cert" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <CertsTable certs={certs} />
           ))}
+
       </div>
     </div>
   );

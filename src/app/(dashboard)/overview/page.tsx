@@ -4,12 +4,12 @@ import Link from "next/link";
 import {
   Zap,
   Plus,
-  MoreHorizontal,
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
 import { ImportBanner } from "./_components/ImportBanner";
 import { DailyBriefing } from "@/components/briefing/DailyBriefing";
+import { PriorityRenewalsTable } from "./_components/PriorityRenewalsTable";
 
 export const dynamic = "force-dynamic";
 
@@ -45,17 +45,6 @@ function daysUntil(dateStr: string): number {
   today.setHours(0, 0, 0, 0);
   const target = new Date(dateStr + "T00:00:00");
   return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
-}
-
-function shortId(uuid: string): string {
-  return uuid.replace(/-/g, "").slice(-6).toUpperCase();
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -256,64 +245,7 @@ export default async function DashboardPage() {
                 <p className="text-[12px] text-[#3a3a42] mt-1">All active policies are more than 60 days out</p>
               </div>
             ) : (
-              urgentPolicies.map((policy, idx) => {
-                const days = daysUntil(policy.expiration_date);
-                const priority = days <= 30 ? "High" : days <= 60 ? "Normal" : "Low";
-                const prefix = "HOL";
-                const num = String(100 + idx + 1);
-
-                return (
-                  <Link
-                    key={policy.id}
-                    href={`/renewals/${policy.id}`}
-                    className="grid grid-cols-12 items-center px-6 py-[10px] border-b border-[#1e1e2a]/60 hover:bg-white/[0.015] group transition-colors cursor-pointer"
-                  >
-                    {/* ID */}
-                    <div className="col-span-1 flex items-start gap-2">
-                      <CheckCircle2
-                        size={14}
-                        className="opacity-0 group-hover:opacity-100 text-zinc-600 transition-opacity shrink-0 mt-0.5"
-                      />
-                      <div className="flex flex-col leading-tight">
-                        <span className="text-[11px] font-mono text-zinc-700 uppercase">{prefix}-</span>
-                        <span className="text-[12px] font-mono text-zinc-500 uppercase">{num}</span>
-                      </div>
-                    </div>
-
-                    {/* Title + client */}
-                    <div className="col-span-8 flex items-center gap-4 pr-4 min-w-0 overflow-hidden">
-                      <span className="text-[15px] font-medium text-white shrink-0 truncate">
-                        {policy.policy_name ?? policy.carrier ?? "Policy"}
-                      </span>
-                      <span className="text-[14px] text-zinc-400 truncate">
-                        {policy.client_name}
-                      </span>
-                    </div>
-
-                    {/* Priority dot */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          priority === "High" ? "bg-[#ff4d4d]" : "bg-[#2a2a35]"
-                        }`}
-                      />
-                    </div>
-
-                    {/* Date */}
-                    <div className="col-span-1 text-[14px] text-zinc-600 font-medium text-right">
-                      {formatDate(policy.expiration_date)}
-                    </div>
-
-                    {/* More */}
-                    <div className="col-span-1 flex justify-end">
-                      <MoreHorizontal
-                        size={16}
-                        className="text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                      />
-                    </div>
-                  </Link>
-                );
-              })
+              <PriorityRenewalsTable policies={urgentPolicies} />
             )}
           </div>
         </div>

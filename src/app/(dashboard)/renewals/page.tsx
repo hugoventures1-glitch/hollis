@@ -2,10 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Upload, Plus, ChevronRight } from "lucide-react";
-import { StageBadge } from "@/components/renewals/stage-badge";
-import { DaysBadge } from "@/components/renewals/days-badge";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignStage } from "@/types/renewals";
+import { RenewalsTable } from "./_components/RenewalsTable";
 
 export const dynamic = "force-dynamic";
 
@@ -142,85 +141,12 @@ export default async function RenewalsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table — client component for inline actions */}
       <div className="flex-1 overflow-y-auto">
         {rows.length === 0 ? (
           <EmptyState stageFilter={stageFilter} />
         ) : (
-          <table className="w-full">
-            <thead className="sticky top-0 bg-[#0d0d12] z-10">
-              <tr className="border-b border-[#1e1e2a]">
-                <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Policy</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Carrier</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Expiry</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Days</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Stage</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Last Contact</th>
-                <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Premium</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(policy => {
-                const days = daysUntilExpiry(policy.expiration_date);
-                const rowUrgent = days <= 14 && policy.status === "active";
-                return (
-                  <tr
-                    key={policy.id}
-                    className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors ${
-                      rowUrgent ? "bg-red-950/[0.08]" : ""
-                    }`}
-                  >
-                    <td className="px-10 py-3">
-                      <Link href={`/renewals/${policy.id}`} className="block">
-                        <div className="text-[14px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors leading-snug">
-                          {policy.policy_name}
-                        </div>
-                        <div className="text-[12px] text-[#8a8b91] mt-0.5">
-                          {policy.client_name}
-                          {policy.client_email && (
-                            <span className="text-[#ffffff30] mx-1">·</span>
-                          )}
-                          <span className="text-[#505057]">{policy.client_email}</span>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-[#c5c5cb]">{policy.carrier}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-[#c5c5cb] tabular-nums">
-                        {new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-US", {
-                          month: "short", day: "numeric", year: "numeric",
-                        })}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <DaysBadge days={days} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <StageBadge stage={policy.campaign_stage} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[12px] text-[#8a8b91]">
-                        {policy.last_contact_at
-                          ? new Date(policy.last_contact_at).toLocaleDateString("en-US", {
-                              month: "short", day: "numeric",
-                            })
-                          : "—"}
-                      </span>
-                    </td>
-                    <td className="px-10 py-3">
-                      <span className="text-[13px] text-[#c5c5cb]">
-                        {policy.premium
-                          ? `$${Number(policy.premium).toLocaleString()}`
-                          : "—"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <RenewalsTable policies={rows} />
         )}
       </div>
     </div>
