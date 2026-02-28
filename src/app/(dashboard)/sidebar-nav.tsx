@@ -18,6 +18,7 @@ import {
   ChevronDown,
   LogOut,
   Mail,
+  Upload,
 } from "lucide-react";
 import SearchModal from "@/components/search/SearchModal";
 
@@ -213,6 +214,7 @@ export default function SidebarNav() {
           <NavItem href="/certificates"           icon={ShieldCheck} label="Certificates"     pathname={pathname} />
           <NavItem href="/certificates/sequences" icon={Mail}        label="Follow-Ups"       pathname={pathname} />
           <NavItem href="/policies"               icon={Layers}      label="Policy Audit"     pathname={pathname} />
+          <NavItem href="/import"                icon={Upload}      label="Import"           pathname={pathname} />
 
           <SectionHeading>CRM</SectionHeading>
           <NavItem href="/clients"   icon={Users}          label="Clients"          pathname={pathname} />

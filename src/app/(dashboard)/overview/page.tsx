@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+import { ImportBanner } from "./_components/ImportBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -159,6 +160,9 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </header>
+
+      {/* ── Post-import banner (client component, localStorage-driven) ── */}
+      <ImportBanner />
 
       {/* ── Stats bar ── */}
       <div className="shrink-0 px-12 py-11 border-b border-[#252530]">
