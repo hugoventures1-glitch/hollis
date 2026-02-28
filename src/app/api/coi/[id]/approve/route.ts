@@ -91,6 +91,7 @@ export async function POST(request: NextRequest, { params }: PageParams) {
             from: process.env.RESEND_FROM_EMAIL ?? "certs@hollis.ai",
             to: recipient,
             subject: `Certificate of Insurance — ${cert.insured_name}`,
+            text: `Please find your Certificate of Insurance attached.\n\nInsured: ${cert.insured_name}\nCertificate #: ${cert.certificate_number}`,
             attachments: [
               {
                 filename: `COI-${cert.certificate_number}.pdf`,

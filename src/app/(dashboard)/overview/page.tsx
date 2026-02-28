@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { ImportBanner } from "./_components/ImportBanner";
+import { DailyBriefing } from "@/components/briefing/DailyBriefing";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +161,9 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </header>
+
+      {/* ── Daily briefing (client component, AI-generated) ── */}
+      <DailyBriefing />
 
       {/* ── Post-import banner (client component, localStorage-driven) ── */}
       <ImportBanner />
