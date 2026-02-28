@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Layers,
   Users,
-  ClipboardCheck,
+  FileText,
   ChevronDown,
   LogOut,
   Mail,
@@ -218,7 +218,7 @@ export default function SidebarNav() {
 
           <SectionHeading>CRM</SectionHeading>
           <NavItem href="/clients"   icon={Users}          label="Clients"          pathname={pathname} />
-          <NavItem href="/documents" icon={ClipboardCheck} label="Document Chasing" badge="5" pathname={pathname} />
+          <NavItem href="/documents" icon={FileText}       label="Documents"       pathname={pathname} />
         </div>
 
         {/* User footer */}
