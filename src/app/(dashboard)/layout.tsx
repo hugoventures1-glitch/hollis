@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SidebarNav from "./sidebar-nav";
+import AssistantPanelWrapper from "@/components/assistant/AssistantPanelWrapper";
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
     <div className="flex h-screen overflow-hidden">
       <SidebarNav />
       <main className="flex-1 overflow-hidden">{children}</main>
+      <AssistantPanelWrapper />
     </div>
   );
 }
