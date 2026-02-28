@@ -3,13 +3,15 @@
  * Auth required.
  *
  * One-click approval for auto-generated COIs. Sets the request status to
- * 'sent' and marks the linked certificate as sent. No email is dispatched
- * yet — that will be wired in when Resend is ready (same pattern as outbox).
+ * 'sent' and marks the linked certificate as sent. Sends COI PDF via Resend.
  *
  * [id] here is the coi_request id.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getResendClient } from "@/lib/resend/client";
+import { renderCOIPDF } from "@/lib/coi/pdf";
+import type { Certificate } from "@/types/coi";
 
 interface PageParams {
   params: Promise<{ id: string }>;
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   // Fetch the request to confirm ownership and get the linked certificate id
   const { data: coiRequest, error: fetchErr } = await supabase
     .from("coi_requests")
-    .select("id, agent_id, status, certificate_id")
+    .select("id, agent_id, status, certificate_id, requester_email")
     .eq("id", id)
     .eq("agent_id", user.id)
     .single();
@@ -68,17 +70,44 @@ export async function POST(request: NextRequest, { params }: PageParams) {
       .eq("user_id", user.id);
   }
 
-  // ── TODO: Wire in Resend email delivery here when ready ──────────────────
-  // const cert = await supabase.from("certificates").select("*").eq("id", coiRequest.certificate_id).single();
-  // const pdfBuffer = await renderCOIPDF(cert.data);
-  // const resend = getResendClient();
-  // await resend.emails.send({
-  //   from: process.env.RESEND_FROM_EMAIL ?? "certs@hollis.ai",
-  //   to: cert.data.holder_email ?? coiRequest.requester_email,
-  //   subject: `Certificate of Insurance — ${cert.data.insured_name}`,
-  //   attachments: [{ filename: `COI-${cert.data.certificate_number}.pdf`, content: pdfBuffer }],
-  // });
-  // ─────────────────────────────────────────────────────────────────────────
+  try {
+    if (coiRequest.certificate_id) {
+      const { data: certData, error: certErr } = await supabase
+        .from("certificates")
+        .select("*")
+        .eq("id", coiRequest.certificate_id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!certErr && certData) {
+        const cert = certData as Certificate;
+        const pdfBuffer = await renderCOIPDF(cert);
+        const recipient =
+          cert.holder_email?.trim() || coiRequest.requester_email?.trim();
+
+        if (recipient) {
+          const resend = getResendClient();
+          await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL ?? "certs@hollis.ai",
+            to: recipient,
+            subject: `Certificate of Insurance — ${cert.insured_name}`,
+            attachments: [
+              {
+                filename: `COI-${cert.certificate_number}.pdf`,
+                content: pdfBuffer,
+              },
+            ],
+          });
+        } else {
+          console.warn(
+            `[coi/approve] Request ${id}: holder_email and requester_email both null — COI approved, email skipped`
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[coi/approve] Email delivery failed (approval unchanged):", err);
+  }
 
   console.log(
     `[coi/approve] Request ${id} approved and dispatched by agent ${user.id}`

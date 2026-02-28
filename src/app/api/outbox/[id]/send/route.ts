@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getResendClient } from "@/lib/resend/client";
 
 interface PageParams {
   params: Promise<{ id: string }>;
@@ -40,23 +41,23 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   const finalSubject = subject?.trim() || draft.subject;
   const finalBody = body?.trim() || draft.body;
 
-  // ── TODO: Wire in Resend here when ready ─────────────────────────────────
-  // import { getResendClient } from "@/lib/resend/client";
-  // const resend = getResendClient();
-  // const policyData = Array.isArray(draft.policies)
-  //   ? draft.policies[0]
-  //   : draft.policies;
-  // await resend.emails.send({
-  //   from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
-  //   to: policyData?.client_email ?? "",
-  //   subject: finalSubject,
-  //   text: finalBody,
-  // });
-  // ─────────────────────────────────────────────────────────────────────────
-
   const policyData = Array.isArray(draft.policies)
     ? draft.policies[0]
     : draft.policies;
+  const clientEmail = policyData?.client_email?.trim();
+  if (clientEmail) {
+    const resend = getResendClient();
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL ?? "outbox@hollis.ai",
+      to: clientEmail,
+      subject: finalSubject,
+      text: finalBody,
+    });
+  } else {
+    console.warn(
+      `[outbox/send] Draft ${id} has no client_email — skipping send, marking as sent (agent may follow up manually)`
+    );
+  }
 
   console.log(
     `[outbox/send] Agent reviewed and sent draft ${id} to ${policyData?.client_name ?? "client"} — subject: "${finalSubject}"`
