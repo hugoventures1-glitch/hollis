@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Zap,
@@ -20,7 +20,8 @@ import {
   Mail,
   Upload,
 } from "lucide-react";
-import SearchModal from "@/components/search/SearchModal";
+import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
+import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -84,32 +85,8 @@ function NavItem({ href, icon: Icon, label, badge, pathname }: NavItemProps) {
 export default function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [pendingDrafts, setPendingDrafts] = useState<number>(0);
-
-  // Fetch pending draft count on mount
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("outbox_drafts")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending")
-      .then(({ count }) => {
-        if (count !== null) setPendingDrafts(count);
-      });
-  }, []);
-
-  // Global ⌘K / Ctrl+K shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  const { openPanel } = useUnifiedPanel();
+  const counts = useSidebarCounts();
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -140,16 +117,16 @@ export default function SidebarNav() {
 
         {/* Nav */}
         <div className="px-4 flex-1 overflow-y-auto space-y-0.5">
-          {/* Search */}
+          {/* Search — opens unified AI panel, teal border indicates something special */}
           <button
-            onClick={() => setSearchOpen(true)}
-            className="w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7] transition-colors group"
+            onClick={openPanel}
+            className="w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7] border border-[#00d4aa]/30 hover:border-[#00d4aa]/50 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <Search
                 size={18}
                 strokeWidth={1.5}
-                className="text-[#8a8b91] group-hover:text-[#f5f5f7] transition-colors"
+                className="text-[#8a8b91] group-hover:text-[#00d4aa] transition-colors"
               />
               <span className="text-[15px] font-medium leading-none tracking-tight">
                 Search
@@ -183,9 +160,9 @@ export default function SidebarNav() {
                 Outbox
               </span>
             </div>
-            {pendingDrafts > 0 && (
+            {counts.outbox > 0 && (
               <span className="text-[11px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 border border-[#00d4aa]/20 rounded-full px-1.5 py-0.5 leading-none">
-                {pendingDrafts}
+                {counts.outbox}
               </span>
             )}
           </Link>
@@ -205,20 +182,19 @@ export default function SidebarNav() {
                 Inbox
               </span>
             </div>
-            <span className="text-[13px] font-medium text-[#5e5e64]">2</span>
           </Link>
 
           <SectionHeading>Workspace</SectionHeading>
           <NavItem href="/overview"               icon={LayoutGrid}  label="Overview"         pathname={pathname} />
-          <NavItem href="/renewals"               icon={RefreshCw}   label="Renewals" badge="14" pathname={pathname} />
-          <NavItem href="/certificates"           icon={ShieldCheck} label="Certificates"     pathname={pathname} />
+          <NavItem href="/renewals"               icon={RefreshCw}   label="Renewals"         pathname={pathname} badge={counts.renewals > 0 ? String(counts.renewals) : undefined} />
+          <NavItem href="/certificates"           icon={ShieldCheck} label="Certificates"     pathname={pathname} badge={counts.coi > 0 ? String(counts.coi) : undefined} />
           <NavItem href="/certificates/sequences" icon={Mail}        label="Follow-Ups"       pathname={pathname} />
           <NavItem href="/policies"               icon={Layers}      label="Policy Audit"     pathname={pathname} />
           <NavItem href="/import"                icon={Upload}      label="Import"           pathname={pathname} />
 
           <SectionHeading>CRM</SectionHeading>
           <NavItem href="/clients"   icon={Users}          label="Clients"          pathname={pathname} />
-          <NavItem href="/documents" icon={FileText}       label="Documents"       pathname={pathname} />
+          <NavItem href="/documents" icon={FileText}       label="Documents"       pathname={pathname} badge={counts.docChase > 0 ? String(counts.docChase) : undefined} />
         </div>
 
         {/* User footer */}
@@ -245,8 +221,6 @@ export default function SidebarNav() {
           </div>
         </div>
       </aside>
-
-      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }

@@ -2,28 +2,170 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Sparkles, X, Trash2, ArrowUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Sparkles,
+  Search,
+  Minus,
+  Trash2,
+  ArrowUp,
+  ArrowRight,
+  Check,
+  Paperclip,
+  RotateCcw,
+  X,
+  Loader2,
+  FileText,
+  Shield,
+  Users,
+  ShieldCheck,
+  FolderOpen,
+  Inbox,
+} from "lucide-react";
 import type { AssistantMessage, AssistantAction, AssistantPage } from "@/types/assistant";
+import type { SearchResult, SearchResponse } from "@/lib/search-types";
+import {
+  SEARCH_DISPLAY_ORDER,
+  SUGGESTED_SEARCH_QUERIES,
+} from "@/lib/search-types";
+import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
+
+// ── Search config & helpers ────────────────────────────────────────────────────
+
+const TYPE_CONFIG: Record<
+  import("@/lib/search-types").SearchResultType,
+  { label: string; icon: React.ElementType; color: string; href: (id: string) => string }
+> = {
+  policy:       { label: "Policies",      icon: FileText,    color: "#00d4aa", href: (id) => `/renewals/${id}` },
+  certificate:  { label: "Certificates",  icon: Shield,      color: "#7c6cf8", href: (id) => `/certificates/${id}` },
+  client:       { label: "Clients",       icon: Users,       color: "#f59e0b", href: (id) => `/clients/${id}` },
+  coi_request:  { label: "COI Requests",  icon: ShieldCheck, color: "#34d399", href: ()   => `/certificates?tab=requests` },
+  doc_chase:    { label: "Doc Requests",  icon: FolderOpen,  color: "#60a5fa", href: ()   => `/documents` },
+  outbox_draft: { label: "Outbox",        icon: Inbox,       color: "#a78bfa", href: ()   => `/outbox` },
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  pending: "Not started",
+  email_90_sent: "90-day email sent",
+  email_60_sent: "60-day email sent",
+  sms_30_sent: "SMS sent",
+  script_14_ready: "Script ready",
+  complete: "Complete",
+};
+
+const COI_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+  sent: "Sent",
+  ready_for_approval: "Ready to send",
+  needs_review: "Needs review",
+};
+
+function fmtDate(s?: string | null): string {
+  if (!s) return "";
+  return new Date(s + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function fmtTimestamp(s?: string | null): string {
+  if (!s) return "";
+  return new Date(s).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getSearchTitle(r: SearchResult): string {
+  switch (r._type) {
+    case "policy":       return r.client_name || r.policy_name || "Untitled";
+    case "certificate":  return r.insured_name || "Untitled";
+    case "client":       return r.name || "Untitled";
+    case "coi_request":  return r.insured_name || "Untitled";
+    case "doc_chase":    return r.client_name || "Untitled";
+    case "outbox_draft": return r.subject || "Untitled";
+  }
+}
+
+function getSearchSubtitle(r: SearchResult): string {
+  switch (r._type) {
+    case "policy": {
+      const parts: string[] = [];
+      if (r.policy_name && r.policy_name !== r.client_name) parts.push(r.policy_name);
+      if (r.carrier) parts.push(r.carrier);
+      return parts.join("  ·  ");
+    }
+    case "certificate":
+      return [r.certificate_number, r.holder_name].filter(Boolean).join("  ·  ");
+    case "client":
+      return [r.email, r.phone].filter(Boolean).join("  ·  ");
+    case "coi_request":
+      return [`Holder: ${r.holder_name}`, r.requester_name ? `Req by ${r.requester_name}` : ""].filter(Boolean).join("  ·  ");
+    case "doc_chase":
+      return [r.document_type, r.client_email].filter(Boolean).join("  ·  ");
+    case "outbox_draft":
+      return r.created_at ? `Created ${fmtTimestamp(r.created_at)}` : "";
+  }
+}
+
+function getSearchMeta(r: SearchResult): string {
+  switch (r._type) {
+    case "policy": {
+      const parts: string[] = [];
+      const exp = r.expiration_date ? `Exp ${fmtDate(r.expiration_date)}` : "";
+      if (exp) parts.push(exp);
+      if (r.campaign_stage && STAGE_LABELS[r.campaign_stage])
+        parts.push(STAGE_LABELS[r.campaign_stage]);
+      if (r.status && r.status !== "active") parts.push(r.status);
+      if (r.premium) parts.push(`$${Number(r.premium).toLocaleString()} premium`);
+      return parts.join("  ·  ");
+    }
+    case "certificate": {
+      const parts: string[] = [];
+      if (r.expiration_date) parts.push(`Exp ${fmtDate(r.expiration_date)}`);
+      if (r.holder_city || r.holder_state)
+        parts.push([r.holder_city, r.holder_state].filter(Boolean).join(", "));
+      if (r.status) parts.push(r.status.charAt(0).toUpperCase() + r.status.slice(1));
+      return parts.join("  ·  ");
+    }
+    case "client": {
+      const parts: string[] = [];
+      if (r.business_type) parts.push(r.business_type.replace(/_/g, " "));
+      if (r.primary_state) parts.push(r.primary_state);
+      return parts.join("  ·  ");
+    }
+    case "coi_request":
+      return r.status ? (COI_STATUS_LABELS[r.status] ?? r.status) : "";
+    case "doc_chase":
+      return r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : "";
+    case "outbox_draft":
+      return r.status
+        ? r.status === "sent"
+          ? `Sent ${fmtTimestamp(r.sent_at)}`
+          : r.status.charAt(0).toUpperCase() + r.status.slice(1)
+        : "";
+  }
+}
 
 // ── Loading dots ──────────────────────────────────────────────────────────────
 
 function LoadingDots() {
   return (
-    <div className="flex items-center gap-1.5 py-1 px-0.5">
+    <div className="flex items-center gap-1.5 py-1">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-zinc-600"
-          style={{
-            animation: `hollis-pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }}
+          className="w-1.5 h-1.5 rounded-full bg-zinc-500/60"
+          style={{ animation: `hollis-pulse 1.4s ease-in-out ${i * 0.2}s infinite` }}
         />
       ))}
     </div>
   );
 }
-
-// ── Page label map ────────────────────────────────────────────────────────────
 
 const PAGE_LABELS: Record<AssistantPage, string> = {
   overview: "Overview",
@@ -36,39 +178,210 @@ const PAGE_LABELS: Record<AssistantPage, string> = {
   other: "Hollis",
 };
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface AssistantPanelProps {
   page: AssistantPage;
   data?: Record<string, unknown>;
 }
 
+type ViewMode = "closed" | "center" | "sideChat";
+
+const SIDE_CHAT_WIDTH = 280;
+const SIDE_CHAT_HEIGHT = 340;
+
+// ── Message bubble ─────────────────────────────────────────────────────────────
+
+function FormattedResponse({ content, compact, prominent }: { content: string; compact?: boolean; prominent?: boolean }) {
+  const paragraphs = content.split(/\n\n+/).filter(Boolean);
+  const sizeClass = compact ? "text-[13px]" : prominent ? "text-[15px]" : "text-[15px]";
+  const lineClass = compact ? "leading-relaxed" : "leading-[1.65]";
+  const colorClass = prominent ? "text-white" : "text-zinc-300";
+  return (
+    <div className={`${sizeClass} ${lineClass} ${colorClass} space-y-3`}>
+      {paragraphs.map((p, i) => (
+        <p key={i} className="m-0">
+          {p.split("\n").map((line, j) => (
+            <span key={j}>
+              {line}
+              {j < p.split("\n").length - 1 && <br />}
+            </span>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function MessageBubble({
+  msg,
+  onAction,
+  onLinkClick,
+  compact,
+  chatLayout,
+}: {
+  msg: AssistantMessage;
+  onAction: (a: AssistantAction) => void;
+  onLinkClick: () => void;
+  compact?: boolean;
+  chatLayout?: boolean;
+}) {
+  const isUser = msg.role === "user";
+  const formatTime = (ts: string) =>
+    new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  if (chatLayout) {
+    return (
+      <div className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
+        <div className={`flex items-center gap-2 ${isUser ? "flex-row-reverse" : ""}`}>
+          <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+            {isUser ? "You" : "Hollis"}
+          </span>
+          <span className="text-[11px] text-zinc-600">{formatTime(msg.timestamp)}</span>
+        </div>
+        {isUser ? (
+          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white max-w-[85%] leading-relaxed">
+            {msg.content}
+          </div>
+        ) : (
+          <>
+            <div className="max-w-[95%]">
+              <FormattedResponse content={msg.content} compact={compact} prominent />
+            </div>
+            {msg.actions && msg.actions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {msg.actions.map((action, i) =>
+                  action.href ? (
+                    <Link
+                      key={i}
+                      href={action.href}
+                      onClick={onLinkClick}
+                      className="inline-flex items-center gap-2 bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] rounded-lg px-3 py-2 text-[13px] text-zinc-200 hover:text-white transition-colors"
+                    >
+                      <ArrowRight size={14} />
+                      {action.label}
+                    </Link>
+                  ) : (
+                    <button
+                      key={i}
+                      onClick={() => onAction(action)}
+                      className="inline-flex items-center gap-2 bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] rounded-lg px-3 py-2 text-[13px] text-zinc-200 hover:text-white transition-colors"
+                    >
+                      <Check size={14} />
+                      {action.label}
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+      {isUser ? (
+        <div className="bg-white/5 border border-white/10 rounded-lg px-3.5 py-2 text-[13px] text-zinc-100 max-w-[92%] leading-relaxed">
+          {msg.content}
+        </div>
+      ) : (
+        <div className={`max-w-[95%] ${compact ? "pr-1" : "pr-2"}`}>
+          <FormattedResponse content={msg.content} compact={compact} />
+        </div>
+      )}
+      {msg.role === "assistant" && msg.actions && msg.actions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {msg.actions.map((action, i) =>
+            action.href ? (
+              <Link
+                key={i}
+                href={action.href}
+                onClick={onLinkClick}
+                className="bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] hover:border-[#00d4aa]/40 rounded-md px-2.5 py-1.5 text-[12px] text-zinc-400 hover:text-[#00d4aa] transition-colors"
+              >
+                {action.label}
+              </Link>
+            ) : (
+              <button
+                key={i}
+                onClick={() => onAction(action)}
+                className="bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] hover:border-[#00d4aa]/40 rounded-md px-2.5 py-1.5 text-[12px] text-zinc-400 hover:text-[#00d4aa] transition-colors"
+              >
+                {action.label}
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AssistantPanel({ page, data }: AssistantPanelProps) {
-  // Open state — persisted to localStorage
-  const [open, setOpen] = useState<boolean>(false);
+  const router = useRouter();
+  const { registerOpenHandler } = useUnifiedPanel();
+
+  const [viewMode, setViewMode] = useState<ViewMode>("closed");
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Search state (unified with AI)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const prevPageRef = useRef<AssistantPage>(page);
-  const lastGreetedPageRef = useRef<AssistantPage | null>(null);
+  const unifiedInputRef = useRef<HTMLInputElement>(null);
 
-  // Hydrate open state from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("hollis-assistant-open");
-    if (stored === "true") setOpen(true);
+    registerOpenHandler(() => {
+      setViewMode("center");
+      setTimeout(() => unifiedInputRef.current?.focus(), 180);
+    });
+  }, [registerOpenHandler]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("hollis-assistant-view");
+    if (stored === "center" || stored === "sideChat") setViewMode(stored);
   }, []);
 
-  // Persist open state
   useEffect(() => {
-    localStorage.setItem("hollis-assistant-open", open ? "true" : "false");
-  }, [open]);
+    if (viewMode !== "closed") {
+      localStorage.setItem("hollis-assistant-view", viewMode);
+    }
+  }, [viewMode]);
 
-  // ── API call ────────────────────────────────────────────────────────────────
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSearchResponse(null);
+      setSearchError(null);
+      return;
+    }
+    setSearchLoading(true);
+    setSearchError(null);
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q }),
+      });
+      if (!res.ok) {
+        setSearchError("Something went wrong. Try again.");
+        return;
+      }
+      setSearchResponse(await res.json());
+    } catch {
+      setSearchError("Something went wrong. Check your connection.");
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
 
   const fetchReply = useCallback(
     async (
@@ -90,72 +403,34 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     [page, data]
   );
 
-  // ── Greeting ────────────────────────────────────────────────────────────────
-
-  const fetchGreeting = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { reply, actions } = await fetchReply("hello", []);
-      const msg: AssistantMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: reply,
-        timestamp: new Date().toISOString(),
-        actions,
-      };
-      setMessages([msg]);
-    } catch {
-      // silently fail — panel still usable without greeting
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchReply]);
-
-  // Greet whenever panel is open and the page has changed (or first open)
-  const doGreetIfNeeded = useCallback(() => {
-    if (lastGreetedPageRef.current !== page) {
-      lastGreetedPageRef.current = page;
-      setMessages([]);
-      fetchGreeting();
-    }
-  }, [page, fetchGreeting]);
-
-  useEffect(() => {
-    if (open) doGreetIfNeeded();
-  }, [open, doGreetIfNeeded]);
-
-  // When page changes while panel is open, clear history; doGreetIfNeeded will fire
-  useEffect(() => {
-    if (page !== prevPageRef.current) {
-      prevPageRef.current = page;
-      // doGreetIfNeeded will handle clear + re-greet via the open/doGreetIfNeeded effect
-    }
-  }, [page]);
-
-  // ── Keyboard shortcut ⌘J / Ctrl+J ──────────────────────────────────────────
-
+  // ⌘K and ⌘J both open the unified panel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "j") {
+      if (e.key === "Escape") {
         e.preventDefault();
-        setOpen((prev) => {
-          const next = !prev;
-          if (next) setTimeout(() => inputRef.current?.focus(), 220);
+        if (viewMode === "center") {
+          setViewMode("sideChat");
+        } else if (viewMode === "sideChat") {
+          setViewMode("closed");
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "j" || e.key === "k")) {
+        e.preventDefault();
+        setViewMode((prev) => {
+          const next = prev === "closed" ? "center" : "closed";
+          if (next === "center") setTimeout(() => unifiedInputRef.current?.focus(), 180);
           return next;
         });
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  // ── Scroll to bottom ────────────────────────────────────────────────────────
+  }, [viewMode]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  // ── Send message ────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -169,18 +444,15 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
         timestamp: new Date().toISOString(),
       };
 
-      // Keep last 3 messages for history before adding the new one
       const historySnapshot = messages.slice(-3);
-
       setMessages((prev) => {
         const next = [...prev, userMsg];
         return next.length > 20 ? next.slice(-20) : next;
       });
       setInput("");
-      // Reset textarea height
-      if (inputRef.current) {
-        inputRef.current.style.height = "auto";
-      }
+      setSearchQuery("");
+      setSearchResponse(null);
+      if (inputRef.current) inputRef.current.style.height = "auto";
       setLoading(true);
 
       try {
@@ -197,13 +469,12 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           return next.length > 20 ? next.slice(-20) : next;
         });
       } catch {
-        const errMsg: AssistantMessage = {
+        setMessages((prev) => [...prev, {
           id: crypto.randomUUID(),
           role: "assistant",
           content: "Sorry, I couldn't reach the server. Check your connection and try again.",
           timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, errMsg]);
+        }]);
       } finally {
         setLoading(false);
       }
@@ -211,37 +482,47 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     [messages, loading, fetchReply]
   );
 
-  // ── Action handler ──────────────────────────────────────────────────────────
-
   const handleAction = (action: AssistantAction) => {
-    if (action.onClick === "refresh") {
-      window.location.reload();
-    }
+    if (action.onClick === "refresh") window.location.reload();
   };
 
-  // ── Clear conversation ──────────────────────────────────────────────────────
-
-  const clearConversation = () => {
-    lastGreetedPageRef.current = null;
+  const clearAndClose = () => {
     setMessages([]);
-    // Will trigger re-greet via the open/doGreetIfNeeded effect
-    if (open) {
-      lastGreetedPageRef.current = null;
-      doGreetIfNeeded();
-    }
+    setSearchQuery("");
+    setSearchResponse(null);
+    setSearchError(null);
+    setViewMode("closed");
   };
 
-  // ── Toggle panel ────────────────────────────────────────────────────────────
+  const condenseToSide = () => setViewMode("sideChat");
+  const close = () => setViewMode("closed");
 
-  const toggleOpen = () => {
-    setOpen((prev) => {
-      const next = !prev;
-      if (next) setTimeout(() => inputRef.current?.focus(), 220);
-      return next;
-    });
+  const handleUnifiedInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    setSearchQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 400);
   };
 
-  // ── Input handlers ──────────────────────────────────────────────────────────
+  const handleUnifiedSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    sendMessage(trimmed);
+  };
+
+  const handleSuggestionClick = (s: string) => {
+    setInput(s);
+    setSearchQuery(s);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    doSearch(s);
+  };
+
+  const handleSearchResultClick = (result: SearchResult) => {
+    router.push(TYPE_CONFIG[result._type].href(result.id));
+    condenseToSide();
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -253,430 +534,373 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 72) + "px";
+    el.style.height = Math.min(el.scrollHeight, 64) + "px";
   };
 
-  // ── Timestamp formatter ─────────────────────────────────────────────────────
-
-  const formatTime = (ts: string) =>
-    new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // Search results state
+  const grouped = searchResponse?.results.reduce<
+    Partial<Record<import("@/lib/search-types").SearchResultType, SearchResult[]>>
+  >(
+    (acc, r) => {
+      (acc[r._type] ??= []).push(r);
+      return acc;
+    },
+    {}
+  );
+  const hasSearchResults =
+    grouped &&
+    SEARCH_DISPLAY_ORDER.some((t) => (grouped[t]?.length ?? 0) > 0);
+  const showNoSearchResults =
+    searchResponse &&
+    !searchLoading &&
+    !hasSearchResults &&
+    searchQuery.trim();
+  const inChatMode = messages.length > 0 || loading;
 
   return (
     <>
-      {/* Keyframe styles injected once */}
       <style>{`
-        @keyframes hollis-pulse {
-          0%, 100% { opacity: 0.25; }
-          50%       { opacity: 1; }
+        @keyframes hollis-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+        @keyframes hollis-float-in {
+          0% { opacity: 0; transform: scale(0.97) translateY(12px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
 
-      {/* Backdrop — visible only when open, click to close */}
-      <div
-        onClick={() => setOpen(false)}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 30,
-          background: "rgba(0,0,0,0.28)",
-          backdropFilter: open ? "blur(1.5px)" : "none",
-          WebkitBackdropFilter: open ? "blur(1.5px)" : "none",
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 200ms ease-out",
-        }}
-      />
-
-      {/* Panel */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          height: "100%",
-          width: 320,
-          zIndex: 40,
-          display: "flex",
-          flexDirection: "column",
-          background: "#111118",
-          borderLeft: "1px solid #1e1e2a",
-          transform: open ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 200ms ease-out",
-        }}
-      >
-        {/* Header */}
+      {/* ── Center mode: unified search + AI (blur overlay) ────────────────────── */}
+      {viewMode === "center" && (
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "12px 16px",
-            borderBottom: "1px solid #1e1e2a",
-            flexShrink: 0,
-          }}
+          className="fixed inset-0 z-[9998] flex items-start justify-center pt-[16vh] cursor-default"
+          onClick={() => setViewMode("closed")}
         >
-          {/* Hollis label + live dot */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#a1a1aa",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Hollis
-            </span>
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#00d4aa",
-                boxShadow: "0 0 6px rgba(0,212,170,0.8)",
-              }}
-            />
-          </div>
+          {/* Subtle backdrop for focus */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" aria-hidden />
 
-          {/* Page context pill */}
-          <span
+          <div
+            className="relative w-full max-w-[680px] mx-6 flex flex-col rounded-xl overflow-hidden cursor-default"
+            onClick={(e) => e.stopPropagation()}
             style={{
-              fontSize: 12,
-              color: "#52525b",
-              background: "#1a1a24",
-              border: "1px solid #2a2a35",
-              borderRadius: 999,
-              padding: "2px 8px",
-              lineHeight: "1.4",
+              animation: "hollis-float-in 0.4s ease-out forwards",
+              background: "rgba(26, 26, 30, 0.95)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(0,212,170,0.22)",
+              boxShadow: `
+                0 0 0 1px rgba(0,212,170,0.08),
+                0 0 40px -8px rgba(0,212,170,0.25),
+                0 0 80px -16px rgba(0,212,170,0.12),
+                0 24px 48px -12px rgba(0,0,0,0.4),
+                0 12px 24px -8px rgba(0,0,0,0.3)
+              `,
             }}
           >
-            {PAGE_LABELS[page]}
-          </span>
-
-          {/* Clear button */}
-          <button
-            onClick={clearConversation}
-            title="Clear conversation"
-            style={{
-              marginLeft: "auto",
-              color: "#52525b",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: 4,
-              display: "flex",
-              alignItems: "center",
-              borderRadius: 4,
-              transition: "color 150ms",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#a1a1aa")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#52525b")}
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-
-        {/* Message thread */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 16,
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: msg.role === "user" ? "flex-end" : "flex-start",
-              }}
-            >
-              {/* Bubble */}
-              {msg.role === "user" ? (
-                <div
-                  style={{
-                    background: "#1a1a24",
-                    border: "1px solid #2a2a35",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    color: "#ffffff",
-                    maxWidth: "90%",
-                    lineHeight: "1.5",
-                  }}
-                >
-                  {msg.content}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: "#d4d4d8",
-                    lineHeight: "1.65",
-                    maxWidth: "90%",
-                  }}
-                >
-                  {msg.content}
-                </div>
-              )}
-
-              {/* Action buttons (assistant only) */}
-              {msg.role === "assistant" &&
-                msg.actions &&
-                msg.actions.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 6,
-                      marginTop: 8,
-                    }}
-                  >
-                    {msg.actions.map((action, i) =>
-                      action.href ? (
-                        <Link
-                          key={i}
-                          href={action.href}
-                          onClick={() => setOpen(false)}
-                          style={{
-                            background: "#1a1a24",
-                            border: "1px solid #2a2a35",
-                            borderRadius: 999,
-                            padding: "6px 12px",
-                            fontSize: 13,
-                            color: "#a1a1aa",
-                            textDecoration: "none",
-                            transition: "border-color 150ms, color 150ms",
-                            display: "inline-block",
-                            lineHeight: "1.4",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor =
-                              "rgba(0,212,170,0.4)";
-                            e.currentTarget.style.color = "#00d4aa";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = "#2a2a35";
-                            e.currentTarget.style.color = "#a1a1aa";
-                          }}
-                        >
-                          {action.label}
-                        </Link>
-                      ) : (
-                        <button
-                          key={i}
-                          onClick={() => handleAction(action)}
-                          style={{
-                            background: "#1a1a24",
-                            border: "1px solid #2a2a35",
-                            borderRadius: 999,
-                            padding: "6px 12px",
-                            fontSize: 13,
-                            color: "#a1a1aa",
-                            cursor: "pointer",
-                            transition: "border-color 150ms, color 150ms",
-                            lineHeight: "1.4",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor =
-                              "rgba(0,212,170,0.4)";
-                            e.currentTarget.style.color = "#00d4aa";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = "#2a2a35";
-                            e.currentTarget.style.color = "#a1a1aa";
-                          }}
-                        >
-                          {action.label}
-                        </button>
-                      )
+            {!inChatMode ? (
+              <>
+                {/* Unified input: search + ask */}
+                <form onSubmit={handleUnifiedSubmit} className="flex items-center gap-3 px-5 py-4 pb-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#00d4aa]/10 flex items-center justify-center shrink-0">
+                    {searchLoading ? (
+                      <Loader2 size={15} className="text-[#00d4aa]/80 animate-spin" />
+                    ) : (
+                      <Search size={15} className="text-[#00d4aa]/80" />
                     )}
                   </div>
-                )}
+                  <input
+                    ref={unifiedInputRef}
+                    type="text"
+                    value={input}
+                    onChange={handleUnifiedInputChange}
+                    placeholder="Search clients, policies, certificates… or ask anything"
+                    className="flex-1 bg-transparent border-none outline-none text-[15px] text-zinc-100 placeholder-zinc-500 min-w-0"
+                  />
+                  {input && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInput("");
+                        setSearchQuery("");
+                        setSearchResponse(null);
+                        setSearchError(null);
+                      }}
+                      className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={!input.trim()}
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-opacity ${
+                      !input.trim() ? "opacity-50 cursor-default" : "opacity-100 hover:opacity-90"
+                    }`}
+                    style={{ background: "#00d4aa" }}
+                  >
+                    <ArrowUp size={16} className="text-black" />
+                  </button>
+                </form>
 
-              {/* Timestamp */}
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "#3f3f46",
-                  marginTop: 4,
-                }}
-              >
-                {formatTime(msg.timestamp)}
-              </span>
-            </div>
-          ))}
+                <div className="flex items-center justify-between px-5 pb-3 -mt-1">
+                  <span className="text-[11px] text-zinc-500">
+                    {PAGE_LABELS[page]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={condenseToSide}
+                    title="Minimize (Esc)"
+                    className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                  >
+                    <Minus size={13} />
+                  </button>
+                </div>
 
-          {/* Loading dots */}
-          {loading && <LoadingDots />}
+                {/* Search results / suggestions / no-results body */}
+                <div className="flex-1 overflow-y-auto max-h-[45vh] min-h-[120px] px-5 pb-5">
+                  {searchError && (
+                    <div className="flex items-center gap-2.5 py-2.5 text-[13px] text-red-400">
+                      <span>⚠</span>
+                      {searchError}
+                    </div>
+                  )}
 
-          <div ref={messagesEndRef} />
+                  {searchResponse?.summary && !searchError && (
+                    <div className="py-2.5 text-[13px] text-zinc-400 leading-relaxed border-b border-white/5 mb-3">
+                      {searchResponse.summary}
+                    </div>
+                  )}
+
+                  {hasSearchResults && !searchError ? (
+                    <div className="py-1.5 space-y-2">
+                      {SEARCH_DISPLAY_ORDER.filter((t) => (grouped![t]?.length ?? 0) > 0).map((type) => {
+                        const config = TYPE_CONFIG[type];
+                        const Icon = config.icon;
+                        return (
+                          <div key={type}>
+                            <div className="flex items-center gap-2 pt-2 pb-1">
+                              <Icon size={11} style={{ color: config.color }} />
+                              <span
+                                className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                style={{ color: config.color }}
+                              >
+                                {config.label}
+                              </span>
+                            </div>
+                            {grouped![type]!.map((result) => {
+                              const subtitle = getSearchSubtitle(result);
+                              const meta = getSearchMeta(result);
+                              return (
+                                <button
+                                  key={result.id}
+                                  onClick={() => handleSearchResultClick(result)}
+                                  className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-colors group text-left"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-[14px] font-medium text-zinc-300 truncate group-hover:text-white transition-colors">
+                                      {getSearchTitle(result)}
+                                    </div>
+                                    {subtitle && (
+                                      <div className="text-[12px] text-zinc-500 truncate mt-0.5">
+                                        {subtitle}
+                                      </div>
+                                    )}
+                                    {meta && meta !== subtitle && (
+                                      <div className="text-[11px] text-zinc-600 truncate mt-0.5">
+                                        {meta}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <ArrowRight
+                                    size={13}
+                                    className="text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:text-[#00d4aa] transition-all shrink-0 ml-3"
+                                  />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : showNoSearchResults ? (
+                    <div className="pt-4">
+                      <div className="text-[14px] text-zinc-400 mb-0.5">
+                        No results for &ldquo;{searchQuery.trim()}&rdquo;
+                      </div>
+                      <div className="text-[12px] text-zinc-600 mb-4">
+                        Try a broader term, or ask Hollis for help.
+                      </div>
+                    </div>
+                  ) : !searchQuery ? (
+                    <div className="py-2">
+                      <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest mb-2">
+                        Try asking
+                      </div>
+                      <div className="space-y-0.5">
+                        {SUGGESTED_SEARCH_QUERIES.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => handleSuggestionClick(s)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-300 transition-colors text-left"
+                          >
+                            <Search size={13} className="text-zinc-600 shrink-0" />
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Chat mode header */}
+                <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-[#00d4aa]/10 flex items-center justify-center">
+                      <Sparkles size={12} className="text-[#00d4aa]/80" />
+                    </div>
+                    <span className="text-[13px] font-medium text-white">Hollis</span>
+                    <span className="text-zinc-600">/</span>
+                    <span className="text-[13px] text-zinc-400">{PAGE_LABELS[page]}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={clearAndClose}
+                      title="Clear and close"
+                      className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={close}
+                      title="Close (Esc)"
+                      className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 min-h-0 px-5 py-5 flex flex-col gap-6 max-h-[45vh] overflow-y-auto">
+                  {messages.map((msg) => (
+                    <MessageBubble
+                      key={msg.id}
+                      msg={msg}
+                      onAction={handleAction}
+                      onLinkClick={condenseToSide}
+                      chatLayout
+                    />
+                  ))}
+                  {loading && <LoadingDots />}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div
+                  className="px-5 py-4 border-t border-white/5"
+                  style={{ background: "rgba(36, 36, 40, 0.6)" }}
+                >
+                  <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                    Search & Assistant
+                  </div>
+                  <div className="flex items-end gap-2 bg-[#0d0d12] border border-white/5 rounded-lg px-4 py-3 focus-within:border-white/10 transition-colors">
+                    <Paperclip size={16} className="text-zinc-500 shrink-0 cursor-pointer hover:text-zinc-400" />
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onInput={handleInput}
+                      placeholder="Message..."
+                      rows={1}
+                      className="flex-1 bg-transparent border-none outline-none text-[14px] text-zinc-200 placeholder-zinc-500 resize-none min-h-[24px] max-h-[80px] overflow-y-auto font-[inherit] leading-relaxed"
+                    />
+                    <button
+                      onClick={() => sendMessage(input)}
+                      disabled={!input.trim() || loading}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium bg-[#00d4aa] text-black hover:bg-[#00e6b8] transition-colors disabled:opacity-50 disabled:cursor-default disabled:hover:bg-[#00d4aa]"
+                    >
+                      <span>Send</span>
+                      <ArrowUp size={12} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
+      )}
 
-        {/* Input area */}
+      {/* ── Side chat ───────────────────────────────────────────────────────────── */}
+      {viewMode === "sideChat" && (
         <div
+          className="fixed bottom-5 right-5 z-[9999] flex flex-col rounded-lg overflow-hidden"
           style={{
-            flexShrink: 0,
-            padding: "0 16px 16px",
-            borderTop: "1px solid #1e1e2a",
-            paddingTop: 12,
+            width: SIDE_CHAT_WIDTH,
+            height: SIDE_CHAT_HEIGHT,
+            background: "rgba(26, 26, 30, 0.97)",
+            border: "1px solid rgba(0,212,170,0.15)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 8,
-              background: "#0d0d12",
-              border: "1px solid #1e1e2a",
-              borderRadius: 8,
-              padding: "12px 14px",
-              transition: "border-color 150ms",
-            }}
-            onFocusCapture={(e) =>
-              (e.currentTarget.style.borderColor = "rgba(0,212,170,0.4)")
-            }
-            onBlurCapture={(e) =>
-              (e.currentTarget.style.borderColor = "#1e1e2a")
-            }
-          >
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onInput={handleInput}
-              placeholder="Ask anything about your book..."
-              rows={1}
-              style={{
-                flex: 1,
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                fontSize: 14,
-                color: "#ffffff",
-                resize: "none",
-                lineHeight: "1.5",
-                minHeight: 21,
-                maxHeight: 72,
-                overflowY: "auto",
-                fontFamily: "inherit",
-              }}
-              className="placeholder-zinc-700"
-            />
-            <button
-              onClick={() => sendMessage(input)}
-              disabled={!input.trim() || loading}
-              style={{
-                flexShrink: 0,
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: "#00d4aa",
-                color: "#000000",
-                border: "none",
-                cursor: !input.trim() || loading ? "default" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: !input.trim() || loading ? 0.4 : 1,
-                transition: "opacity 150ms",
-              }}
-            >
-              <ArrowUp size={14} />
-            </button>
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 shrink-0">
+            <span className="text-[12px] font-medium text-[#00d4aa]/80">Hollis</span>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={clearAndClose}
+                className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                title="Clear and close"
+              >
+                <Trash2 size={12} />
+              </button>
+              <button
+                onClick={close}
+                className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                title="Close (Esc)"
+              >
+                <Minus size={12} />
+              </button>
+            </div>
           </div>
 
-          {loading && (
-            <p
-              style={{
-                fontSize: 12,
-                color: "#52525b",
-                fontStyle: "italic",
-                marginTop: 8,
-                marginBottom: 0,
-              }}
-            >
-              Hollis is thinking…
-            </p>
-          )}
-        </div>
-      </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-2.5">
+            {messages.map((msg) => (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                onAction={handleAction}
+                onLinkClick={close}
+                compact
+              />
+            ))}
+            {loading && <LoadingDots />}
+            <div ref={messagesEndRef} />
+          </div>
 
-      {/* Toggle button — slides with the panel */}
-      <button
-        onClick={toggleOpen}
-        style={{
-          position: "fixed",
-          top: "50%",
-          right: 0,
-          zIndex: 41,
-          transform: open
-            ? "translateY(-50%) translateX(-320px)"
-            : "translateY(-50%) translateX(0)",
-          transition: "transform 200ms ease-out",
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          background: "#1a1a24",
-          border: "1px solid #2a2a35",
-          borderRight: "none",
-          borderTopLeftRadius: 999,
-          borderBottomLeftRadius: 999,
-          padding: "10px 14px",
-          cursor: "pointer",
-          color: "#a1a1aa",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = "#e4e4e7";
-          e.currentTarget.style.borderColor = "#3a3a45";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = "#a1a1aa";
-          e.currentTarget.style.borderColor = "#2a2a35";
-        }}
-        title={open ? "Close Hollis" : "Open Hollis (⌘J)"}
-      >
-        {open ? (
-          <X size={15} />
-        ) : (
-          <>
-            <Sparkles
-              size={14}
-              style={{
-                color: "#00d4aa",
-                filter: "drop-shadow(0 0 5px rgba(0,212,170,0.7))",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                letterSpacing: "-0.01em",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Ask Hollis
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                color: "#52525b",
-                marginLeft: 2,
-              }}
-            >
-              ⌘J
-            </span>
-          </>
-        )}
-      </button>
+          <div className="shrink-0 p-2.5 border-t border-white/5">
+            <div className="flex items-end gap-2 bg-white/[0.03] border border-white/5 focus-within:border-[#00d4aa]/20 rounded-lg px-3 py-2 transition-colors">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onInput={handleInput}
+                placeholder="Ask..."
+                rows={1}
+                className="flex-1 bg-transparent border-none outline-none text-[13px] text-zinc-200 placeholder-zinc-500 resize-none min-h-[20px] max-h-[56px] overflow-y-auto font-[inherit]"
+              />
+              <button
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim() || loading}
+                className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-opacity ${
+                  !input.trim() || loading ? "opacity-50 cursor-default" : ""
+                } bg-[#00d4aa]`}
+              >
+                <ArrowUp size={12} className="text-black" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

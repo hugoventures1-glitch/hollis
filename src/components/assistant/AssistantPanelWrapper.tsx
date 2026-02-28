@@ -9,8 +9,7 @@ function pathnameToPage(pathname: string): AssistantPage {
   if (pathname === "/renewals" || pathname.startsWith("/renewals/")) return "renewals";
   if (
     pathname === "/certificates" ||
-    (pathname.startsWith("/certificates/") &&
-      !pathname.startsWith("/certificates/sequences"))
+    (pathname.startsWith("/certificates/") && !pathname.startsWith("/certificates/sequences"))
   )
     return "certificates";
   if (pathname === "/clients" || pathname.startsWith("/clients/")) return "clients";

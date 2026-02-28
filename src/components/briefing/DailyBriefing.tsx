@@ -5,6 +5,7 @@
  *
  * Renders an ambient morning briefing above the stats bar on the Overview page.
  * Fetches from /api/briefing on mount; shows an animated skeleton while loading.
+ * Collapses after being viewed (in viewport for 2s); persists collapse state per day.
  *
  * Design principles:
  * - No card borders, no panel chrome — reads like prose on the page
@@ -16,8 +17,33 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import type { BriefingItem, BriefingItemType } from "@/types/briefing";
+
+const VIEWED_DELAY_MS = 2000;
+const STORAGE_KEY = "hollis-briefing-collapsed";
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getStoredCollapsed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === todayKey();
+  } catch {
+    return false;
+  }
+}
+
+function setStoredCollapsed() {
+  try {
+    localStorage.setItem(STORAGE_KEY, todayKey());
+  } catch {
+    // ignore
+  }
+}
 
 // ── Routing map ───────────────────────────────────────────────────────────────
 
@@ -84,15 +110,56 @@ export function DailyBriefing() {
   const [items, setItems] = useState<BriefingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // Track mount to avoid state updates on unmounted component
+  const [collapsed, setCollapsed] = useState(false);
+  const viewedRef = useRef(false);
   const mountedRef = useRef(true);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     mountedRef.current = true;
+    setCollapsed(getStoredCollapsed());
     return () => {
       mountedRef.current = false;
     };
   }, []);
+
+  // Mark as viewed and collapse when in viewport for VIEWED_DELAY_MS
+  useEffect(() => {
+    if (loading || items.length === 0 || collapsed || viewedRef.current) return;
+
+    const el = contentRef.current;
+    if (!el) return;
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [e] = entries;
+        if (!e) return;
+
+        if (e.isIntersecting) {
+          if (viewedRef.current) return;
+          timeoutId = setTimeout(() => {
+            viewedRef.current = true;
+            setStoredCollapsed();
+            if (mountedRef.current) setCollapsed(true);
+          }, VIEWED_DELAY_MS);
+        } else {
+          if (timeoutId != null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => {
+      if (timeoutId != null) clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [loading, items.length, collapsed]);
 
   const fetchBriefing = useCallback(async (options?: { invalidate?: boolean }) => {
     try {
@@ -139,6 +206,8 @@ export function DailyBriefing() {
     return null;
   }
 
+  const toggleCollapsed = () => setCollapsed((c) => !c);
+
   return (
     <div className="flex items-start gap-5 px-12 pt-8 pb-6">
       {/* Left teal stripe */}
@@ -148,31 +217,43 @@ export function DailyBriefing() {
       />
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        {/* Row: "Today" label + refresh button */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">
-            Today
-          </span>
+      <div className="flex-1 min-w-0" ref={contentRef}>
+        {/* Row: "Today" label + refresh / expand */}
+        <div className={`flex items-center justify-between ${collapsed ? "mb-0" : "mb-4"}`}>
           <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            title="Refresh briefing"
-            className="text-zinc-600 hover:text-zinc-400 transition-colors disabled:opacity-40"
-            aria-label="Refresh morning briefing"
+            onClick={toggleCollapsed}
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-widest hover:text-zinc-400 transition-colors"
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expand today's briefing" : "Collapse briefing"}
           >
-            <RefreshCw
-              size={13}
-              className={refreshing ? "animate-spin" : ""}
-            />
+            Today
+            {collapsed ? (
+              <ChevronDown size={12} className="opacity-70" />
+            ) : (
+              <ChevronUp size={12} className="opacity-70" />
+            )}
           </button>
+          {!collapsed && (
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh briefing"
+              className="text-zinc-600 hover:text-zinc-400 transition-colors disabled:opacity-40"
+              aria-label="Refresh morning briefing"
+            >
+              <RefreshCw
+                size={13}
+                className={refreshing ? "animate-spin" : ""}
+              />
+            </button>
+          )}
         </div>
 
-        {/* Loading skeleton */}
-        {loading && <Skeleton />}
+        {/* Loading skeleton — hidden when collapsed */}
+        {loading && !collapsed && <Skeleton />}
 
-        {/* Briefing items */}
-        {!loading && items.length > 0 && (
+        {/* Briefing items — hidden when collapsed */}
+        {!loading && items.length > 0 && !collapsed && (
           <ul className="space-y-0.5" role="list">
             {items.map((item, i) => (
               <li
