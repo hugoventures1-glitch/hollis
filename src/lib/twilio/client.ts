@@ -16,12 +16,21 @@ export function getTwilioClient(): twilio.Twilio {
   return twilioClient;
 }
 
+function formatAustralianPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("61") && digits.length === 11) return `+${digits}`;
+  if (digits.startsWith("0") && digits.length === 10) return `+61${digits.slice(1)}`;
+  if (digits.length === 9) return `+61${digits}`;
+  return `+${digits}`;
+}
+
 export async function sendSMS(to: string, body: string): Promise<string> {
   const client = getTwilioClient();
   const fromNumber = process.env.TWILIO_PHONE_NUMBER;
   if (!fromNumber) {
     throw new Error("TWILIO_PHONE_NUMBER must be set in environment variables");
   }
-  const message = await client.messages.create({ body, from: fromNumber, to });
+  const formattedTo = formatAustralianPhone(to);
+  const message = await client.messages.create({ body, from: fromNumber, to: formattedTo });
   return message.sid;
 }
