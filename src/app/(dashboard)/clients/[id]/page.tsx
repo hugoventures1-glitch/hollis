@@ -12,6 +12,7 @@ import {
   DollarSign,
   FileText,
 } from "lucide-react";
+import { CommunicationTimeline } from "@/components/clients/CommunicationTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -189,6 +190,14 @@ export default async function ClientDetailPage({ params }: PageProps) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Communication History */}
+        <div>
+          <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-4">
+            Communication History
+          </div>
+          <CommunicationTimeline clientId={client.id} />
         </div>
 
       </div>

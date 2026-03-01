@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Search,
@@ -30,6 +29,7 @@ import {
 } from "@/lib/search-types";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 import { useHollisStore } from "@/stores/hollisStore";
+import { SearchResultActions } from "@/components/search/SearchResultActions";
 
 // ── Builds a page-aware, trimmed dataContext snapshot from the Zustand store ──
 // Mirrors the shape that gatherContextData() returns server-side so the system
@@ -456,7 +456,6 @@ function MessageBubble({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AssistantPanel({ page, data }: AssistantPanelProps) {
-  const router = useRouter();
   const { registerOpenHandler } = useUnifiedPanel();
 
   const [viewMode, setViewMode] = useState<ViewMode>("closed");
@@ -659,11 +658,6 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     doSearch(s);
   };
 
-  const handleSearchResultClick = (result: SearchResult) => {
-    router.push(TYPE_CONFIG[result._type].href(result.id));
-    condenseToSide();
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -827,13 +821,17 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                             {grouped![type]!.map((result) => {
                               const subtitle = getSearchSubtitle(result);
                               const meta = getSearchMeta(result);
+                              const rowHref = TYPE_CONFIG[result._type].href(result.id);
                               return (
-                                <button
+                                <div
                                   key={result.id}
-                                  onClick={() => handleSearchResultClick(result)}
-                                  className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-colors group text-left"
+                                  className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
                                 >
-                                  <div className="min-w-0 flex-1">
+                                  <Link
+                                    href={rowHref}
+                                    onClick={condenseToSide}
+                                    className="min-w-0 flex-1 text-left"
+                                  >
                                     <div className="text-[14px] font-medium text-zinc-300 truncate group-hover:text-white transition-colors">
                                       {getSearchTitle(result)}
                                     </div>
@@ -847,12 +845,12 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                                         {meta}
                                       </div>
                                     )}
-                                  </div>
-                                  <ArrowRight
-                                    size={13}
-                                    className="text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:text-[#00d4aa] transition-all shrink-0 ml-3"
+                                  </Link>
+                                  <SearchResultActions
+                                    result={result}
+                                    onActionComplete={() => doSearch(searchQuery)}
                                   />
-                                </button>
+                                </div>
                               );
                             })}
                           </div>

@@ -26,6 +26,8 @@ function RenewalsContent() {
   const searchParams = useSearchParams();
   const stageFilter = searchParams.get("stage") ?? "all";
   const statusFilter = searchParams.get("status") ?? "active";
+  // "stalled" is a special filter derived from health_label, not a campaign stage
+  const filterParam = searchParams.get("filter") ?? "";
 
   const { policies: activePolicies, loading: storeLoading, backgroundRefreshing } = useHollisData();
 
@@ -59,7 +61,10 @@ function RenewalsContent() {
 
   // Determine displayed rows
   let rows: Policy[];
-  if (statusFilter === "active") {
+  if (filterParam === "stalled") {
+    // Stalled filter overrides stage/status — shows quiet policies with health_label === "stalled"
+    rows = activePolicies.filter((p) => p.health_label === "stalled");
+  } else if (statusFilter === "active") {
     rows = activePolicies.filter(
       (p) => stageFilter === "all" || p.campaign_stage === stageFilter
     );
@@ -79,8 +84,9 @@ function RenewalsContent() {
   ).length;
 
   const isLoading =
-    (statusFilter === "active" && storeLoading) ||
-    (statusFilter !== "active" && altLoading);
+    (filterParam === "stalled" && storeLoading) ||
+    (filterParam !== "stalled" && statusFilter === "active" && storeLoading) ||
+    (filterParam !== "stalled" && statusFilter !== "active" && altLoading);
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12]">
@@ -144,7 +150,7 @@ function RenewalsContent() {
             key={opt.value}
             href={`/renewals?stage=${opt.value}&status=${statusFilter}`}
             className={`px-3 py-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors ${
-              stageFilter === opt.value
+              filterParam !== "stalled" && stageFilter === opt.value
                 ? "bg-[rgba(255,255,255,0.06)] text-[#f5f5f7]"
                 : "text-[#8a8b91] hover:text-[#f5f5f7] hover:bg-white/[0.03]"
             }`}
@@ -152,6 +158,18 @@ function RenewalsContent() {
             {opt.label}
           </Link>
         ))}
+
+        {/* Stalled special filter — highlights policies that have gone quiet */}
+        <Link
+          href="/renewals?filter=stalled"
+          className={`ml-2 px-3 py-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors border ${
+            filterParam === "stalled"
+              ? "bg-purple-950/40 text-purple-400 border-purple-700/40"
+              : "text-[#8a8b91] hover:text-purple-400 hover:bg-purple-950/20 border-transparent"
+          }`}
+        >
+          ⚠ Stalled
+        </Link>
 
         <div className="ml-auto flex items-center gap-1">
           {(["active", "expired", "all"] as const).map((s) => (

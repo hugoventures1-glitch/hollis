@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
       let q = admin
         .from("certificates")
         .select(
-          "id, certificate_number, insured_name, holder_name, holder_city, holder_state, expiration_date, status"
+          "id, certificate_number, insured_name, holder_name, holder_city, holder_state, expiration_date, status, request_id"
         )
         .eq("user_id", user.id);
 
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       let q = admin
         .from("coi_requests")
         .select(
-          "id, insured_name, holder_name, requester_name, requester_email, coverage_types, status, created_at"
+          "id, insured_name, holder_name, requester_name, requester_email, coverage_types, status, created_at, certificate_id"
         )
         .eq("agent_id", user.id);
 

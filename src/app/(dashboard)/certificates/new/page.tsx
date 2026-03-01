@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, CheckCircle, AlertTriangle, Loader2, Send, ExternalLink } from "lucide-react";
+import { HolderAutofillInput } from "@/components/coi/HolderAutofillInput";
 import type { COIRequest, CoverageSnapshot, GLCoverage, AutoCoverage, UmbrellaCoverage, WCCoverage, Certificate, CoverageCheckResult } from "@/types/coi";
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -144,6 +145,31 @@ export default function NewCOIPage() {
   const [umbrella, setUmbrella] = useState<UmbrellaCoverage>(blankUmbrella());
   const [wc, setWc] = useState<WCCoverage>(blankWC());
 
+  // Holder autofill
+  const selectedHolderIdRef = useRef<string | null>(null);
+
+  const handleHolderSelect = useCallback((holder: {
+    id: string;
+    name: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    commonCoverageTypes: string[];
+    commonInsuredNames: string[];
+  }) => {
+    selectedHolderIdRef.current = holder.id;
+    if (holder.address !== undefined) setHolderAddress(holder.address);
+    if (holder.city !== undefined) setHolderCity(holder.city);
+    if (holder.state !== undefined) setHolderState(holder.state);
+    if (holder.zip !== undefined) setHolderZip(holder.zip);
+    // Pre-enable coverage types based on this holder's history
+    if (holder.commonCoverageTypes.includes("gl"))       setGl(p => ({ ...p, enabled: true }));
+    if (holder.commonCoverageTypes.includes("auto"))     setAuto(p => ({ ...p, enabled: true }));
+    if (holder.commonCoverageTypes.includes("umbrella")) setUmbrella(p => ({ ...p, enabled: true }));
+    if (holder.commonCoverageTypes.includes("wc"))       setWc(p => ({ ...p, enabled: true }));
+  }, []);
+
   // Result state
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{ certificate: Certificate; coverage_check: CoverageCheckResult | null } | null>(null);
@@ -242,6 +268,28 @@ export default function NewCOIPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Generation failed"); return; }
       setResult(data);
+
+      // Record holder usage for intelligence (fire-and-forget)
+      const enabledCoverageTypes: string[] = [];
+      if (gl.enabled) enabledCoverageTypes.push("gl");
+      if (auto.enabled) enabledCoverageTypes.push("auto");
+      if (umbrella.enabled) enabledCoverageTypes.push("umbrella");
+      if (wc.enabled) enabledCoverageTypes.push("wc");
+
+      fetch("/api/coi/holders/record-usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          holderId: selectedHolderIdRef.current ?? undefined,
+          holderName,
+          holderAddress: holderAddress || undefined,
+          holderCity: holderCity || undefined,
+          holderState: holderState || undefined,
+          holderZip: holderZip || undefined,
+          insuredName,
+          coverageTypes: enabledCoverageTypes,
+        }),
+      }).catch(() => null); // non-critical
     } catch {
       setError("Network error — please try again");
     } finally {
@@ -458,7 +506,17 @@ export default function NewCOIPage() {
           <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
             <div className="text-[13px] font-semibold text-[#f5f5f7] mb-4">Certificate Holder</div>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Holder Name" value={holderName} onChange={setHolderName} required placeholder="ABC Contractors LLC" />
+              <div>
+                <label className="block text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider mb-1.5">
+                  Holder Name<span className="text-[#00d4aa] ml-0.5">*</span>
+                </label>
+                <HolderAutofillInput
+                  value={holderName}
+                  onChange={setHolderName}
+                  onHolderSelect={handleHolderSelect}
+                  placeholder="ABC Contractors LLC"
+                />
+              </div>
               <Field label="Holder Email" value={holderEmail} onChange={setHolderEmail} placeholder="holder@company.com" />
               <Field label="Address" value={holderAddress} onChange={setHolderAddress} placeholder="123 Business Ave" />
               <div className="grid grid-cols-3 gap-2">

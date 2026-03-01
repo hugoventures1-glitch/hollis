@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/components/actions/MicroToast";
+import { HealthBadge } from "@/components/renewals/health-badge";
+import type { HealthLabel } from "@/types/renewals";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,6 +16,8 @@ export interface PolicyRow {
   carrier?: string | null;
   expiration_date: string;
   campaign_stage?: string | null;
+  health_label?: HealthLabel | null;
+  health_score?: number | null;
 }
 
 interface PriorityRenewalsTableProps {
@@ -105,13 +109,18 @@ function PolicyTableRow({
       </div>
 
       {/* Title + client */}
-      <div className="col-span-8 flex items-center gap-4 pr-4 min-w-0 overflow-hidden">
+      <div className="col-span-6 flex items-center gap-4 pr-4 min-w-0 overflow-hidden">
         <span className="text-[15px] font-medium text-white shrink-0 truncate">
           {policy.policy_name ?? policy.carrier ?? "Policy"}
         </span>
         <span className="text-[14px] text-zinc-400 truncate">
           {policy.client_name}
         </span>
+      </div>
+
+      {/* Health badge */}
+      <div className="col-span-2 flex items-center">
+        <HealthBadge label={policy.health_label} />
       </div>
 
       {/* Priority dot */}
@@ -153,9 +162,16 @@ function PolicyTableRow({
 // ── Table ─────────────────────────────────────────────────────────────────────
 
 export function PriorityRenewalsTable({ policies }: PriorityRenewalsTableProps) {
+  // Stalled policies surface first so agents see the most at-risk rows immediately
+  const sorted = [...policies].sort((a, b) => {
+    const aStalled = a.health_label === "stalled" ? 0 : 1;
+    const bStalled = b.health_label === "stalled" ? 0 : 1;
+    return aStalled - bStalled;
+  });
+
   return (
     <div className="pb-20">
-      {policies.map((policy, idx) => (
+      {sorted.map((policy, idx) => (
         <PolicyTableRow key={policy.id} policy={policy} idx={idx} />
       ))}
     </div>

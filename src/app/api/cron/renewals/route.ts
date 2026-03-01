@@ -18,6 +18,7 @@ import {
 } from "@/lib/renewals/generate";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignTouchpoint, TouchpointType } from "@/types/renewals";
+import { refreshPolicyHealthScore } from "@/lib/renewals/health-score";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
@@ -102,6 +103,9 @@ export async function GET(request: NextRequest) {
           today
         );
         results.sent++;
+
+        // Recompute health score now that campaign_stage / last_contact_at changed
+        await refreshPolicyHealthScore(policy.id, supabase);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         results.errors.push(`${policy.client_name} / ${type}: ${msg}`);

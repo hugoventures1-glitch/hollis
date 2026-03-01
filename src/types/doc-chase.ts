@@ -29,6 +29,8 @@ export interface DocChaseRequest {
   notes: string | null;
   status: DocChaseRequestStatus;
   received_at: string | null;
+  escalation_level: "email" | "sms" | "phone_script";
+  escalation_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +53,8 @@ export interface DocChaseMessage {
   status: DocChaseMessageStatus;
   subject: string;
   body: string;
+  channel: "email" | "sms" | "phone_script";
+  phone_script: string | null;
   created_at: string;
 }
 
@@ -89,7 +93,11 @@ export interface PatchDocChaseBody {
 
 // ── Touch draft (from Claude) ─────────────────────────────────────────────────
 
+export type TouchChannel = "email" | "sms" | "phone_script";
+
 export interface TouchDraft {
   subject: string;
   body: string;
+  channel: TouchChannel;
+  phone_script?: string | null; // Only for touch 4 phone_script channel
 }

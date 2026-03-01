@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Draft all 4 emails with Claude Haiku
+  // Draft all 4 touches with Claude Haiku (touch 3 may be SMS, touch 4 is phone script)
   let touches: Awaited<ReturnType<typeof draftDocumentChaseSequence>>;
   try {
     touches = await draftDocumentChaseSequence(
@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
       document_type.trim(),
       resolvedAgentName || "Your Agent",
       resolvedAgentEmail || (process.env.RESEND_FROM_EMAIL ?? "agent@hollis.ai"),
-      notes ?? null
+      notes ?? null,
+      client_phone?.trim() || null
     );
   } catch (err) {
     console.error("[doc-chase] Draft sequence failed:", err);
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
       policy_id: policy_id || null,
       notes: notes?.trim() || null,
       status: "active",
+      escalation_level: "email",
     })
     .select()
     .single();
@@ -158,8 +160,10 @@ export async function POST(request: NextRequest) {
       touch_number: i + 1,
       scheduled_for: scheduledFor.toISOString(),
       status: "scheduled",
-      subject: touch.subject,
+      subject: touch.subject ?? "",
       body: touch.body,
+      channel: touch.channel,
+      phone_script: touch.channel === "phone_script" ? touch.phone_script ?? null : null,
     };
   });
 

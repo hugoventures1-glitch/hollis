@@ -34,6 +34,10 @@ export interface SearchResult {
   client_email?: string;
   subject?: string;
   sent_at?: string;
+  /** Certificate ID (coi_request → certificate) */
+  certificate_id?: string | null;
+  /** COI request ID (certificate → coi_request) */
+  request_id?: string | null;
 }
 
 export interface SearchResponse {

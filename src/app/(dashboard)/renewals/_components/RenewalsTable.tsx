@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { StageBadge } from "@/components/renewals/stage-badge";
 import { DaysBadge } from "@/components/renewals/days-badge";
+import { HealthBadge } from "@/components/renewals/health-badge";
 import { ActionButton } from "@/components/actions/ActionButton";
 import { useToast } from "@/components/actions/MicroToast";
 import { daysUntilExpiry } from "@/types/renewals";
@@ -165,6 +166,9 @@ function RenewalRow({
         <StageBadge stage={effectiveStage} />
       </td>
       <td className="px-4 py-3">
+        <HealthBadge label={policy.health_label} />
+      </td>
+      <td className="px-4 py-3">
         <span className="text-[12px] text-[#8a8b91]">
           {policy.last_contact_at
             ? new Date(policy.last_contact_at).toLocaleDateString("en-US", {
@@ -248,6 +252,9 @@ export function RenewalsTable({ policies }: RenewalsTableProps) {
           </th>
           <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
             Stage
+          </th>
+          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+            Health
           </th>
           <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
             Last Contact

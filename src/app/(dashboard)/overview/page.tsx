@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { HealthLabel } from "@/types/renewals";
 import {
   Zap,
   Plus,
@@ -56,6 +57,8 @@ interface PolicyRow {
   carrier?: string | null;
   expiration_date: string;
   campaign_stage?: string | null;
+  health_label?: HealthLabel | null;
+  health_score?: number | null;
 }
 
 interface LogRow {
@@ -75,7 +78,7 @@ export default async function DashboardPage() {
   const today = new Date().toISOString().split("T")[0];
   const in60 = addDays(60);
 
-  const [activePoliciesRes, upcomingCountRes, workflowsRes, logsRes] =
+  const [activePoliciesRes, upcomingCountRes, stalledCountRes, workflowsRes, logsRes] =
     await Promise.all([
       // All active policies — for count + premium sum
       supabase
@@ -93,10 +96,18 @@ export default async function DashboardPage() {
         .gte("expiration_date", today)
         .lte("expiration_date", in60),
 
-      // Most urgent 10 for workflows table
+      // Count stalled policies (health_label = 'stalled')
       supabase
         .from("policies")
-        .select("id, policy_name, client_name, carrier, expiration_date, campaign_stage")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .eq("health_label", "stalled"),
+
+      // Most urgent 10 for workflows table — include health fields
+      supabase
+        .from("policies")
+        .select("id, policy_name, client_name, carrier, expiration_date, campaign_stage, health_label, health_score")
         .eq("user_id", user.id)
         .eq("status", "active")
         .gte("expiration_date", today)
@@ -119,6 +130,7 @@ export default async function DashboardPage() {
     0
   );
   const upcomingCount = upcomingCountRes.count ?? 0;
+  const stalledCount = stalledCountRes.count ?? 0;
   const urgentPolicies = (workflowsRes.data ?? []) as PolicyRow[];
   const recentLogs = (logsRes.data ?? []) as LogRow[];
 
@@ -160,56 +172,91 @@ export default async function DashboardPage() {
       {/* ── Stats bar ── */}
       <div className="shrink-0 px-12 py-11 border-b border-[#252530]">
         <div className="flex">
-          {[
-            {
-              label: "Book Value",
-              value: formatBookValue(bookValue),
-              sub: bookValue > 0 ? "total premium" : null,
-            },
-            {
-              label: "Active Policies",
-              value: activeCount.toLocaleString(),
-              sub: null,
-            },
-            {
-              label: "Upcoming Renewals",
-              value: upcomingCount.toString(),
-              red: upcomingCount > 0,
-              sub: "next 60 days",
-            },
-            {
-              label: "AI Accuracy",
-              value: "99.2%",
-              sub: "+0.4%",
-            },
-          ].map((stat, i) => (
-            <div
-              key={stat.label}
-              className={[
-                "flex flex-col gap-2.5",
-                i !== 0 ? "border-l border-[#1e1e2a] pl-12" : "",
-                i !== 3 ? "pr-12" : "",
-              ].join(" ")}
-            >
-              <span className="text-[12px] font-bold text-zinc-600 uppercase tracking-[0.12em]">
-                {stat.label}
-              </span>
-              <div className="flex items-baseline gap-3">
-                <span
-                  className={`text-5xl font-bold tracking-tight leading-none ${
-                    stat.red ? "text-[#ff4d4d]" : "text-white"
-                  }`}
-                >
-                  {stat.value}
+          {(
+            [
+              {
+                label: "Book Value",
+                value: formatBookValue(bookValue),
+                sub: bookValue > 0 ? "total premium" : null,
+              },
+              {
+                label: "Active Policies",
+                value: activeCount.toLocaleString(),
+                sub: null,
+              },
+              {
+                label: "Upcoming Renewals",
+                value: upcomingCount.toString(),
+                red: upcomingCount > 0,
+                sub: "next 60 days",
+              },
+              {
+                label: "Stalled Renewals",
+                value: stalledCount.toString(),
+                purple: stalledCount > 0,
+                sub: stalledCount > 0 ? "need attention" : null,
+                href: stalledCount > 0 ? "/renewals?filter=stalled" : undefined,
+              },
+              {
+                label: "AI Accuracy",
+                value: "99.2%",
+                sub: "+0.4%",
+              },
+            ] as Array<{
+              label: string;
+              value: string;
+              sub?: string | null;
+              red?: boolean;
+              purple?: boolean;
+              href?: string;
+            }>
+          ).map((stat, i, arr) => {
+            const valueColor = stat.red
+              ? "text-[#ff4d4d]"
+              : stat.purple && stalledCount > 0
+              ? "text-purple-400"
+              : "text-white";
+
+            const inner = (
+              <>
+                <span className="text-[12px] font-bold text-zinc-600 uppercase tracking-[0.12em]">
+                  {stat.label}
                 </span>
-                {stat.sub && (
-                  <span className="text-[13px] font-medium text-[#3a3a42]">
-                    {stat.sub}
+                <div className="flex items-baseline gap-3">
+                  <span
+                    className={`text-5xl font-bold tracking-tight leading-none ${valueColor}`}
+                  >
+                    {stat.value}
                   </span>
-                )}
+                  {stat.sub && (
+                    <span className="text-[13px] font-medium text-[#3a3a42]">
+                      {stat.sub}
+                    </span>
+                  )}
+                </div>
+              </>
+            );
+
+            const wrapperClass = [
+              "flex flex-col gap-2.5",
+              i !== 0 ? "border-l border-[#1e1e2a] pl-12" : "",
+              i !== arr.length - 1 ? "pr-12" : "",
+            ].join(" ");
+
+            return stat.href ? (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                className={`${wrapperClass} hover:opacity-80 transition-opacity`}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={stat.label} className={wrapperClass}>
+                {inner}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

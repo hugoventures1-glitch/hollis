@@ -1,5 +1,7 @@
 export type PolicyStatus = "active" | "expired" | "cancelled";
 
+export type HealthLabel = "healthy" | "at_risk" | "critical" | "stalled";
+
 export type CampaignStage =
   | "pending"
   | "email_90_sent"
@@ -31,6 +33,11 @@ export interface Policy {
   last_contact_at?: string | null;
   created_at: string;
   updated_at: string;
+  // ── Health score (computed, refreshed by cron + refresh API) ──────────────
+  health_score?: number | null;
+  health_label?: HealthLabel | null;
+  health_updated_at?: string | null;
+  stalled_at?: string | null;
 }
 
 export interface CampaignTouchpoint {

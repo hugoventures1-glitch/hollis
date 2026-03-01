@@ -21,7 +21,9 @@ import {
   Loader2,
   ChevronRight,
   Search,
+  Phone,
 } from "lucide-react";
+import { PhoneScriptModal } from "@/components/doc-chase/PhoneScriptModal";
 import { DOCUMENT_TYPES } from "@/types/doc-chase";
 import type { DocChaseRequestSummary, DocChaseRequestStatus } from "@/types/doc-chase";
 import { useHollisData } from "@/hooks/useHollisData";
@@ -376,9 +378,9 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
           {/* Info banner */}
           <div className="rounded-lg bg-[#00d4aa]/[0.05] border border-[#00d4aa]/15 px-4 py-3">
             <p className="text-[12px] text-zinc-400 leading-relaxed">
-              Hollis will use AI to draft a 4-email follow-up sequence and schedule
-              them at days 0, 5, 10, and 20. You&apos;ll be notified when the document
-              is marked as received.
+              Hollis will draft a 4-touch sequence (days 0, 5, 10, 20). Touch 3
+              can be SMS if you add a phone number. Touch 4 surfaces a call script
+              for you to use — no automatic send.
             </p>
           </div>
         </form>
@@ -441,6 +443,9 @@ export default function DocumentsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
+
+  // Phone script modal
+  const [phoneScriptRequestId, setPhoneScriptRequestId] = useState<string | null>(null);
 
   // Confirm state: { id, action }
   const [confirm, setConfirm] = useState<{
@@ -666,8 +671,15 @@ export default function DocumentsPage() {
                   >
                     {/* Client */}
                     <td className="px-10 py-3.5">
-                      <div className="text-[14px] font-medium text-[#f5f5f7] leading-snug">
-                        {req.client_name}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[14px] font-medium text-[#f5f5f7] leading-snug">
+                          {req.client_name}
+                        </span>
+                        {(req as { escalation_level?: string }).escalation_level === "phone_script" && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-400 border border-purple-700/40">
+                            📞 Call ready
+                          </span>
+                        )}
                       </div>
                       <div className="text-[12px] text-zinc-500 mt-0.5">
                         {req.client_email}
@@ -774,6 +786,15 @@ export default function DocumentsPage() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
+                          {(req as { escalation_level?: string }).escalation_level === "phone_script" && (
+                            <button
+                              onClick={() => setPhoneScriptRequestId(req.id)}
+                              className="h-7 px-2.5 flex items-center gap-1.5 text-[12px] font-medium rounded-md bg-purple-900/20 text-purple-400 border border-purple-800/30 hover:bg-purple-900/40 transition-colors"
+                            >
+                              <Phone size={12} />
+                              View Script
+                            </button>
+                          )}
                           {isActive && (
                             <>
                               <button
@@ -825,6 +846,18 @@ export default function DocumentsPage() {
         onSuccess={(msg) => pushToast(msg, "success")}
         onError={(msg) => pushToast(msg, "error")}
         onCreated={() => { fetchRequests(); refetch(); }}
+      />
+
+      {/* Phone script modal */}
+      <PhoneScriptModal
+        requestId={phoneScriptRequestId ?? ""}
+        open={!!phoneScriptRequestId}
+        onClose={() => setPhoneScriptRequestId(null)}
+        onMarkedCalled={() => {
+          fetchRequests();
+          refetch();
+          pushToast("Document marked as received", "success");
+        }}
       />
 
       {/* Toast stack */}

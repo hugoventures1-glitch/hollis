@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { use } from "react";
 import { CheckCircle, Zap, Loader2 } from "lucide-react";
 import type { CoverageType } from "@/types/coi";
 import { COVERAGE_TYPE_LABELS } from "@/types/coi";
+import { HolderAutofillInput } from "@/components/coi/HolderAutofillInput";
 
 const COVERAGE_OPTIONS: { value: CoverageType; label: string; desc: string }[] = [
   { value: "gl",       label: "General Liability",        desc: "Bodily injury and property damage" },
@@ -58,8 +59,10 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
   const { agentSlug } = use(params);
 
   const [agencyName, setAgencyName] = useState("");
+  const [agentId, setAgentId] = useState<string | null>(null);
   const [loadingAgent, setLoadingAgent] = useState(true);
   const [agentNotFound, setAgentNotFound] = useState(false);
+  const selectedHolderIdRef = useRef<string | null>(null);
 
   // Form fields
   const [requesterName, setRequesterName] = useState("");
@@ -89,6 +92,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
       .then(data => {
         if (data.error) { setAgentNotFound(true); return; }
         setAgencyName(data.agency_name);
+        setAgentId(data.agent_id ?? agentSlug);
       })
       .catch(() => setAgentNotFound(true))
       .finally(() => setLoadingAgent(false));
@@ -135,6 +139,25 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Submission failed"); return; }
       setSubmitted(true);
+
+      // Record holder usage for intelligence (fire-and-forget)
+      if (agentId) {
+        fetch("/api/coi/holders/record-usage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            holderId: selectedHolderIdRef.current ?? undefined,
+            holderName,
+            holderAddress: holderAddress || undefined,
+            holderCity: holderCity || undefined,
+            holderState: holderState || undefined,
+            holderZip: holderZip || undefined,
+            insuredName,
+            coverageTypes: selectedTypes,
+            agentId,
+          }),
+        }).catch(() => null);
+      }
     } catch {
       setError("Network error — please try again.");
     } finally {
@@ -229,7 +252,35 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
               The party that needs to be listed on the certificate (e.g., property owner, general contractor).
             </p>
             <div className="space-y-4">
-              <Field label="Holder Name" value={holderName} onChange={setHolderName} required placeholder="ABC Property Management" />
+              <div>
+                <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
+                  Holder Name<span className="text-[#00d4aa] ml-0.5">*</span>
+                </label>
+                <HolderAutofillInput
+                  value={holderName}
+                  onChange={setHolderName}
+                  onHolderSelect={(h) => {
+                    selectedHolderIdRef.current = h.id;
+                    if (h.address !== undefined) setHolderAddress(h.address);
+                    if (h.city !== undefined) setHolderCity(h.city);
+                    if (h.state !== undefined) setHolderState(h.state);
+                    if (h.zip !== undefined) setHolderZip(h.zip);
+                    // Pre-select coverage types based on holder history
+                    const suggested = h.commonCoverageTypes as CoverageType[];
+                    if (suggested.length > 0) {
+                      setSelectedTypes(prev => {
+                        const merged = [...prev];
+                        for (const ct of suggested) {
+                          if (!merged.includes(ct)) merged.push(ct);
+                        }
+                        return merged;
+                      });
+                    }
+                  }}
+                  agentId={agentId ?? undefined}
+                  placeholder="ABC Property Management"
+                />
+              </div>
               <Field label="Address" value={holderAddress} onChange={setHolderAddress} placeholder="123 Main St" />
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
