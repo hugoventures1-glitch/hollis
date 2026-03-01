@@ -1,25 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
 import Link from "next/link";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Loader2 } from "lucide-react";
 import { ClientsTable } from "./_components/ClientsTable";
+import { useHollisData } from "@/hooks/useHollisData";
 
-export const dynamic = "force-dynamic";
-
-export default async function ClientsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, name, email, phone, business_type, industry, primary_state, created_at")
-    .eq("user_id", user.id)
-    .order("name");
-
-  const rows = clients ?? [];
+export default function ClientsPage() {
+  const { clients, loading, backgroundRefreshing } = useHollisData();
+  const rows = clients;
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12] text-[#f5f5f7]">
@@ -32,6 +20,9 @@ export default async function ClientsPage() {
           <span className="text-[#f5f5f7]">Clients</span>
         </div>
         <div className="flex items-center gap-2.5">
+          {backgroundRefreshing && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse shrink-0" title="Syncing…" />
+          )}
           <span className="text-[13px] text-[#505057]">{rows.length} clients</span>
           <Link
             href="/renewals/upload"
@@ -45,7 +36,11 @@ export default async function ClientsPage() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
-        {rows.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <Loader2 size={22} className="animate-spin text-zinc-600" />
+          </div>
+        ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
             <div className="w-14 h-14 rounded-full bg-[#111118] border border-[#1e1e2a] flex items-center justify-center mb-4">
               <Users size={22} className="text-[#3a3a42]" />

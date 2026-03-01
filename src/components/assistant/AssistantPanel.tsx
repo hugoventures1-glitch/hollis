@@ -29,6 +29,142 @@ import {
   SUGGESTED_SEARCH_QUERIES,
 } from "@/lib/search-types";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
+import { useHollisStore } from "@/stores/hollisStore";
+
+// ── Builds a page-aware, trimmed dataContext snapshot from the Zustand store ──
+// Mirrors the shape that gatherContextData() returns server-side so the system
+// prompt stays small regardless of how many rows are in the cache.
+
+function fmtCtxDate(s: string | null | undefined): string {
+  if (!s) return "unknown";
+  return new Date(s).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function buildClientDataContext(
+  page: AssistantPage
+): { data: Record<string, unknown>; lastFetched: number } | undefined {
+  const {
+    lastFetched,
+    policies,
+    clients,
+    coiRequests,
+    certificates,
+    docChaseRequests,
+    outboxDrafts,
+  } = useHollisStore.getState();
+
+  if (!lastFetched) return undefined;
+
+  const today = new Date().toISOString().split("T")[0];
+  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  let data: Record<string, unknown>;
+
+  switch (page) {
+    case "renewals":
+      data = {
+        policies: policies.slice(0, 20).map((p) => ({
+          id: p.id,
+          client: p.client_name,
+          policy: p.policy_name,
+          carrier: p.carrier,
+          expiresOn: fmtCtxDate(p.expiration_date),
+          premium: p.premium ? `$${Number(p.premium).toLocaleString()}` : null,
+          stage: p.campaign_stage,
+        })),
+      };
+      break;
+
+    case "certificates": {
+      type CertLike = {
+        id: string;
+        insured_name?: string | null;
+        holder_name?: string | null;
+        status?: string | null;
+        expiration_date?: string | null;
+        has_gap?: boolean | null;
+        certificate_number?: string | null;
+      };
+      data = {
+        certificates: (certificates as CertLike[]).slice(0, 20).map((c) => ({
+          id: c.id,
+          insured: c.insured_name,
+          holder: c.holder_name,
+          status: c.status,
+          expiresOn: fmtCtxDate(c.expiration_date),
+          hasGap: c.has_gap,
+          number: c.certificate_number,
+        })),
+      };
+      break;
+    }
+
+    case "clients":
+      data = {
+        clients: clients.slice(0, 20).map((c) => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          businessType: c.business_type,
+          industry: c.industry,
+        })),
+      };
+      break;
+
+    case "documents": {
+      const reqs = docChaseRequests.slice(0, 20);
+      const counts = reqs.reduce<Record<string, number>>((acc, r) => {
+        acc[r.status] = (acc[r.status] ?? 0) + 1;
+        return acc;
+      }, {});
+      data = {
+        documentRequests: reqs.map((r) => ({
+          id: r.id,
+          client: r.client_name,
+          documentType: r.document_type,
+          status: r.status,
+          created: fmtCtxDate(r.created_at),
+        })),
+        summary: counts,
+      };
+      break;
+    }
+
+    case "outbox":
+      data = {
+        pendingDrafts: outboxDrafts.slice(0, 10).map((d) => ({
+          subject: d.subject,
+        })),
+      };
+      break;
+
+    case "overview":
+      data = {
+        activePoliciesCount: policies.length,
+        policiesExpiringIn30Days: policies.filter(
+          (p) =>
+            p.expiration_date &&
+            p.expiration_date >= today &&
+            p.expiration_date <= in30Days
+        ).length,
+        pendingCOIRequests: coiRequests.filter((r) => r.status === "pending")
+          .length,
+      };
+      break;
+
+    default:
+      data = {};
+  }
+
+  return { data, lastFetched };
+}
 
 // ── Search config & helpers ────────────────────────────────────────────────────
 
@@ -346,16 +482,8 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     });
   }, [registerOpenHandler]);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("hollis-assistant-view");
-    if (stored === "center" || stored === "sideChat") setViewMode(stored);
-  }, []);
-
-  useEffect(() => {
-    if (viewMode !== "closed") {
-      localStorage.setItem("hollis-assistant-view", viewMode);
-    }
-  }, [viewMode]);
+  // Don't restore panel from localStorage on mount — always start closed so it
+  // doesn't auto-appear when signing in or refreshing
 
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -388,6 +516,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
       userMessage: string,
       historySnapshot: AssistantMessage[]
     ): Promise<{ reply: string; actions: AssistantAction[] }> => {
+      const dataContext = buildClientDataContext(page);
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -395,6 +524,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           message: userMessage,
           context: { page, data },
           history: historySnapshot,
+          dataContext,
         }),
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
@@ -402,6 +532,17 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     },
     [page, data]
   );
+
+  // Minimize keeps conversation; exit (close) starts fresh next time
+  const condenseToSide = () => setViewMode("sideChat");
+  const closeAndClear = useCallback(() => {
+    setMessages([]);
+    setInput("");
+    setSearchQuery("");
+    setSearchResponse(null);
+    setSearchError(null);
+    setViewMode("closed");
+  }, []);
 
   // ⌘K and ⌘J both open the unified panel
   useEffect(() => {
@@ -411,22 +552,23 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
         if (viewMode === "center") {
           setViewMode("sideChat");
         } else if (viewMode === "sideChat") {
-          setViewMode("closed");
+          closeAndClear();
         }
         return;
       }
       if ((e.metaKey || e.ctrlKey) && (e.key === "j" || e.key === "k")) {
         e.preventDefault();
-        setViewMode((prev) => {
-          const next = prev === "closed" ? "center" : "closed";
-          if (next === "center") setTimeout(() => unifiedInputRef.current?.focus(), 180);
-          return next;
-        });
+        if (viewMode === "closed") {
+          setViewMode("center");
+          setTimeout(() => unifiedInputRef.current?.focus(), 180);
+        } else {
+          closeAndClear();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [viewMode]);
+  }, [viewMode, closeAndClear]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -488,14 +630,12 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
 
   const clearAndClose = () => {
     setMessages([]);
+    setInput("");
     setSearchQuery("");
     setSearchResponse(null);
     setSearchError(null);
     setViewMode("closed");
   };
-
-  const condenseToSide = () => setViewMode("sideChat");
-  const close = () => setViewMode("closed");
 
   const handleUnifiedInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -571,7 +711,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
       {viewMode === "center" && (
         <div
           className="fixed inset-0 z-[9998] flex items-start justify-center pt-[16vh] cursor-default"
-          onClick={() => setViewMode("closed")}
+          onClick={closeAndClear}
         >
           {/* Subtle backdrop for focus */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" aria-hidden />
@@ -772,7 +912,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     </button>
                     <button
                       type="button"
-                      onClick={close}
+                      onClick={closeAndClear}
                       title="Close (Esc)"
                       className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
                     >
@@ -853,7 +993,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 <Trash2 size={12} />
               </button>
               <button
-                onClick={close}
+                onClick={closeAndClear}
                 className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
                 title="Close (Esc)"
               >
@@ -868,7 +1008,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 key={msg.id}
                 msg={msg}
                 onAction={handleAction}
-                onLinkClick={close}
+                onLinkClick={closeAndClear}
                 compact
               />
             ))}

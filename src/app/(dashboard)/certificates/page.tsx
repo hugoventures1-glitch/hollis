@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Plus,
@@ -10,14 +12,16 @@ import {
   FileText,
   Send,
   Eye,
+  Loader2,
 } from "lucide-react";
 import type { COIRequest, COIRequestStatus, CertificateStatus } from "@/types/coi";
 import { COVERAGE_TYPE_LABELS, formatLimit } from "@/types/coi";
 import { RejectButton } from "./_components/RejectButton";
 import { ApproveButton } from "./_components/ApproveButton";
 import { CertsTable, type CertWithSequences } from "./_components/CertsTable";
+import { useHollisData } from "@/hooks/useHollisData";
 
-export const dynamic = "force-dynamic";
+// ── Status style maps ─────────────────────────────────────────────────────────
 
 const REQUEST_STATUS_STYLES: Record<COIRequestStatus, string> = {
   pending:            "bg-amber-900/30 text-amber-400 border border-amber-700/30",
@@ -59,40 +63,15 @@ function StatusBadge({ status, table }: { status: string; table: "request" | "ce
   );
 }
 
-interface SearchParams {
-  tab?: string;
-}
+// ── Inner content (uses useSearchParams — needs Suspense wrapper) ─────────────
 
-interface PageProps {
-  searchParams: Promise<SearchParams>;
-}
+function CertificatesContent() {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab") ?? "requests";
 
-export default async function CertificatesPage({ searchParams }: PageProps) {
-  const { tab = "requests" } = await searchParams;
+  const { coiRequests: requests, certificates: certs, userId, loading, backgroundRefreshing } = useHollisData();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const [{ data: requestsData }, { data: certsData }] = await Promise.all([
-    supabase
-      .from("coi_requests")
-      .select("*")
-      .eq("agent_id", user.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("certificates")
-      .select("*, holder_followup_sequences!left(id, sequence_status)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
-  ]);
-
-  const requests = (requestsData ?? []) as COIRequest[];
-  const certs = (certsData ?? []) as CertWithSequences[];
-
-  // Approval queue — separated from regular pending count
+  // Approval queue
   const readyItems = requests.filter((r) => r.status === "ready_for_approval");
   const needsReviewItems = requests.filter((r) => r.status === "needs_review");
   const hasQueue = readyItems.length > 0 || needsReviewItems.length > 0;
@@ -101,6 +80,14 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
   const staleCount = certs.filter(
     (c) => c.status === "expired" || c.status === "outdated"
   ).length;
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full bg-[#0d0d12] items-center justify-center">
+        <Loader2 size={22} className="animate-spin text-zinc-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12]">
@@ -113,8 +100,11 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
           <span className="text-[#f5f5f7]">Certificates</span>
         </div>
         <div className="flex items-center gap-3">
+          {backgroundRefreshing && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse shrink-0" title="Syncing…" />
+          )}
           <Link
-            href={`/certificates/request/${user.id}`}
+            href={userId ? `/certificates/request/${userId}` : "#"}
             target="_blank"
             className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1e1e2a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#2e2e3a] transition-colors"
           >
@@ -178,7 +168,7 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* ── Approval Queue ─────────────────────────────────────────────────── */}
+      {/* ── Approval Queue ──────────────────────────────────────────────────── */}
       {hasQueue ? (
         <div className="shrink-0 border-b border-[#1e1e2a] bg-[#0a0a10]">
 
@@ -229,13 +219,12 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
           </p>
         </div>
       )}
-      {/* ─────────────────────────────────────────────────────────────────── */}
 
       {/* Tabs */}
       <div className="flex items-center gap-1 px-10 py-3 border-b border-[#1e1e2a] shrink-0">
         {[
-          { key: "requests", label: "Requests", count: pendingCount },
-          { key: "certificates", label: "Issued COIs", count: certs.length },
+          { key: "requests",     label: "Requests",    count: pendingCount  },
+          { key: "certificates", label: "Issued COIs", count: certs.length  },
         ].map(({ key, label, count }) => (
           <Link
             key={key}
@@ -276,7 +265,7 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
               {requests
                 .filter((r) => r.status === "pending")
                 .map((req) => (
-                  <RequestRow key={req.id} req={req} userId={user.id} />
+                  <RequestRow key={req.id} req={req} />
                 ))}
             </div>
           ))}
@@ -298,7 +287,7 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
               </Link>
             </EmptyState>
           ) : (
-            <CertsTable certs={certs} />
+            <CertsTable certs={certs as CertWithSequences[]} />
           ))}
 
       </div>
@@ -306,7 +295,23 @@ export default async function CertificatesPage({ searchParams }: PageProps) {
   );
 }
 
-// ── Ready to Send card ────────────────────────────────────────
+// ── Page shell with Suspense boundary ────────────────────────────────────────
+
+export default function CertificatesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col h-full bg-[#0d0d12] items-center justify-center">
+          <Loader2 size={22} className="animate-spin text-zinc-600" />
+        </div>
+      }
+    >
+      <CertificatesContent />
+    </Suspense>
+  );
+}
+
+// ── Ready to Send card ────────────────────────────────────────────────────────
 
 function ReadyCard({ req }: { req: COIRequest }) {
   return (
@@ -368,7 +373,7 @@ function ReadyCard({ req }: { req: COIRequest }) {
   );
 }
 
-// ── Needs Review card ─────────────────────────────────────────
+// ── Needs Review card ─────────────────────────────────────────────────────────
 
 function NeedsReviewCard({ req }: { req: COIRequest }) {
   return (
@@ -427,9 +432,9 @@ function NeedsReviewCard({ req }: { req: COIRequest }) {
   );
 }
 
-// ── Request row (existing pending requests) ───────────────────
+// ── Request row (existing pending requests) ───────────────────────────────────
 
-function RequestRow({ req, userId }: { req: COIRequest; userId: string }) {
+function RequestRow({ req }: { req: COIRequest }) {
   const isActionable = req.status === "pending";
 
   return (
@@ -467,7 +472,7 @@ function RequestRow({ req, userId }: { req: COIRequest; userId: string }) {
             <div>
               <div className="text-[11px] font-medium text-[#505057] uppercase tracking-wider mb-1">Coverage Required</div>
               <div className="flex flex-wrap gap-1 mb-1.5">
-                {req.coverage_types.map(t => (
+                {req.coverage_types.map((t) => (
                   <CovTag key={t} label={COVERAGE_TYPE_LABELS[t]?.split(" ")[0] ?? t} />
                 ))}
               </div>
@@ -487,7 +492,7 @@ function RequestRow({ req, userId }: { req: COIRequest; userId: string }) {
               <div>
                 <div className="text-[12px] font-medium text-red-400 mb-1">Coverage gaps detected</div>
                 <ul className="space-y-0.5">
-                  {req.coverage_check_result.gaps.map((g, i) => (
+                  {req.coverage_check_result.gaps.map((g: string, i: number) => (
                     <li key={i} className="text-[11px] text-red-300">• {g}</li>
                   ))}
                 </ul>
@@ -529,7 +534,6 @@ function RequestRow({ req, userId }: { req: COIRequest; userId: string }) {
     </div>
   );
 }
-
 
 function CovTag({ label }: { label: string }) {
   return (

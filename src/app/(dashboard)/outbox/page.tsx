@@ -1,41 +1,30 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { Loader2 } from "lucide-react";
 import OutboxClient from "./OutboxClient";
-import type { Draft, DraftPolicy } from "@/components/outbox/DraftEditDrawer";
+import { useHollisData } from "@/hooks/useHollisData";
 
-export const dynamic = "force-dynamic";
+export default function OutboxPage() {
+  const { outboxDrafts, loading, lastFetched, backgroundRefreshing } = useHollisData();
 
-export default async function OutboxPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Show spinner only on the very first load (no cached data in the store yet)
+  if (loading && !lastFetched) {
+    return (
+      <div className="flex h-full items-center justify-center bg-[#0d0d12]">
+        <Loader2 size={22} className="animate-spin text-zinc-600" />
+      </div>
+    );
+  }
 
-  if (!user) redirect("/login");
-
-  const { data: rows } = await supabase
-    .from("outbox_drafts")
-    .select(
-      "id, subject, body, policies(client_name, carrier, expiration_date, policy_name)"
-    )
-    .eq("user_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
-  // Normalize: PostgREST returns forward FK as object but TS may infer array
-  const drafts: Draft[] = (rows ?? []).map((row) => {
-    const raw = row.policies;
-    const policy: DraftPolicy | null = Array.isArray(raw)
-      ? (raw[0] as DraftPolicy) ?? null
-      : (raw as DraftPolicy | null);
-
-    return {
-      id: row.id,
-      subject: row.subject,
-      body: row.body,
-      policies: policy,
-    };
-  });
-
-  return <OutboxClient initialDrafts={drafts} />;
+  return (
+    <div className="relative h-full">
+      {backgroundRefreshing && (
+        <span
+          className="absolute top-4 right-6 z-10 w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse"
+          title="Syncing…"
+        />
+      )}
+      <OutboxClient initialDrafts={outboxDrafts} />
+    </div>
+  );
 }

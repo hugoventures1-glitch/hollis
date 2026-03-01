@@ -4,9 +4,11 @@
  * /documents — Document Chasing dashboard
  *
  * Full client-side page (requires auth-gated API calls + interactive drawer).
- * Fetches data on mount via GET /api/doc-chase.
+ * Initialises from the global Hollis store (instant on back-navigation).
+ * Falls back to GET /api/doc-chase when the store has no data yet.
  * Create drawer: POST /api/doc-chase.
  * Mark Received / Cancel: PATCH /api/doc-chase/[id].
+ * Calls refetch() after mutations to keep the store in sync.
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -22,6 +24,8 @@ import {
 } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/types/doc-chase";
 import type { DocChaseRequestSummary, DocChaseRequestStatus } from "@/types/doc-chase";
+import { useHollisData } from "@/hooks/useHollisData";
+import { useHollisStore } from "@/stores/hollisStore";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -422,8 +426,18 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DocumentsPage() {
-  const [requests, setRequests] = useState<DocChaseRequestSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── Store integration ──────────────────────────────────────────────────────
+  // useHollisData subscribes this component to the global store and triggers
+  // a fetch if data is missing or stale.
+  const { docChaseRequests, loading: storeLoading, lastFetched: storeFetched, refetch, backgroundRefreshing } = useHollisData();
+
+  // Lazy-initialise from store (gives instant data on back-navigation).
+  const [requests, setRequests] = useState<DocChaseRequestSummary[]>(
+    () => useHollisStore.getState().docChaseRequests
+  );
+  const [loading, setLoading] = useState(
+    () => useHollisStore.getState().docChaseRequests.length === 0 && !useHollisStore.getState().lastFetched
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
@@ -454,6 +468,15 @@ export default function DocumentsPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // Sync local requests state whenever the store updates (initial load or
+  // background refresh). This replaces the old mount-time API fetch.
+  useEffect(() => {
+    setRequests(docChaseRequests);
+    if (storeFetched) setLoading(false);
+  }, [docChaseRequests, storeFetched]);
+
+  // Fallback: if the store hasn't loaded yet on first mount, fetch directly.
+  // (Handles the rare case where this page is the very first page visited.)
   const fetchRequests = useCallback(async () => {
     try {
       const res = await fetch("/api/doc-chase");
@@ -469,8 +492,10 @@ export default function DocumentsPage() {
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (!useHollisStore.getState().lastFetched && !storeLoading) {
+      fetchRequests();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleStatusChange(
     id: string,
@@ -496,14 +521,14 @@ export default function DocumentsPage() {
         });
         pushToast(data.error ?? "Update failed", "error");
       } else {
-        const label = status === "received" ? "marked as received" : "cancelled";
         pushToast(
           status === "received"
             ? "Document marked as received — follow-ups cancelled"
             : "Request cancelled"
         );
-        // Refresh list to reflect server state
+        // Refresh list and keep the global store in sync
         fetchRequests();
+        refetch();
       }
     } catch {
       setOptimisticStatus((prev) => {
@@ -551,13 +576,18 @@ export default function DocumentsPage() {
           <ChevronRight size={12} />
           <span className="text-[#f5f5f7]">Documents</span>
         </div>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors shadow-[0_0_20px_rgba(0,212,170,0.25),0_0_6px_rgba(0,212,170,0.15)]"
-        >
-          <Plus size={13} strokeWidth={2.5} />
-          Request Document
-        </button>
+        <div className="flex items-center gap-3">
+          {backgroundRefreshing && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse shrink-0" title="Syncing…" />
+          )}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors shadow-[0_0_20px_rgba(0,212,170,0.25),0_0_6px_rgba(0,212,170,0.15)]"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+            Request Document
+          </button>
+        </div>
       </header>
 
       {/* Stats bar */}
@@ -794,7 +824,7 @@ export default function DocumentsPage() {
         onClose={() => setDrawerOpen(false)}
         onSuccess={(msg) => pushToast(msg, "success")}
         onError={(msg) => pushToast(msg, "error")}
-        onCreated={fetchRequests}
+        onCreated={() => { fetchRequests(); refetch(); }}
       />
 
       {/* Toast stack */}

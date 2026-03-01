@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
+import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -94,6 +95,14 @@ export default function SidebarNav() {
     router.push("/login");
   };
 
+  // Prefetch store data on hover so navigations feel instant
+  const handleNavHover = () => {
+    const { lastFetched, fetchAll } = useHollisStore.getState();
+    if (!lastFetched || Date.now() - lastFetched > HOLLIS_STALE_MS) {
+      fetchAll();
+    }
+  };
+
   return (
     <>
       <aside
@@ -116,7 +125,7 @@ export default function SidebarNav() {
         </div>
 
         {/* Nav */}
-        <div className="px-4 flex-1 overflow-y-auto space-y-0.5">
+        <div className="px-4 flex-1 overflow-y-auto space-y-0.5" onMouseEnter={handleNavHover}>
           {/* Search — opens unified AI panel, teal border indicates something special */}
           <button
             onClick={openPanel}

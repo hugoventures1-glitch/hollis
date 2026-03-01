@@ -1,62 +1,86 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Upload, Plus, ChevronRight } from "lucide-react";
+import { Upload, Plus, ChevronRight, Loader2 } from "lucide-react";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignStage } from "@/types/renewals";
 import { RenewalsTable } from "./_components/RenewalsTable";
-
-export const dynamic = "force-dynamic";
+import { useHollisData } from "@/hooks/useHollisData";
+import { createClient } from "@/lib/supabase/client";
 
 const STAGE_FILTER_OPTIONS: { label: string; value: CampaignStage | "all" }[] = [
-  { label: "All",               value: "all"            },
-  { label: "Not Started",       value: "pending"        },
-  { label: "90-Day Sent",       value: "email_90_sent"  },
-  { label: "60-Day Sent",       value: "email_60_sent"  },
-  { label: "SMS Sent",          value: "sms_30_sent"    },
-  { label: "Script Ready",      value: "script_14_ready"},
-  { label: "Complete",          value: "complete"       },
+  { label: "All",           value: "all"             },
+  { label: "Not Started",   value: "pending"         },
+  { label: "90-Day Sent",   value: "email_90_sent"   },
+  { label: "60-Day Sent",   value: "email_60_sent"   },
+  { label: "SMS Sent",      value: "sms_30_sent"     },
+  { label: "Script Ready",  value: "script_14_ready" },
+  { label: "Complete",      value: "complete"        },
 ];
 
-interface PageProps {
-  searchParams: Promise<{ stage?: string; status?: string }>;
-}
+// ── Inner content (needs Suspense because it calls useSearchParams) ────────────
 
-export default async function RenewalsPage({ searchParams }: PageProps) {
-  const { stage: stageFilter = "all", status: statusFilter = "active" } =
-    await searchParams;
+function RenewalsContent() {
+  const searchParams = useSearchParams();
+  const stageFilter = searchParams.get("stage") ?? "all";
+  const statusFilter = searchParams.get("status") ?? "active";
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { policies: activePolicies, loading: storeLoading, backgroundRefreshing } = useHollisData();
 
-  let query = supabase
-    .from("policies")
-    .select("*")
-    .order("expiration_date", { ascending: true });
+  // For non-active status filters, fall back to a client-side Supabase query
+  // (the store only caches active policies)
+  const [altRows, setAltRows] = useState<Policy[]>([]);
+  const [altLoading, setAltLoading] = useState(false);
 
-  if (statusFilter !== "all") {
-    query = query.eq("status", statusFilter);
+  useEffect(() => {
+    if (statusFilter === "active") return;
+
+    setAltLoading(true);
+    const supabase = createClient();
+    let q = supabase
+      .from("policies")
+      .select("*")
+      .order("expiration_date", { ascending: true });
+
+    if (statusFilter !== "all") {
+      q = q.eq("status", statusFilter);
+    }
+    if (stageFilter !== "all") {
+      q = q.eq("campaign_stage", stageFilter as CampaignStage);
+    }
+
+    q.then(({ data }) => {
+      setAltRows((data ?? []) as Policy[]);
+      setAltLoading(false);
+    });
+  }, [statusFilter, stageFilter]);
+
+  // Determine displayed rows
+  let rows: Policy[];
+  if (statusFilter === "active") {
+    rows = activePolicies.filter(
+      (p) => stageFilter === "all" || p.campaign_stage === stageFilter
+    );
+  } else {
+    rows = altRows;
   }
-  if (stageFilter !== "all") {
-    query = query.eq("campaign_stage", stageFilter as CampaignStage);
-  }
 
-  const { data: policies } = await query;
-  const rows = (policies ?? []) as Policy[];
-
-  // Summary counts
-  const { data: allActive } = await supabase
-    .from("policies")
-    .select("id, expiration_date, campaign_stage, status")
-    .eq("status", "active");
-
-  const active = allActive ?? [];
-  const urgent      = active.filter(p => daysUntilExpiry(p.expiration_date) <= 30).length;
-  const needsAction = active.filter(p =>
-    ["pending", "email_90_sent", "email_60_sent"].includes(p.campaign_stage) &&
-    daysUntilExpiry(p.expiration_date) <= 60
+  // Summary stats always come from the active-policies store slice
+  const active = activePolicies;
+  const urgent = active.filter(
+    (p) => daysUntilExpiry(p.expiration_date) <= 30
   ).length;
+  const needsAction = active.filter(
+    (p) =>
+      ["pending", "email_90_sent", "email_60_sent"].includes(p.campaign_stage) &&
+      daysUntilExpiry(p.expiration_date) <= 60
+  ).length;
+
+  const isLoading =
+    (statusFilter === "active" && storeLoading) ||
+    (statusFilter !== "active" && altLoading);
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12]">
@@ -69,6 +93,9 @@ export default async function RenewalsPage({ searchParams }: PageProps) {
           <span className="text-[#f5f5f7]">Renewals</span>
         </div>
         <div className="flex items-center gap-3">
+          {backgroundRefreshing && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse shrink-0" title="Syncing…" />
+          )}
           <Link
             href="/renewals/templates"
             className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1e1e2a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#2e2e3a] transition-colors"
@@ -95,7 +122,9 @@ export default async function RenewalsPage({ searchParams }: PageProps) {
       {/* Summary stats */}
       <div className="flex items-center gap-0 px-10 py-8 border-b border-[#252530] shrink-0">
         <div className="pr-10">
-          <div className="text-[32px] font-bold text-[#f5f5f7] leading-none">{active.length}</div>
+          <div className="text-[32px] font-bold text-[#f5f5f7] leading-none">
+            {active.length}
+          </div>
           <div className="text-[12px] text-[#8a8b91] mt-1.5">Active Policies</div>
         </div>
         <div className="px-10 border-l border-[#1e1e2a]">
@@ -110,7 +139,7 @@ export default async function RenewalsPage({ searchParams }: PageProps) {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-1 px-10 py-3 border-b border-[#1e1e2a] shrink-0 overflow-x-auto">
-        {STAGE_FILTER_OPTIONS.map(opt => (
+        {STAGE_FILTER_OPTIONS.map((opt) => (
           <Link
             key={opt.value}
             href={`/renewals?stage=${opt.value}&status=${statusFilter}`}
@@ -125,7 +154,7 @@ export default async function RenewalsPage({ searchParams }: PageProps) {
         ))}
 
         <div className="ml-auto flex items-center gap-1">
-          {(["active", "expired", "all"] as const).map(s => (
+          {(["active", "expired", "all"] as const).map((s) => (
             <Link
               key={s}
               href={`/renewals?stage=${stageFilter}&status=${s}`}
@@ -141,15 +170,37 @@ export default async function RenewalsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Table — client component for inline actions */}
+      {/* Table */}
       <div className="flex-1 overflow-y-auto">
-        {rows.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-24">
+            <Loader2 size={22} className="animate-spin text-zinc-600" />
+          </div>
+        ) : rows.length === 0 ? (
           <EmptyState stageFilter={stageFilter} />
         ) : (
           <RenewalsTable policies={rows} />
         )}
       </div>
     </div>
+  );
+}
+
+// ── Page shell with Suspense boundary ────────────────────────────────────────
+
+export default function RenewalsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col h-full bg-[#0d0d12]">
+          <div className="flex items-center justify-center flex-1">
+            <Loader2 size={22} className="animate-spin text-zinc-600" />
+          </div>
+        </div>
+      }
+    >
+      <RenewalsContent />
+    </Suspense>
   );
 }
 

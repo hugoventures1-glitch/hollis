@@ -71,7 +71,7 @@ async function gatherContextData(
   if (page === "renewals") {
     const { data } = await admin
       .from("policies")
-      .select("policy_name, client_name, carrier, expiration_date, premium, campaign_stage, status")
+      .select("id, policy_name, client_name, carrier, expiration_date, premium, campaign_stage, status")
       .eq("user_id", userId)
       .eq("status", "active")
       .order("expiration_date", { ascending: true })
@@ -79,6 +79,7 @@ async function gatherContextData(
 
     return {
       policies: (data ?? []).map((p) => ({
+        id: p.id,
         client: p.client_name,
         policy: p.policy_name,
         carrier: p.carrier,
@@ -92,13 +93,14 @@ async function gatherContextData(
   if (page === "certificates") {
     const { data } = await admin
       .from("certificates")
-      .select("insured_name, holder_name, status, expiration_date, has_gap, certificate_number")
+      .select("id, insured_name, holder_name, status, expiration_date, has_gap, certificate_number")
       .eq("user_id", userId)
       .order("expiration_date", { ascending: true })
       .limit(20);
 
     return {
       certificates: (data ?? []).map((c) => ({
+        id: c.id,
         insured: c.insured_name,
         holder: c.holder_name,
         status: c.status,
@@ -112,13 +114,14 @@ async function gatherContextData(
   if (page === "clients") {
     const { data } = await admin
       .from("clients")
-      .select("name, email, phone, business_type, industry")
+      .select("id, name, email, phone, business_type, industry")
       .eq("user_id", userId)
       .order("name", { ascending: true })
       .limit(20);
 
     return {
       clients: (data ?? []).map((c) => ({
+        id: c.id,
         name: c.name,
         email: c.email,
         phone: c.phone,
@@ -131,7 +134,7 @@ async function gatherContextData(
   if (page === "documents") {
     const { data } = await admin
       .from("doc_chase_requests")
-      .select("client_name, document_type, status, created_at")
+      .select("id, client_name, document_type, status, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -143,6 +146,7 @@ async function gatherContextData(
 
     return {
       documentRequests: (data ?? []).map((r) => ({
+        id: r.id,
         client: r.client_name,
         documentType: r.document_type,
         status: r.status,
@@ -251,11 +255,17 @@ Keep answers to 2-4 sentences. Go longer only when the question genuinely requir
 If the data needed to answer is not in the context above, say so in one sentence and tell them where to look.
 Never surface raw field names, internal IDs, or technical terms from the data. Never imply you can send emails, update records, or take actions yourself.
 
-After your reply, you may append 0-2 action shortcuts using this exact format on its own line:
-[ACTIONS: [{"label": "View Renewals", "href": "/renewals"}]]
+After your reply, when you mention specific entities, append 1-3 action shortcuts using this exact format on its own line:
+[ACTIONS: [{"label": "View Martinez Renewal", "href": "/renewals/abc123"}]]
 
-Only include this when the action is directly relevant to what was asked. Leave it out otherwise.
-Available hrefs: /overview, /renewals, /certificates, /certificates/sequences, /policies, /clients, /documents, /outbox`;
+Always include shortcuts when your answer mentions:
+- A specific policy or renewal → {"label": "View [client/policy]", "href": "/renewals/{policy.id}"}
+- A specific certificate → {"label": "View certificate", "href": "/certificates/{certificate.id}"}
+- A specific client → {"label": "View [client name]", "href": "/clients/{client.id}"}
+
+For general navigation (no specific entity), use: /overview, /renewals, /certificates, /certificates/sequences, /policies, /clients, /documents, /outbox
+
+Use the id field from the context data when building entity-specific hrefs. Keep labels short (2-4 words).`;
 }
 
 // ── Response Parser ───────────────────────────────────────────────────────────
@@ -298,9 +308,10 @@ export async function POST(request: NextRequest) {
   let message: string;
   let context: AssistantContext;
   let history: AssistantMessage[];
+  let dataContext: { data: Record<string, unknown>; lastFetched: number } | undefined;
 
   try {
-    ({ message, context, history } = await request.json());
+    ({ message, context, history, dataContext } = await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
@@ -310,9 +321,19 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Step 1: Gather live data ──────────────────────────────────────────────
+  // If the client sent a fresh store snapshot, skip the DB round-trip.
+  const STALE_MS = 120_000;
   let contextData: Record<string, unknown> = {};
   try {
-    contextData = await gatherContextData(context.page, user.id);
+    if (
+      dataContext?.data &&
+      dataContext.lastFetched &&
+      Date.now() - dataContext.lastFetched < STALE_MS
+    ) {
+      contextData = dataContext.data;
+    } else {
+      contextData = await gatherContextData(context.page, user.id);
+    }
     if (context.data) {
       contextData = { ...contextData, ...context.data };
     }
