@@ -12,6 +12,10 @@ const PUBLIC_PREFIXES = [
   "/api/coi/agent-info",
   // Cron jobs — protected by CRON_SECRET header inside the route handler
   "/api/cron",
+  // Webhook from Resend — validated by RESEND_WEBHOOK_SECRET inside the route handler
+  "/api/webhooks/resend",
+  // Holder follow-up cron — protected by CRON_SECRET header inside the route handler
+  "/api/holder-followup/process",
 ];
 
 export async function middleware(request: NextRequest) {

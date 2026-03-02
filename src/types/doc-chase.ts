@@ -2,7 +2,7 @@
 
 export type DocChaseRequestStatus = "pending" | "active" | "received" | "cancelled";
 export type DocChaseSequenceStatus = "active" | "completed" | "cancelled";
-export type DocChaseMessageStatus = "scheduled" | "sent" | "cancelled";
+export type DocChaseMessageStatus = "scheduled" | "processing" | "sent" | "cancelled";
 
 export const DOCUMENT_TYPES = [
   "Signed Application",
@@ -55,6 +55,7 @@ export interface DocChaseMessage {
   body: string;
   channel: "email" | "sms" | "phone_script";
   phone_script: string | null;
+  processing_started_at?: string | null;
   created_at: string;
 }
 

@@ -292,12 +292,14 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
       : "high";
 
     // Snapshot the profile for training data
+    const requiresReview = overall_confidence === "low";
     await supabase
       .from("policy_checks")
       .update({
         overall_status: "complete",
         summary_verdict,
         overall_confidence,
+        requires_review: requiresReview,
         client_profile_snapshot: profile ?? null,
         client_business_type: clientContext.business_type,
         client_industry: clientContext.industry,

@@ -11,7 +11,7 @@ export type CampaignStage =
   | "complete";
 
 export type TouchpointType = "email_90" | "email_60" | "sms_30" | "script_14";
-export type TouchpointStatus = "pending" | "sent" | "failed" | "skipped";
+export type TouchpointStatus = "pending" | "processing" | "sent" | "failed" | "skipped";
 export type SendChannel = "email" | "sms";
 export type SendStatus = "sent" | "failed" | "bounced";
 export type TemplateType = "email_90" | "email_60" | "sms_30" | "script_14";
@@ -33,6 +33,10 @@ export interface Policy {
   last_contact_at?: string | null;
   created_at: string;
   updated_at: string;
+  // ── Renewal override controls ─────────────────────────────────────────────
+  renewal_paused?: boolean;
+  renewal_paused_until?: string | null;
+  renewal_manual_override?: string | null;
   // ── Health score (computed, refreshed by cron + refresh API) ──────────────
   health_score?: number | null;
   health_label?: HealthLabel | null;
@@ -50,6 +54,7 @@ export interface CampaignTouchpoint {
   content?: string | null;
   scheduled_at: string; // ISO date string
   sent_at?: string | null;
+  processing_started_at?: string | null;
   created_at: string;
 }
 

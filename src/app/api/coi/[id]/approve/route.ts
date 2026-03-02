@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   // Fetch the request to confirm ownership and get the linked certificate id
   const { data: coiRequest, error: fetchErr } = await supabase
     .from("coi_requests")
-    .select("id, agent_id, status, certificate_id, requester_email")
+    .select("id, agent_id, status, version, certificate_id, requester_email")
     .eq("id", id)
     .eq("agent_id", user.id)
     .single();
@@ -49,16 +49,26 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   }
 
   const now = new Date().toISOString();
+  const currentVersion: number = coiRequest.version ?? 0;
 
-  // Mark request as sent
-  const { error: reqErr } = await supabase
+  // Atomic update with optimistic lock: only succeeds if version hasn't changed
+  const { data: updatedRows, error: reqErr } = await supabase
     .from("coi_requests")
-    .update({ status: "sent" })
+    .update({ status: "sent", version: currentVersion + 1 })
     .eq("id", id)
-    .eq("agent_id", user.id);
+    .eq("agent_id", user.id)
+    .eq("version", currentVersion) // optimistic lock guard
+    .select("id");
 
   if (reqErr) {
     return NextResponse.json({ error: reqErr.message }, { status: 500 });
+  }
+
+  if (!updatedRows?.length) {
+    return NextResponse.json(
+      { error: "This request was modified by another session. Please refresh and try again." },
+      { status: 409 }
+    );
   }
 
   // Mark the linked certificate as sent

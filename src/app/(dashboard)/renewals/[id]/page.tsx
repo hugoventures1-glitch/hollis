@@ -16,6 +16,7 @@ import { StageBadge } from "@/components/renewals/stage-badge";
 import { DaysBadge } from "@/components/renewals/days-badge";
 import { daysUntilExpiry, TOUCHPOINT_LABELS } from "@/types/renewals";
 import type { PolicyDetail, CampaignTouchpoint, SendLog, TouchpointStatus } from "@/types/renewals";
+import { RenewalOverrideControls } from "@/components/renewals/RenewalOverrideControls";
 
 export const dynamic = "force-dynamic";
 
@@ -31,17 +32,19 @@ const TOUCHPOINT_ICONS = {
 };
 
 const STATUS_ICON_MAP: Record<TouchpointStatus, React.ReactNode> = {
-  pending:  <Clock size={14} className="text-[#8a8b91]" />,
-  sent:     <CheckCircle2 size={14} className="text-[#00d4aa]" />,
-  failed:   <XCircle size={14} className="text-red-400" />,
-  skipped:  <SkipForward size={14} className="text-[#505057]" />,
+  pending:    <Clock size={14} className="text-[#8a8b91]" />,
+  processing: <Clock size={14} className="text-amber-400" />,
+  sent:       <CheckCircle2 size={14} className="text-[#00d4aa]" />,
+  failed:     <XCircle size={14} className="text-red-400" />,
+  skipped:    <SkipForward size={14} className="text-[#505057]" />,
 };
 
 const STATUS_LABEL_MAP: Record<TouchpointStatus, string> = {
-  pending: "Scheduled",
-  sent:    "Sent",
-  failed:  "Failed",
-  skipped: "Skipped",
+  pending:    "Scheduled",
+  processing: "Sending…",
+  sent:       "Sent",
+  failed:     "Failed",
+  skipped:    "Skipped",
 };
 
 export default async function PolicyDetailPage({ params }: PageProps) {
@@ -134,6 +137,16 @@ export default async function PolicyDetailPage({ params }: PageProps) {
               />
             </div>
           </div>
+
+          {/* Renewal override controls */}
+          <RenewalOverrideControls
+            policy={{
+              id: p.id,
+              renewal_paused: p.renewal_paused ?? false,
+              renewal_paused_until: p.renewal_paused_until ?? null,
+              renewal_manual_override: p.renewal_manual_override ?? null,
+            }}
+          />
 
           {/* Campaign timeline */}
           <div>

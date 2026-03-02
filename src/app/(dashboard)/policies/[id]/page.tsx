@@ -965,6 +965,16 @@ export default function PolicyCheckDetailPage() {
                 </span>
               )}
 
+              {check.requires_review && (
+                <div className="flex items-start gap-2 mt-3 rounded-lg bg-amber-900/20 border border-amber-700/30 px-3 py-2.5">
+                  <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-amber-300 leading-snug">
+                    <span className="font-semibold block">Manual review required</span>
+                    AI confidence is low. Verify each flag against the source document before acting.
+                  </div>
+                </div>
+              )}
+
               {check.summary_note && (
                 <p className="text-[12px] text-[#8a8b91] leading-relaxed mt-3">
                   {check.summary_note}

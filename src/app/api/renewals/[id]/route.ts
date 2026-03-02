@@ -64,7 +64,14 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const allowedFields = ["status", "campaign_stage", "last_contact_at"];
+  const allowedFields = [
+    "status",
+    "campaign_stage",
+    "last_contact_at",
+    "renewal_paused",
+    "renewal_paused_until",
+    "renewal_manual_override",
+  ];
   const updates: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (field in body) updates[field] = body[field];

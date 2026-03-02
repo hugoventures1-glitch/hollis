@@ -5,6 +5,10 @@
  * Protected by CRON_SECRET header. Runs as service role (bypasses RLS).
  *
  * Vercel schedule: 0 9 * * * (9 AM UTC daily)
+ *
+ * Race-safety: touchpoints are atomically claimed (status → 'processing') before
+ * any external send. Concurrent cron executions skip rows already claimed.
+ * Stale 'processing' rows (> 10 min) are reset to 'pending' at startup.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -19,6 +23,7 @@ import {
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignTouchpoint, TouchpointType } from "@/types/renewals";
 import { refreshPolicyHealthScore } from "@/lib/renewals/health-score";
+import { isSendThrottled } from "@/lib/cron/throttle";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
@@ -27,8 +32,10 @@ const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   script_14: "script_14_ready",
 };
 
+// Stale claim threshold: reset 'processing' rows older than this many minutes.
+const STALE_CLAIM_MINUTES = 10;
+
 export async function GET(request: NextRequest) {
-  // Auth check
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,16 +44,46 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const resend = getResendClient();
   const today = new Date().toISOString().split("T")[0];
+  const staleThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000).toISOString();
 
-  // Fetch all active policies
+  // Open a durable run record
+  const { data: runRow } = await supabase
+    .from("cron_job_runs")
+    .insert({ job_name: "renewals", status: "running" })
+    .select("id")
+    .single();
+  const runId: string | null = runRow?.id ?? null;
+
+  // Reset stale claims from crashed or timed-out previous runs
+  await supabase
+    .from("campaign_touchpoints")
+    .update({ status: "pending", processing_started_at: null })
+    .eq("status", "processing")
+    .lt("processing_started_at", staleThreshold);
+
+  // Auto-resume any policies whose pause window has expired
+  await supabase
+    .from("policies")
+    .update({ renewal_paused: false, renewal_paused_until: null })
+    .eq("renewal_paused", true)
+    .lt("renewal_paused_until", today);
+
+  // Fetch all active, non-paused policies
   const { data: policies, error: policiesError } = await supabase
     .from("policies")
     .select("*")
     .eq("status", "active")
-    .neq("campaign_stage", "complete");
+    .neq("campaign_stage", "complete")
+    .eq("renewal_paused", false);
 
   if (policiesError) {
-    console.error("[cron] Failed to fetch policies:", policiesError.message);
+    console.error("[cron/renewals] Failed to fetch policies:", policiesError.message);
+    if (runId) {
+      await supabase
+        .from("cron_job_runs")
+        .update({ status: "failed", finished_at: new Date().toISOString(), error_summary: policiesError.message })
+        .eq("id", runId);
+    }
     return NextResponse.json({ error: policiesError.message }, { status: 500 });
   }
 
@@ -80,38 +117,59 @@ export async function GET(request: NextRequest) {
 
     for (const type of dueTouchpointTypes) {
       // Find the pending touchpoint
-      const { data: touchpoint } = await supabase
+      const { data: touchpointRows } = await supabase
         .from("campaign_touchpoints")
         .select("*")
         .eq("policy_id", policy.id)
         .eq("type", type)
         .eq("status", "pending")
-        .single();
+        .limit(1);
 
+      const touchpoint = touchpointRows?.[0] as CampaignTouchpoint | undefined;
       if (!touchpoint) {
         results.skipped++;
         continue;
       }
 
-      try {
-        await fireTouchpoint(
-          supabase,
-          resend,
-          policy,
-          touchpoint as CampaignTouchpoint,
-          type,
-          today
-        );
-        results.sent++;
+      // Atomically claim: only proceeds if this worker wins the race
+      const { data: claimed } = await supabase
+        .from("campaign_touchpoints")
+        .update({ status: "processing", processing_started_at: new Date().toISOString() })
+        .eq("id", touchpoint.id)
+        .eq("status", "pending")
+        .select("id");
 
-        // Recompute health score now that campaign_stage / last_contact_at changed
+      if (!claimed?.length) {
+        // Another worker claimed this touchpoint first
+        results.skipped++;
+        continue;
+      }
+
+      // Throttle guard: skip if client was already contacted for this policy within 48 h
+      const recipient =
+        type === "sms_30"
+          ? (policy.client_phone ?? policy.client_email ?? "")
+          : (policy.client_email ?? "");
+      const throttled = await isSendThrottled(supabase, recipient, policy.id, "policy_id", 48);
+      if (throttled) {
+        // Release the claim and skip
+        await supabase
+          .from("campaign_touchpoints")
+          .update({ status: "pending", processing_started_at: null })
+          .eq("id", touchpoint.id);
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        await fireTouchpoint(supabase, resend, policy, touchpoint, type, today);
+        results.sent++;
         await refreshPolicyHealthScore(policy.id, supabase);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         results.errors.push(`${policy.client_name} / ${type}: ${msg}`);
         results.failed++;
 
-        // Mark touchpoint as failed
         await supabase
           .from("campaign_touchpoints")
           .update({ status: "failed" })
@@ -120,11 +178,26 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  console.log("[cron] Done:", results);
+  if (runId) {
+    await supabase
+      .from("cron_job_runs")
+      .update({
+        status: "complete",
+        finished_at: new Date().toISOString(),
+        processed: results.processed,
+        sent: results.sent,
+        skipped: results.skipped,
+        failed: results.failed,
+        error_summary: results.errors.length ? results.errors.join("; ") : null,
+      })
+      .eq("id", runId);
+  }
+
+  console.log("[cron/renewals] Done:", results);
   return NextResponse.json(results);
 }
 
-// ── Fire a single touchpoint ─────────────────────────────────
+// ── Fire a single touchpoint ──────────────────────────────────────────────────
 
 async function fireTouchpoint(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,12 +235,11 @@ async function fireTouchpoint(
     providerId = await sendSMS(policy.client_phone, content);
     channel = "sms";
   } else if (type === "script_14") {
-    // Generate script and store — no external send
     content = await generateCallScript(policy);
     channel = "email"; // logged as internal
   }
 
-  // Update touchpoint
+  // Mark touchpoint sent
   await supabase
     .from("campaign_touchpoints")
     .update({
@@ -196,7 +268,7 @@ async function fireTouchpoint(
     .from("policies")
     .update({
       campaign_stage: newStage,
-      last_contact_at: new Date().toISOString(),
+      last_contact_at: today,
     })
     .eq("id", policy.id);
 }

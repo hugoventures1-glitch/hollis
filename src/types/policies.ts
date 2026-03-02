@@ -156,6 +156,7 @@ export interface PolicyCheck {
   summary_note: string | null;
   client_profile_snapshot: ClientCoverageProfile | null;
   document_count: number;
+  requires_review: boolean;
   created_at: string;
   updated_at: string;
 }

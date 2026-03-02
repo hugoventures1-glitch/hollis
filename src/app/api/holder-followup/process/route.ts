@@ -9,7 +9,8 @@
  *
  * Vercel schedule: 0 * * * * (every hour)
  *
- * If RESEND_API_KEY is not configured, logs the send attempt and continues.
+ * Race-safety: messages are atomically claimed (status → 'processing') before
+ * any external send. Stale claims (> 10 min) are reset to 'scheduled' at startup.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,6 +20,7 @@ interface SequenceRow {
   holder_name: string;
   holder_email: string;
   user_id: string;
+  sequence_status: string;
 }
 
 interface MessageRow {
@@ -30,8 +32,9 @@ interface MessageRow {
   holder_followup_sequences: SequenceRow;
 }
 
+const STALE_CLAIM_MINUTES = 10;
+
 export async function POST(request: NextRequest) {
-  // Auth check — must match CRON_SECRET
   const secret = process.env.CRON_SECRET;
   const provided =
     request.headers.get("x-cron-secret") ??
@@ -43,9 +46,42 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient();
   const now = new Date().toISOString();
+  const staleThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000).toISOString();
 
-  // Fetch all due messages — join sequence for holder email
-  const { data: dueMsgs, error: fetchErr } = await supabase
+  // Open a durable run record
+  const { data: runRow } = await supabase
+    .from("cron_job_runs")
+    .insert({ job_name: "holder-followup", status: "running" })
+    .select("id")
+    .single();
+  const runId: string | null = runRow?.id ?? null;
+
+  // Reset stale claims from crashed or timed-out previous runs
+  await supabase
+    .from("holder_followup_messages")
+    .update({ status: "scheduled", processing_started_at: null })
+    .eq("status", "processing")
+    .lt("processing_started_at", staleThreshold);
+
+  // Atomically claim all due messages in one update
+  const { data: claimedIds, error: claimErr } = await supabase
+    .from("holder_followup_messages")
+    .update({ status: "processing", processing_started_at: now })
+    .eq("status", "scheduled")
+    .lte("scheduled_for", now)
+    .select("id");
+
+  if (claimErr) {
+    return NextResponse.json({ error: claimErr.message }, { status: 500 });
+  }
+
+  const ids = (claimedIds ?? []).map((r) => r.id);
+  if (ids.length === 0) {
+    return NextResponse.json({ sent: 0, failed: 0, processed: 0, message: "No messages due" });
+  }
+
+  // Re-fetch claimed messages with sequence joins
+  const { data: fetchedMsgs, error: fetchErr } = await supabase
     .from("holder_followup_messages")
     .select(`
       id,
@@ -61,41 +97,66 @@ export async function POST(request: NextRequest) {
         sequence_status
       )
     `)
-    .eq("status", "scheduled")
-    .lte("scheduled_for", now);
+    .in("id", ids);
 
   if (fetchErr) {
-    console.error("[holder-followup/process] Failed to fetch messages:", fetchErr);
+    await supabase
+      .from("holder_followup_messages")
+      .update({ status: "scheduled", processing_started_at: null })
+      .in("id", ids);
     return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   }
 
-  const messages = (dueMsgs ?? []) as unknown as MessageRow[];
+  const allMessages = (fetchedMsgs ?? []) as unknown as MessageRow[];
 
-  // Filter out messages whose sequence has been cancelled
-  const active = messages.filter(
-    (m) =>
-      (m.holder_followup_sequences as unknown as { sequence_status: string })
-        .sequence_status === "active"
+  // Filter to only messages whose sequence is still active
+  const active = allMessages.filter(
+    (m) => m.holder_followup_sequences.sequence_status === "active"
   );
 
+  // Release claims for inactive sequences
+  const inactiveIds = allMessages.filter(m => !active.includes(m)).map(m => m.id);
+  if (inactiveIds.length) {
+    await supabase
+      .from("holder_followup_messages")
+      .update({ status: "scheduled", processing_started_at: null })
+      .in("id", inactiveIds);
+  }
+
   if (active.length === 0) {
-    return NextResponse.json({ sent: 0, message: "No messages due" });
+    return NextResponse.json({ sent: 0, failed: 0, processed: 0, message: "No active messages due" });
   }
 
   let sent = 0;
   let failed = 0;
-  const fromEmail =
-    process.env.RESEND_FROM_EMAIL ?? "followups@hollis.ai";
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? "followups@hollis.ai";
 
   for (const msg of active) {
     const seq = msg.holder_followup_sequences;
 
-    // Attempt send via Resend
+    // Throttle: skip if we already sent to this holder for this sequence within 48 h
+    const windowStart = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const { data: recentSends } = await supabase
+      .from("holder_followup_messages")
+      .select("id")
+      .eq("sequence_id", msg.sequence_id)
+      .eq("status", "sent")
+      .gte("sent_at", windowStart)
+      .limit(1);
+
+    if (recentSends?.length) {
+      await supabase
+        .from("holder_followup_messages")
+        .update({ status: "scheduled", processing_started_at: null })
+        .eq("id", msg.id);
+      continue;
+    }
+
     try {
       const resendKey = process.env.RESEND_API_KEY;
       if (!resendKey) {
         console.log(
-          `[holder-followup/process] RESEND_API_KEY not set — would send touch ${msg.touch_number} to ${seq.holder_email} | Subject: ${msg.subject}`
+          `[holder-followup/process] RESEND_API_KEY not set — would send touch ${msg.touch_number} to ${seq.holder_email}`
         );
       } else {
         const { Resend } = await import("resend");
@@ -108,7 +169,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Mark as sent
       await supabase
         .from("holder_followup_messages")
         .update({ status: "sent", sent_at: new Date().toISOString() })
@@ -116,19 +176,18 @@ export async function POST(request: NextRequest) {
 
       sent++;
     } catch (err) {
-      console.error(
-        `[holder-followup/process] Failed to send message ${msg.id}:`,
-        err
-      );
+      console.error(`[holder-followup/process] Failed to send message ${msg.id}:`, err);
       failed++;
-      // Don't throw — continue processing other messages
+      // Release claim so next run can retry
+      await supabase
+        .from("holder_followup_messages")
+        .update({ status: "scheduled", processing_started_at: null })
+        .eq("id", msg.id);
     }
   }
 
-  // After sending, check which sequences are now fully completed
-  // Get unique sequence IDs that had activity
+  // Mark sequences as completed if all their messages are done
   const seqIds = [...new Set(active.map((m) => m.sequence_id))];
-
   for (const seqId of seqIds) {
     const { data: allMsgs } = await supabase
       .from("holder_followup_messages")
@@ -136,20 +195,29 @@ export async function POST(request: NextRequest) {
       .eq("sequence_id", seqId);
 
     const msgs = allMsgs ?? [];
-    const allDone = msgs.every(
-      (m) => m.status === "sent" || m.status === "cancelled"
-    );
+    const allDone = msgs.every((m) => m.status === "sent" || m.status === "cancelled");
     const anySent = msgs.some((m) => m.status === "sent");
 
     if (allDone && anySent) {
       await supabase
         .from("holder_followup_sequences")
-        .update({
-          sequence_status: "completed",
-          completed_at: new Date().toISOString(),
-        })
+        .update({ sequence_status: "completed", completed_at: new Date().toISOString() })
         .eq("id", seqId);
     }
+  }
+
+  if (runId) {
+    await supabase
+      .from("cron_job_runs")
+      .update({
+        status: "complete",
+        finished_at: new Date().toISOString(),
+        processed: active.length,
+        sent,
+        failed,
+        error_summary: failed > 0 ? `${failed} message(s) failed` : null,
+      })
+      .eq("id", runId);
   }
 
   return NextResponse.json({ sent, failed, processed: active.length });

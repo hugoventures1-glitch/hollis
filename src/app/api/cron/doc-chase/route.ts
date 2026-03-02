@@ -6,11 +6,12 @@
  *
  * - email: send via Resend
  * - sms: send via Twilio (requires client_phone; else mark cancelled)
- * - phone_script: don't send; mark as 'sent' (surfaced), update request escalation
+ * - phone_script: don't send; mark as 'sent' (surfaced in UI), update escalation
  *
  * Protected by CRON_SECRET. Vercel schedule: 0 9 * * * (9 AM UTC daily)
  *
- * Returns: { processed, sent, failed, errors[] }
+ * Race-safety: messages are atomically claimed (status → 'processing') before
+ * any external send. Stale claims (> 10 min) are reset to 'scheduled' at startup.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -41,8 +42,9 @@ interface MessageRow {
   doc_chase_sequences: SequenceRow;
 }
 
+const STALE_CLAIM_MINUTES = 10;
+
 export async function GET(request: NextRequest) {
-  // Auth check — must match CRON_SECRET
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -50,9 +52,50 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
   const now = new Date().toISOString();
+  const staleThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000).toISOString();
 
-  // Fetch all due scheduled messages with their sequence + request data
-  const { data: dueMsgs, error: fetchErr } = await supabase
+  // Open a durable run record
+  const { data: runRow } = await supabase
+    .from("cron_job_runs")
+    .insert({ job_name: "doc-chase", status: "running" })
+    .select("id")
+    .single();
+  const runId: string | null = runRow?.id ?? null;
+
+  // Reset stale claims from crashed or timed-out previous runs
+  await supabase
+    .from("doc_chase_messages")
+    .update({ status: "scheduled", processing_started_at: null })
+    .eq("status", "processing")
+    .lt("processing_started_at", staleThreshold);
+
+  // Atomically claim all due messages in one update
+  const { data: claimedIds, error: claimErr } = await supabase
+    .from("doc_chase_messages")
+    .update({ status: "processing", processing_started_at: now })
+    .eq("status", "scheduled")
+    .lte("scheduled_for", now)
+    .select("id");
+
+  if (claimErr) {
+    console.error("[cron/doc-chase] Failed to claim messages:", claimErr.message);
+    if (runId) {
+      await supabase
+        .from("cron_job_runs")
+        .update({ status: "failed", finished_at: new Date().toISOString(), error_summary: claimErr.message })
+        .eq("id", runId);
+    }
+    return NextResponse.json({ error: claimErr.message }, { status: 500 });
+  }
+
+  const ids = (claimedIds ?? []).map((r) => r.id);
+  if (ids.length === 0) {
+    console.log("[cron/doc-chase] No messages due.");
+    return NextResponse.json({ processed: 0, sent: 0, failed: 0, errors: [] });
+  }
+
+  // Re-fetch claimed messages with sequence + request joins
+  const { data: fetchedMsgs, error: fetchErr } = await supabase
     .from("doc_chase_messages")
     .select(`
       id,
@@ -74,18 +117,21 @@ export async function GET(request: NextRequest) {
         )
       )
     `)
-    .eq("status", "scheduled")
-    .lte("scheduled_for", now);
+    .in("id", ids);
 
   if (fetchErr) {
-    console.error("[cron/doc-chase] Failed to fetch messages:", fetchErr.message);
+    // Release claims so next run can retry
+    await supabase
+      .from("doc_chase_messages")
+      .update({ status: "scheduled", processing_started_at: null })
+      .in("id", ids);
     return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   }
 
-  const messages = (dueMsgs ?? []) as unknown as MessageRow[];
+  const allMessages = (fetchedMsgs ?? []) as unknown as MessageRow[];
 
-  // Skip messages where the sequence is cancelled or the request is received/cancelled
-  const active = messages.filter((m) => {
+  // Skip messages where the sequence or request is no longer active
+  const active = allMessages.filter((m) => {
     const seq = m.doc_chase_sequences;
     const req = seq?.doc_chase_requests;
     return (
@@ -95,6 +141,15 @@ export async function GET(request: NextRequest) {
     );
   });
 
+  // Release claims for messages we won't send (inactive sequences)
+  const inactiveIds = allMessages.filter(m => !active.includes(m)).map(m => m.id);
+  if (inactiveIds.length) {
+    await supabase
+      .from("doc_chase_messages")
+      .update({ status: "scheduled", processing_started_at: null })
+      .in("id", inactiveIds);
+  }
+
   const results = {
     processed: active.length,
     sent: 0,
@@ -103,7 +158,7 @@ export async function GET(request: NextRequest) {
   };
 
   if (active.length === 0) {
-    console.log("[cron/doc-chase] No messages due.");
+    console.log("[cron/doc-chase] No active messages to send.");
     return NextResponse.json(results);
   }
 
@@ -113,11 +168,30 @@ export async function GET(request: NextRequest) {
   for (const msg of active) {
     const seq = msg.doc_chase_sequences;
     const req = seq.doc_chase_requests;
-    const channel = (msg as MessageRow).channel ?? "email";
+    const channel = msg.channel ?? "email";
+
+    // Throttle: skip if we already sent to this contact for this sequence within 48 h
+    if (channel === "email" || channel === "sms") {
+      const windowStart = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      const { data: recentSends } = await supabase
+        .from("doc_chase_messages")
+        .select("id")
+        .eq("sequence_id", msg.sequence_id)
+        .eq("status", "sent")
+        .gte("sent_at", windowStart)
+        .limit(1);
+
+      if (recentSends?.length) {
+        await supabase
+          .from("doc_chase_messages")
+          .update({ status: "scheduled", processing_started_at: null })
+          .eq("id", msg.id);
+        continue;
+      }
+    }
 
     try {
       if (channel === "phone_script") {
-        // Don't send — surface in UI only. Mark as sent and update request escalation.
         await supabase
           .from("doc_chase_messages")
           .update({ status: "sent", sent_at: nowIso })
@@ -125,10 +199,7 @@ export async function GET(request: NextRequest) {
 
         await supabase
           .from("doc_chase_requests")
-          .update({
-            escalation_level: "phone_script",
-            escalation_updated_at: nowIso,
-          })
+          .update({ escalation_level: "phone_script", escalation_updated_at: nowIso })
           .eq("id", req.id);
 
         results.sent++;
@@ -138,9 +209,6 @@ export async function GET(request: NextRequest) {
       if (channel === "sms") {
         const phone = req.client_phone?.trim();
         if (!phone) {
-          console.warn(
-            `[cron/doc-chase] Touch ${msg.touch_number} for ${req.client_name} is SMS but client_phone is missing — marking cancelled`
-          );
           await supabase
             .from("doc_chase_messages")
             .update({ status: "cancelled" })
@@ -148,12 +216,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        try {
-          await sendSMS(phone, msg.body);
-        } catch (smsErr) {
-          const errMsg = smsErr instanceof Error ? smsErr.message : String(smsErr);
-          throw new Error(`SMS failed: ${errMsg}`);
-        }
+        await sendSMS(phone, msg.body);
 
         await supabase
           .from("doc_chase_messages")
@@ -169,11 +232,11 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // channel === 'email' — send via Resend
+      // channel === 'email'
       const resendKey = process.env.RESEND_API_KEY;
       if (!resendKey) {
         console.log(
-          `[cron/doc-chase] RESEND_API_KEY not set — would send touch ${msg.touch_number} to ${req.client_email} | Subject: ${msg.subject}`
+          `[cron/doc-chase] RESEND_API_KEY not set — would send touch ${msg.touch_number} to ${req.client_email}`
         );
       } else {
         const { Resend } = await import("resend");
@@ -194,20 +257,19 @@ export async function GET(request: NextRequest) {
       results.sent++;
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(
-        `[cron/doc-chase] Failed to send message ${msg.id}:`,
-        errMsg
-      );
-      results.errors.push(
-        `${req.client_name} / touch ${msg.touch_number}: ${errMsg}`
-      );
+      console.error(`[cron/doc-chase] Failed to send message ${msg.id}:`, errMsg);
+      results.errors.push(`${req.client_name} / touch ${msg.touch_number}: ${errMsg}`);
       results.failed++;
+      // Release claim so next run can retry
+      await supabase
+        .from("doc_chase_messages")
+        .update({ status: "scheduled", processing_started_at: null })
+        .eq("id", msg.id);
     }
   }
 
   // Check which sequences are now fully completed
   const seqIds = [...new Set(active.map((m) => m.sequence_id))];
-
   for (const seqId of seqIds) {
     const { data: allMsgs } = await supabase
       .from("doc_chase_messages")
@@ -215,20 +277,29 @@ export async function GET(request: NextRequest) {
       .eq("sequence_id", seqId);
 
     const msgs = allMsgs ?? [];
-    const allDone = msgs.every(
-      (m) => m.status === "sent" || m.status === "cancelled"
-    );
+    const allDone = msgs.every((m) => m.status === "sent" || m.status === "cancelled");
     const anySent = msgs.some((m) => m.status === "sent");
 
     if (allDone && anySent) {
       await supabase
         .from("doc_chase_sequences")
-        .update({
-          sequence_status: "completed",
-          completed_at: new Date().toISOString(),
-        })
+        .update({ sequence_status: "completed", completed_at: new Date().toISOString() })
         .eq("id", seqId);
     }
+  }
+
+  if (runId) {
+    await supabase
+      .from("cron_job_runs")
+      .update({
+        status: "complete",
+        finished_at: new Date().toISOString(),
+        processed: results.processed,
+        sent: results.sent,
+        failed: results.failed,
+        error_summary: results.errors.length ? results.errors.join("; ") : null,
+      })
+      .eq("id", runId);
   }
 
   console.log("[cron/doc-chase] Done:", results);
