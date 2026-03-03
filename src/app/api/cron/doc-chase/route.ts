@@ -233,6 +233,16 @@ export async function GET(request: NextRequest) {
       }
 
       // channel === 'email'
+      // Bounce suppression: skip if the address has previously hard-bounced
+      const { data: clientRow } = await supabase
+        .from("clients")
+        .select("email_bounced")
+        .eq("email", req.client_email)
+        .maybeSingle();
+      if (clientRow?.email_bounced) {
+        throw new Error("Email address has bounced — send suppressed");
+      }
+
       const resendKey = process.env.RESEND_API_KEY;
       if (!resendKey) {
         console.log(

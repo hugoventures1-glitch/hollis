@@ -215,6 +215,16 @@ async function fireTouchpoint(
   let channel: "email" | "sms" = "email";
 
   if (type === "email_90" || type === "email_60") {
+    // Bounce suppression: skip if the address has previously hard-bounced
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("email_bounced")
+      .eq("email", policy.client_email)
+      .maybeSingle();
+    if (clientRow?.email_bounced) {
+      throw new Error("Email address has bounced — send suppressed");
+    }
+
     const generated = await generateRenewalEmail(policy, type);
     subject = generated.subject;
     content = generated.body;
