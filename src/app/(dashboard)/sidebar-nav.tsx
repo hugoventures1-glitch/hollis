@@ -19,6 +19,7 @@ import {
   LogOut,
   Mail,
   Upload,
+  Settings,
 } from "lucide-react";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
@@ -204,6 +205,9 @@ export default function SidebarNav() {
           <SectionHeading>CRM</SectionHeading>
           <NavItem href="/clients"   icon={Users}          label="Clients"          pathname={pathname} />
           <NavItem href="/documents" icon={FileText}       label="Documents"       pathname={pathname} badge={counts.docChase > 0 ? String(counts.docChase) : undefined} />
+
+          <SectionHeading>Preferences</SectionHeading>
+          <NavItem href="/settings" icon={Settings} label="Settings" pathname={pathname} />
         </div>
 
         {/* User footer */}
