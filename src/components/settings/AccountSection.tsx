@@ -62,6 +62,31 @@ export function AccountSection({ planName }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Dev bulk delete
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkDeleteInput, setBulkDeleteInput] = useState("");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+  const [bulkDeleteSuccess, setBulkDeleteSuccess] = useState(false);
+
+  const handleBulkDelete = async () => {
+    if (bulkDeleteInput !== "WIPE") return;
+    setBulkDeleting(true);
+    setBulkDeleteError(null);
+    setBulkDeleteSuccess(false);
+    const res = await fetch("/api/settings/bulk-delete", { method: "POST" });
+    setBulkDeleting(false);
+    if (res.ok) {
+      setBulkDeleteSuccess(true);
+      setBulkDeleteConfirm(false);
+      setBulkDeleteInput("");
+      router.refresh();
+    } else {
+      const data = await res.json();
+      setBulkDeleteError(data.error ?? "Something went wrong.");
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (deleteInput !== "DELETE") return;
     setDeleting(true);
@@ -182,6 +207,61 @@ export function AccountSection({ planName }: Props) {
                 <button
                   type="button"
                   onClick={() => { setDeleteConfirm(false); setDeleteInput(""); }}
+                  className="px-3 py-1.5 rounded-md text-zinc-400 text-[13px] hover:text-zinc-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dev: Bulk delete data */}
+        <div className="rounded-lg border border-amber-900/50 bg-amber-950/20 p-4 space-y-3 mt-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[14px] font-semibold text-amber-500">Dev: Bulk delete all data</p>
+              <p className="text-[13px] text-zinc-500 mt-0.5 leading-snug">
+                Permanently deletes all policies, clients, certificates, doc chases, outbox, and imports. Your account and settings are preserved. Use this to start fresh.
+              </p>
+            </div>
+          </div>
+
+          {!bulkDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setBulkDeleteConfirm(true)}
+              className="px-3 py-1.5 rounded-md border border-amber-700/60 text-amber-400 text-[13px] font-medium hover:bg-amber-950/40 transition-colors"
+            >
+              Bulk delete all data
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[13px] text-zinc-400">
+                Type <span className="font-mono font-bold text-amber-400">WIPE</span> to confirm.
+              </p>
+              <input
+                type="text"
+                value={bulkDeleteInput}
+                onChange={(e) => setBulkDeleteInput(e.target.value)}
+                placeholder="WIPE"
+                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#1a1a24] border border-amber-700/40 text-[14px] text-[#f5f5f7] placeholder-zinc-600 focus:outline-none focus:border-amber-500/60 transition-colors"
+              />
+              {bulkDeleteError && <p className="text-[12px] text-red-400">{bulkDeleteError}</p>}
+              {bulkDeleteSuccess && <p className="text-[12px] text-[#00d4aa]">All data deleted. Refresh the page.</p>}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={bulkDeleteInput !== "WIPE" || bulkDeleting}
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1.5 rounded-md bg-amber-700 text-black text-[13px] font-medium hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {bulkDeleting ? "Deleting…" : "Confirm bulk delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setBulkDeleteConfirm(false); setBulkDeleteInput(""); setBulkDeleteError(null); }}
                   className="px-3 py-1.5 rounded-md text-zinc-400 text-[13px] hover:text-zinc-200 transition-colors"
                 >
                   Cancel
