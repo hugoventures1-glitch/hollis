@@ -14,28 +14,70 @@ import type { RowError } from "@/lib/import/csv-utils";
 
 // ── Field definitions ──────────────────────────────────────────
 
-type Field = "insured_name" | "holder_name" | "holder_email" | "expiration_date" | "certificate_number" | "coverage_type";
+type Field =
+  | "insured_name"
+  | "holder_name"
+  | "holder_email"
+  | "holder_address"
+  | "expiration_date"
+  | "effective_date"
+  | "certificate_number"
+  | "coverage_type"
+  | "policy_number"
+  | "line_of_business"
+  | "additional_insured"
+  | "requested_by"
+  | "requested_date"
+  | "insured_email";
 
 const REQUIRED: Field[] = ["insured_name", "holder_name", "expiration_date"];
-const OPTIONAL: Field[] = ["holder_email", "certificate_number", "coverage_type"];
+const OPTIONAL: Field[] = [
+  "holder_email",
+  "holder_address",
+  "effective_date",
+  "certificate_number",
+  "coverage_type",
+  "policy_number",
+  "line_of_business",
+  "additional_insured",
+  "requested_by",
+  "requested_date",
+  "insured_email",
+];
 const ALL_FIELDS: Field[] = [...REQUIRED, ...OPTIONAL];
 
 const FIELD_LABELS: Record<Field, string> = {
-  insured_name:       "Insured Name",
-  holder_name:        "Certificate Holder",
-  holder_email:       "Holder Email",
-  expiration_date:    "Expiration Date",
-  certificate_number: "Certificate Number",
-  coverage_type:      "Coverage Type",
+  insured_name:        "Insured Name",
+  holder_name:         "Certificate Holder",
+  holder_email:        "Holder Email",
+  holder_address:      "Certificate Holder Address",
+  expiration_date:     "Expiration Date",
+  effective_date:      "Effective Date",
+  certificate_number:  "Certificate Number",
+  coverage_type:       "Coverage Type",
+  policy_number:       "Policy Number",
+  line_of_business:    "Line of Business",
+  additional_insured:  "Additional Insured",
+  requested_by:        "Requested By",
+  requested_date:      "Requested Date",
+  insured_email:       "Insured Email",
 };
 
 const SYNONYMS: Record<Field, string[]> = {
   insured_name:       ["insured", "insured name", "client", "named insured", "policyholder", "policy holder"],
   holder_name:        ["holder", "certificate holder", "holder name", "issued to", "recipient", "cert holder"],
   holder_email:       ["holder email", "email", "certificate holder email", "send to", "contact email", "recipient email"],
+  holder_address:     ["certificate holder address", "holder address", "holder address line", "cert holder address"],
   expiration_date:    ["expiration", "expiry", "exp date", "end date", "expires", "expiration date", "expiry date", "policy expiration"],
+  effective_date:     ["effective date", "effective", "inception date", "start date", "policy effective"],
   certificate_number: ["cert number", "certificate number", "cert no", "coi number", "cert num", "certificate no", "certificate num"],
   coverage_type:      ["coverage", "line", "type", "policy type", "coverage type", "lines of coverage"],
+  policy_number:      ["policy number", "policy no", "policy num", "pol number", "pol no", "policy #"],
+  line_of_business:   ["line of business", "lob", "business line", "product line"],
+  additional_insured: ["additional insured", "addl insured", "ai", "additional insureds"],
+  requested_by:       ["requested by", "requester", "requestor", "submitted by"],
+  requested_date:    ["requested date", "request date", "submission date", "date requested"],
+  insured_email:      ["insured email", "insured email address", "named insured email", "client email"],
 };
 
 const TEMPLATE_HEADERS = ["Insured Name", "Holder Name", "Holder Email", "Expiration Date", "Certificate Number", "Coverage Type"];
@@ -50,9 +92,17 @@ interface MappedRow {
   insured_name: string;
   holder_name: string;
   holder_email: string;
+  holder_address: string;
   expiration_date: string;
+  effective_date: string;
   certificate_number: string;
   coverage_type: string;
+  policy_number: string;
+  line_of_business: string;
+  additional_insured: string;
+  requested_by: string;
+  requested_date: string;
+  insured_email: string;
 }
 
 interface ImportResult {
@@ -127,12 +177,18 @@ export default function CertificateImportPage() {
           if (field) {
             const val = (row[header] ?? "").trim();
             (obj as Record<string, string>)[field] =
-              field === "holder_email" ? normaliseEmail(val)
-              : field === "expiration_date" ? (normaliseDate(val) ?? val)
+              field === "holder_email" || field === "insured_email" ? normaliseEmail(val)
+              : field === "expiration_date" || field === "effective_date" || field === "requested_date"
+                ? (normaliseDate(val) ?? val)
               : val;
           }
         }
-        return { insured_name: "", holder_name: "", holder_email: "", expiration_date: "", certificate_number: "", coverage_type: "", ...obj };
+        return {
+          insured_name: "", holder_name: "", holder_email: "", holder_address: "",
+          expiration_date: "", effective_date: "", certificate_number: "", coverage_type: "",
+          policy_number: "", line_of_business: "", additional_insured: "", requested_by: "",
+          requested_date: "", insured_email: "", ...obj,
+        };
       })
       .filter((r) => r.insured_name.trim() !== "" || r.holder_name.trim() !== "");
   }

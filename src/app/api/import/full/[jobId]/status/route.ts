@@ -42,10 +42,18 @@ interface PolicyRow {
 interface CertRow {
   insured_name: string;
   holder_name: string;
-  holder_email: string;
+  holder_email?: string;
+  holder_address?: string;
   expiration_date: string;
-  certificate_number: string;
-  coverage_type: string;
+  effective_date?: string;
+  certificate_number?: string;
+  coverage_type?: string;
+  policy_number?: string;
+  line_of_business?: string;
+  additional_insured?: string;
+  requested_by?: string;
+  requested_date?: string;
+  insured_email?: string;
 }
 
 interface RowError {
@@ -238,15 +246,27 @@ async function processCertificates(
         processed++; await onProgress(processed + offset); continue;
       }
 
+      const descParts = [row.coverage_type?.trim(), row.line_of_business?.trim()].filter(Boolean);
+      const description = descParts.length > 0 ? descParts.join(" · ") : null;
+
+      const coverageSnapshot: Record<string, unknown> = {};
+      if (row.policy_number?.trim()) coverageSnapshot.policy_number = row.policy_number.trim();
+      if (row.requested_by?.trim()) coverageSnapshot.requested_by = row.requested_by.trim();
+      if (row.requested_date?.trim()) coverageSnapshot.requested_date = row.requested_date.trim();
+      if (row.insured_email?.trim()) coverageSnapshot.insured_email = row.insured_email.trim().toLowerCase();
+
       const { error: insertErr } = await supabase.from("certificates").insert({
         user_id: userId,
         insured_name: row.insured_name.trim(),
         holder_name: row.holder_name.trim(),
         holder_email: row.holder_email?.trim().toLowerCase() || null,
+        holder_address: row.holder_address?.trim() || null,
         expiration_date: expDate,
+        effective_date: row.effective_date?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(row.effective_date.trim()) ? row.effective_date.trim() : null,
         certificate_number: row.certificate_number?.trim() || null,
-        description: row.coverage_type?.trim() || null,
-        coverage_snapshot: {},
+        additional_insured_language: row.additional_insured?.trim() || null,
+        description,
+        coverage_snapshot: Object.keys(coverageSnapshot).length > 0 ? coverageSnapshot : {},
         status: "draft",
       });
       if (insertErr) {

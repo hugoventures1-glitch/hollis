@@ -45,9 +45,9 @@ function autoMapColumns(csvHeaders: string[]): ColumnMapping {
   const mapping: ColumnMapping = {};
   // All synonyms use spaces (no underscores); headers are normalized the same way.
   const SYNONYMS: Record<keyof CSVPolicyRow, string[]> = {
-    policy_name:     ["policy name", "policy", "plan name", "plan", "policy number", "policy num", "policy no", "pol number", "pol no"],
+    policy_name:     ["policy name", "policy", "plan name", "plan", "policy number", "policy num", "policy no", "pol number", "pol no", "policy #"],
     client_name:     ["client name", "client", "insured", "name", "full name", "customer name", "account name", "named insured"],
-    client_email:    ["client email", "email", "email address", "e mail", "e-mail"],
+    client_email:    ["client email", "email", "email address", "e mail", "e-mail", "insured email", "insured email address", "named insured email"],
     expiration_date: ["expiration date", "expiry", "expiry date", "end date", "exp date", "expires", "expiration", "renewal date"],
     carrier:         ["carrier", "insurance carrier", "insurer", "company", "insurance company", "provider", "underwriter"],
     client_phone:    ["client phone", "phone", "phone number", "mobile", "cell", "telephone", "contact number"],

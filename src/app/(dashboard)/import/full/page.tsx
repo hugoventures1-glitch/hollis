@@ -46,26 +46,48 @@ const POLICY_LABELS: Record<PolicyField, string> = {
 };
 const POLICY_SYNONYMS: Record<PolicyField, string[]> = {
   client_name:     ["client name", "client", "insured", "name", "full name", "customer name", "account name"],
-  policy_name:     ["policy name", "policy", "plan name", "plan", "policy number", "policy num", "policy no"],
+  policy_name:     ["policy name", "policy", "plan name", "plan", "policy number", "policy num", "policy no", "pol number", "pol no", "policy #"],
   expiration_date: ["expiration date", "expiry", "expiry date", "end date", "exp date", "expires", "expiration", "renewal date"],
   carrier:         ["carrier", "insurance carrier", "insurer", "company", "insurance company", "provider"],
   premium:         ["premium", "annual premium", "amount", "price", "total premium"],
-  client_email:    ["client email", "email", "email address"],
+  client_email:    ["client email", "email", "email address", "insured email", "insured email address", "named insured email"],
 };
 
 // Certificate fields
-type CertField = "insured_name" | "holder_name" | "holder_email" | "expiration_date" | "certificate_number";
-const CERT_FIELDS: CertField[] = ["insured_name", "holder_name", "holder_email", "expiration_date", "certificate_number"];
+type CertField =
+  | "insured_name" | "holder_name" | "holder_email" | "holder_address"
+  | "expiration_date" | "effective_date" | "certificate_number"
+  | "coverage_type" | "policy_number" | "line_of_business"
+  | "additional_insured" | "requested_by" | "requested_date" | "insured_email";
+const CERT_FIELDS: CertField[] = [
+  "insured_name", "holder_name", "holder_email", "holder_address",
+  "expiration_date", "effective_date", "certificate_number",
+  "coverage_type", "policy_number", "line_of_business",
+  "additional_insured", "requested_by", "requested_date", "insured_email",
+];
 const CERT_LABELS: Record<CertField, string> = {
   insured_name: "Insured Name", holder_name: "Holder Name", holder_email: "Holder Email",
-  expiration_date: "Expiration Date", certificate_number: "Certificate #",
+  holder_address: "Certificate Holder Address", expiration_date: "Expiration Date",
+  effective_date: "Effective Date", certificate_number: "Certificate #",
+  coverage_type: "Coverage Type", policy_number: "Policy Number",
+  line_of_business: "Line of Business", additional_insured: "Additional Insured",
+  requested_by: "Requested By", requested_date: "Requested Date", insured_email: "Insured Email",
 };
 const CERT_SYNONYMS: Record<CertField, string[]> = {
   insured_name:       ["insured", "insured name", "named insured", "policyholder"],
   holder_name:        ["holder", "certificate holder", "holder name", "issued to", "recipient"],
   holder_email:       ["holder email", "certificate holder email", "send to"],
-  expiration_date:    ["cert expiration", "cert exp date", "certificate expiry", "cert expires"],
+  holder_address:     ["certificate holder address", "holder address", "cert holder address"],
+  expiration_date:    ["cert expiration", "cert exp date", "certificate expiry", "expiration date", "expiry", "expiration"],
+  effective_date:     ["effective date", "effective", "inception date", "start date"],
   certificate_number: ["cert number", "certificate number", "cert no", "coi number"],
+  coverage_type:      ["coverage", "coverage type", "lines of coverage"],
+  policy_number:      ["policy number", "policy no", "policy num", "pol number"],
+  line_of_business:   ["line of business", "lob", "business line"],
+  additional_insured: ["additional insured", "addl insured", "additional insureds"],
+  requested_by:       ["requested by", "requester", "requestor", "submitted by"],
+  requested_date:     ["requested date", "request date", "submission date"],
+  insured_email:      ["insured email", "insured email address", "named insured email"],
 };
 
 // ── Auto-detect which bucket each column belongs to ───────────
@@ -286,8 +308,14 @@ export default function FullImportPage() {
     const certRows = extractEntityRows(csvRows, assignments, "certificate").map((r) => ({
       insured_name: r.insured_name ?? "", holder_name: r.holder_name ?? "",
       holder_email: normaliseEmail(r.holder_email),
+      holder_address: r.holder_address ?? "",
       expiration_date: normaliseDate(r.expiration_date) ?? r.expiration_date ?? "",
-      certificate_number: r.certificate_number ?? "", coverage_type: "",
+      effective_date: normaliseDate(r.effective_date) ?? r.effective_date ?? "",
+      certificate_number: r.certificate_number ?? "", coverage_type: r.coverage_type ?? "",
+      policy_number: r.policy_number ?? "", line_of_business: r.line_of_business ?? "",
+      additional_insured: r.additional_insured ?? "", requested_by: r.requested_by ?? "",
+      requested_date: normaliseDate(r.requested_date) ?? r.requested_date ?? "",
+      insured_email: normaliseEmail(r.insured_email),
     }));
 
     try {
