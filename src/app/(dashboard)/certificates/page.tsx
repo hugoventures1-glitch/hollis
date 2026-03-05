@@ -124,7 +124,7 @@ function CertificatesContent() {
       <div className="flex items-center gap-0 px-10 py-7 border-b border-[#252530] shrink-0">
         <div className="pr-10">
           <div className="text-[28px] font-bold text-[#f5f5f7] leading-none">
-            {certs.filter((c) => c.status === "sent").length}
+            {certs.length}
           </div>
           <div className="text-[12px] text-[#8a8b91] mt-1.5">Issued</div>
         </div>

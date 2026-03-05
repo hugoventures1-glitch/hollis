@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, AlertTriangle, CheckCircle, ExternalLink, Send } from "lucide-react";
+import { ArrowLeft, ChevronRight, AlertTriangle, CheckCircle, ExternalLink } from "lucide-react";
 import type { Certificate } from "@/types/coi";
 import { formatLimit } from "@/types/coi";
 import { FollowUpSection } from "../_components/FollowUpSection";
+import { SendCOIButton } from "./SendCOIButton";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default async function CertificateDetailPage({ params }: PageProps) {
             <ExternalLink size={12} /> View PDF
           </a>
           {cert.status === "draft" && (
-            <SendButton certId={cert.id} defaultEmail={cert.holder_email ?? ""} />
+            <SendCOIButton certId={cert.id} defaultEmail={cert.holder_email ?? ""} />
           )}
         </div>
       </div>
@@ -241,12 +242,9 @@ export default async function CertificateDetailPage({ params }: PageProps) {
                     >
                       <ExternalLink size={11} /> Download PDF
                     </a>
-                    <Link
-                      href={`/certificates/new?request=${cert.request_id ?? ""}`}
-                      className="w-full h-8 flex items-center justify-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[12px] font-semibold hover:bg-[#00c49b] transition-colors"
-                    >
-                      <Send size={11} /> Send
-                    </Link>
+                    <div className="w-full">
+                      <SendCOIButton certId={cert.id} defaultEmail={cert.holder_email ?? ""} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -274,15 +272,3 @@ export default async function CertificateDetailPage({ params }: PageProps) {
   );
 }
 
-// Client component can't be server component — use a simple link for now
-function SendButton({ certId, defaultEmail }: { certId: string; defaultEmail: string }) {
-  void certId; void defaultEmail;
-  return (
-    <Link
-      href={`/certificates/new`}
-      className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors"
-    >
-      <Send size={12} /> Send
-    </Link>
-  );
-}

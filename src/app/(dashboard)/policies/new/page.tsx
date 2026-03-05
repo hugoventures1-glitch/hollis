@@ -127,6 +127,9 @@ export default function NewPolicyCheckPage() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [fileEntries, setFileEntries] = useState<FileEntry[]>([]);
 
+  // Validation errors
+  const [formErrors, setFormErrors] = useState<{ files?: string; client?: string }>({});
+
   // Processing
   const [checkId, setCheckId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -187,7 +190,15 @@ export default function NewPolicyCheckPage() {
   // ── Run check ───────────────────────────────────────────────
 
   async function handleRunCheck() {
-    if (fileEntries.length === 0 || !userId) return;
+    const errors: { files?: string; client?: string } = {};
+    if (fileEntries.length === 0) errors.files = "Upload at least one policy PDF to continue.";
+    if (!selectedClientId) errors.client = "Select a client to run the check.";
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
+    if (!userId) return;
     setStep("processing");
 
     // 1. Create the check shell
@@ -336,21 +347,26 @@ export default function NewPolicyCheckPage() {
                 Run a policy check
               </h1>
               <p className="text-[14px] text-[#8a8b91] mb-8">
-                Upload one or more policy PDFs. Claude will extract all coverage
+                Upload one or more policy PDFs. Hollis will extract all coverage
                 data and flag gaps against your client&apos;s profile.
               </p>
 
               {/* Client selector */}
               <div className="mb-6">
                 <label className="block text-[12px] font-medium text-[#8a8b91] uppercase tracking-wider mb-2">
-                  Client (optional)
+                  Client <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full bg-[#111118] border border-[#2e2e3a] rounded-lg px-3 py-2.5 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 transition-colors"
+                  onChange={(e) => {
+                    setSelectedClientId(e.target.value);
+                    if (e.target.value) setFormErrors((prev) => ({ ...prev, client: undefined }));
+                  }}
+                  className={`w-full bg-[#111118] border rounded-lg px-3 py-2.5 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 transition-colors ${
+                    formErrors.client ? "border-red-500/60" : "border-[#2e2e3a]"
+                  }`}
                 >
-                  <option value="">Ad-hoc check (no client profile)</option>
+                  <option value="">Select a client…</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -358,11 +374,10 @@ export default function NewPolicyCheckPage() {
                     </option>
                   ))}
                 </select>
-                {selectedClientId === "" && (
-                  <p className="text-[11px] text-[#505057] mt-1.5">
-                    Without a client profile, Claude will flag obvious issues
-                    only (expired dates, missing named insured, limit
-                    inconsistencies).
+                {formErrors.client && (
+                  <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
+                    <AlertCircle size={11} />
+                    {formErrors.client}
                   </p>
                 )}
               </div>
@@ -370,7 +385,7 @@ export default function NewPolicyCheckPage() {
               {/* Drop zone */}
               <div className="mb-4">
                 <label className="block text-[12px] font-medium text-[#8a8b91] uppercase tracking-wider mb-2">
-                  Policy PDFs
+                  Policy PDFs <span className="text-red-500">*</span>
                 </label>
                 <div
                   onDragOver={(e) => {
@@ -378,11 +393,16 @@ export default function NewPolicyCheckPage() {
                     setDragging(true);
                   }}
                   onDragLeave={() => setDragging(false)}
-                  onDrop={onDrop}
+                  onDrop={(e) => {
+                    onDrop(e);
+                    setFormErrors((prev) => ({ ...prev, files: undefined }));
+                  }}
                   onClick={() => fileInputRef.current?.click()}
                   className={`relative flex flex-col items-center justify-center h-44 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
                     dragging
                       ? "border-[#00d4aa] bg-[#00d4aa]/[0.04]"
+                      : formErrors.files
+                      ? "border-red-500/60 bg-[#111118]"
                       : "border-[#2e2e3a] bg-[#111118] hover:border-[#3e3e4a] hover:bg-[#14141e]"
                   }`}
                 >
@@ -403,7 +423,10 @@ export default function NewPolicyCheckPage() {
                     multiple
                     className="sr-only"
                     onChange={(e) => {
-                      if (e.target.files) addFiles(e.target.files);
+                      if (e.target.files) {
+                        addFiles(e.target.files);
+                        setFormErrors((prev) => ({ ...prev, files: undefined }));
+                      }
                       e.target.value = "";
                     }}
                   />
@@ -441,11 +464,18 @@ export default function NewPolicyCheckPage() {
                 </div>
               )}
 
+              {/* File error */}
+              {formErrors.files && (
+                <p className="text-[11px] text-red-400 mb-4 flex items-center gap-1">
+                  <AlertCircle size={11} />
+                  {formErrors.files}
+                </p>
+              )}
+
               {/* Run button */}
               <button
                 onClick={handleRunCheck}
-                disabled={fileEntries.length === 0}
-                className="w-full h-10 rounded-lg bg-[#00d4aa] text-[#0d0d12] text-[14px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full h-10 rounded-lg bg-[#00d4aa] text-[#0d0d12] text-[14px] font-semibold hover:bg-[#00c49b] transition-colors"
               >
                 Run Check
                 {fileEntries.length > 0 &&
@@ -461,7 +491,7 @@ export default function NewPolicyCheckPage() {
                 Checking coverage…
               </h1>
               <p className="text-[14px] text-[#8a8b91] mb-8">
-                Claude is reading your policies. This usually takes 15–60
+                Hollis is reading your policies. This usually takes 15–60
                 seconds per document.
               </p>
 

@@ -25,7 +25,7 @@ export default function ClientsPage() {
           )}
           <span className="text-[13px] text-[#505057]">{rows.length} clients</span>
           <Link
-            href="/renewals/upload"
+            href="/import/clients"
             className="h-8 bg-[#00d4aa] text-black px-3.5 rounded text-[13px] font-bold hover:bg-[#00bfa0] transition-colors flex items-center gap-2"
           >
             <Plus size={14} strokeWidth={3} />
@@ -50,7 +50,7 @@ export default function ClientsPage() {
               Import a CSV or add clients manually to get started.
             </p>
             <Link
-              href="/renewals/upload"
+              href="/import/clients"
               className="h-9 px-5 rounded-md bg-[#00d4aa] text-black text-[13px] font-semibold hover:bg-[#00bfa0] transition-colors"
             >
               Import CSV

@@ -158,7 +158,7 @@ export default async function DashboardPage() {
             className="h-8 bg-[#00d4aa] text-black px-3.5 rounded text-[13px] font-bold hover:bg-[#00bfa0] transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(0,212,170,0.35),0_0_6px_rgba(0,212,170,0.2)]"
           >
             <Plus size={14} strokeWidth={3} />
-            New Policy
+            Import Policies
           </Link>
         </div>
       </header>
@@ -196,11 +196,6 @@ export default async function DashboardPage() {
                 purple: stalledCount > 0,
                 sub: stalledCount > 0 ? "need attention" : null,
                 href: stalledCount > 0 ? "/renewals?filter=stalled" : undefined,
-              },
-              {
-                label: "AI Accuracy",
-                value: "99.2%",
-                sub: "+0.4%",
               },
             ] as Array<{
               label: string;

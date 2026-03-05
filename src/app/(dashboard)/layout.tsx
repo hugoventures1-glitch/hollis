@@ -4,6 +4,7 @@ import SidebarNav from "./sidebar-nav";
 import { ToastProvider } from "@/components/actions/ToastProvider";
 import AssistantPanelWrapper from "@/components/assistant/AssistantPanelWrapper";
 import { UnifiedPanelProvider } from "@/contexts/UnifiedPanelContext";
+import { ProfileCompletionBanner } from "@/components/onboarding/ProfileCompletionBanner";
 
 export default async function DashboardLayout({
   children,
@@ -19,12 +20,24 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("agent_profiles")
+    .select("first_name, last_name, agency_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const profileIncomplete =
+    !profile?.first_name?.trim() || !profile?.last_name?.trim();
+
   return (
     <ToastProvider>
       <UnifiedPanelProvider>
         <div className="flex h-screen overflow-hidden">
           <SidebarNav />
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {profileIncomplete && <ProfileCompletionBanner />}
+            <main className="flex-1 overflow-hidden">{children}</main>
+          </div>
           <AssistantPanelWrapper />
         </div>
       </UnifiedPanelProvider>

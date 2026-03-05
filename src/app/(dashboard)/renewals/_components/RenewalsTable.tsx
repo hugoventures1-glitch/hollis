@@ -175,7 +175,7 @@ function RenewalRow({
                 month: "short",
                 day: "numeric",
               })
-            : "—"}
+            : "Never contacted"}
         </span>
       </td>
       <td className="px-4 py-3">

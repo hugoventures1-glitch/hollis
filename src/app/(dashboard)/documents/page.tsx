@@ -130,6 +130,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
     notes: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ client_name?: string; client_email?: string }>({});
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [policySearch, setPolicySearch] = useState("");
   const [policyDropdown, setPolicyDropdown] = useState(false);
@@ -173,8 +174,14 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.client_name.trim() || !form.client_email.trim()) return;
-
+    const errors: { client_name?: string; client_email?: string } = {};
+    if (!form.client_name.trim()) errors.client_name = "Client Name is required.";
+    if (!form.client_email.trim()) errors.client_email = "Client Email is required.";
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
     setSubmitting(true);
     const resolvedDocType =
       form.document_type === "Other (specify)"
@@ -246,12 +253,19 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
             <input
               ref={firstInputRef}
               type="text"
-              required
               value={form.client_name}
-              onChange={(e) => setForm((f) => ({ ...f, client_name: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, client_name: e.target.value }));
+                if (e.target.value.trim()) setFormErrors((prev) => ({ ...prev, client_name: undefined }));
+              }}
               placeholder="Acme Corp"
-              className="w-full h-9 px-3 rounded-md bg-[#111118] border border-[#1e1e2a] text-[13px] text-[#f5f5f7] placeholder-zinc-600 outline-none focus:border-[#00d4aa]/50 transition-colors"
+              className={`w-full h-9 px-3 rounded-md bg-[#111118] border text-[13px] text-[#f5f5f7] placeholder-zinc-600 outline-none focus:border-[#00d4aa]/50 transition-colors ${
+                formErrors.client_name ? "border-red-500/60" : "border-[#1e1e2a]"
+              }`}
             />
+            {formErrors.client_name && (
+              <p className="text-[11px] text-red-400 mt-1">{formErrors.client_name}</p>
+            )}
           </div>
 
           {/* Client Email */}
@@ -261,12 +275,19 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
             </label>
             <input
               type="email"
-              required
               value={form.client_email}
-              onChange={(e) => setForm((f) => ({ ...f, client_email: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, client_email: e.target.value }));
+                if (e.target.value.trim()) setFormErrors((prev) => ({ ...prev, client_email: undefined }));
+              }}
               placeholder="client@example.com"
-              className="w-full h-9 px-3 rounded-md bg-[#111118] border border-[#1e1e2a] text-[13px] text-[#f5f5f7] placeholder-zinc-600 outline-none focus:border-[#00d4aa]/50 transition-colors"
+              className={`w-full h-9 px-3 rounded-md bg-[#111118] border text-[13px] text-[#f5f5f7] placeholder-zinc-600 outline-none focus:border-[#00d4aa]/50 transition-colors ${
+                formErrors.client_email ? "border-red-500/60" : "border-[#1e1e2a]"
+              }`}
             />
+            {formErrors.client_email && (
+              <p className="text-[11px] text-red-400 mt-1">{formErrors.client_email}</p>
+            )}
           </div>
 
           {/* Client Phone */}
@@ -397,7 +418,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
           <button
             form="__unused"
             type="submit"
-            disabled={submitting || !form.client_name.trim() || !form.client_email.trim()}
+            disabled={submitting}
             onClick={(e) => {
               e.preventDefault();
               // Trigger form submit via synthetic submit on the form element

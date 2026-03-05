@@ -104,6 +104,14 @@ export function SearchResultActions({ result, onActionComplete }: SearchResultAc
       return;
     }
 
+    // Confirmation guard for destructive / email-sending actions
+    if (action.label === "Start Campaign") {
+      const clientName = result.client_name ?? result.policy_name ?? "this client";
+      if (!window.confirm(`Start 90-day renewal campaign for ${clientName}? This will begin sending emails immediately.`)) {
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const res = await fetch(action.target, {

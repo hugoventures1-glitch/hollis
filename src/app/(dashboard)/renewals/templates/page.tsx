@@ -156,8 +156,7 @@ export default function TemplatesPage() {
             <div className="flex items-start gap-3 rounded-lg bg-amber-950/30 border border-amber-700/40 px-4 py-3 mb-8">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
               <div className="text-[13px] text-amber-300">
-                Approve all 4 templates to activate your renewal campaigns. The cron job will use Claude
-                to personalize each message with the actual client and policy details at send time.
+                Once approved, Hollis will automatically personalize and send each message at the right time.
               </div>
             </div>
           )}

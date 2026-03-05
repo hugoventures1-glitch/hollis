@@ -120,7 +120,7 @@ function RenewalsContent() {
             className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors shadow-[0_0_20px_rgba(0,212,170,0.35),0_0_6px_rgba(0,212,170,0.2)]"
           >
             <Plus size={13} />
-            Add Policy
+            Import Policies
           </Link>
         </div>
       </div>
@@ -195,7 +195,7 @@ function RenewalsContent() {
             <Loader2 size={22} className="animate-spin text-zinc-600" />
           </div>
         ) : rows.length === 0 ? (
-          <EmptyState stageFilter={stageFilter} />
+          <EmptyState stageFilter={stageFilter} filterParam={filterParam} />
         ) : (
           <RenewalsTable policies={rows} />
         )}
@@ -222,21 +222,24 @@ export default function RenewalsPage() {
   );
 }
 
-function EmptyState({ stageFilter }: { stageFilter: string }) {
+function EmptyState({ stageFilter, filterParam }: { stageFilter: string; filterParam: string }) {
+  const isStalled = filterParam === "stalled";
   return (
     <div className="flex flex-col items-center justify-center h-full py-24 text-center">
       <div className="w-14 h-14 rounded-full bg-[#1a1a24] flex items-center justify-center mb-4">
         <Plus size={24} className="text-[#8a8b91]" />
       </div>
       <div className="text-[16px] font-semibold text-[#f5f5f7] mb-1">
-        {stageFilter === "all" ? "No policies yet" : "No policies in this stage"}
+        {isStalled ? "No stalled renewals" : stageFilter === "all" ? "No policies yet" : "No policies in this stage"}
       </div>
       <div className="text-[13px] text-[#8a8b91] mb-6 max-w-xs">
-        {stageFilter === "all"
+        {isStalled
+          ? "No stalled renewals — everything is on track."
+          : stageFilter === "all"
           ? "Import your book of business via CSV to start your renewal campaigns."
-          : "Policies advance through stages automatically as the cron job runs each day."}
+          : "Policies advance through stages automatically each day."}
       </div>
-      {stageFilter === "all" && (
+      {stageFilter === "all" && !isStalled && (
         <Link
           href="/renewals/upload"
           className="h-9 px-5 flex items-center gap-2 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors"

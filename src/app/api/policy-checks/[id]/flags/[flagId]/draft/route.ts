@@ -35,7 +35,7 @@ const DRAFT_SYSTEM_PROMPTS: Record<ActionType, string> = {
 - Clearly describe what is needed and why (contractual or regulatory requirement)
 - State a reasonable response deadline (use "within 5 business days" unless context suggests otherwise)
 - Be direct and professional in tone
-- Close with a placeholder: "[Agent Name] | [Agency Name]"
+- Close with a placeholder: "{{agent_name}} | {{agency_name}}"
 - Be concise (100–200 words)`,
 
   request_document: `You are an experienced insurance agent drafting a professional request for a missing insurance document or certificate. The request should:
@@ -44,7 +44,7 @@ const DRAFT_SYSTEM_PROMPTS: Record<ActionType, string> = {
 - Give context for why it's needed
 - Request a response within a reasonable timeframe ("within 3 business days")
 - Be concise and professional (100–180 words)
-- Close with: "[Your Name]"`,
+- Close with: "{{agent_name}}"`,
 
   internal_note: `You are an insurance agency assistant creating an internal file note documenting a policy issue and recommended next steps. The note should:
 - Start with "FILE NOTE —" followed by today's context

@@ -74,6 +74,10 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
       return;
     }
 
+    if (!window.confirm(`Start 3-touch follow-up sequence for ${cert.holder_name}?`)) {
+      return;
+    }
+
     setFollowUpLoading(true);
     try {
       const res = await fetch("/api/holder-followup/create", {

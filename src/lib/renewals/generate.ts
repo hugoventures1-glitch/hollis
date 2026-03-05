@@ -128,17 +128,17 @@ export async function generateDefaultTemplates(policy: {
   return {
     email_90: {
       subject: `Your ${policy.policy_name} renews in 90 days — let's get ahead of it`,
-      body: `Hi ${policy.client_name.split(" ")[0]},\n\nJust a heads-up that your ${policy.policy_name} with ${policy.carrier} is coming up for renewal in 90 days. Now is a great time to review your coverage and make sure everything still fits your needs.\n\nI'd love to connect and walk you through your options. Reply to this email or give me a call — whichever works best for you.\n\nTalk soon,\n[Agent Name]`,
+      body: `Hi {{client_first_name}},\n\nJust a heads-up that your {{policy_name}} with {{carrier}} is coming up for renewal in 90 days. Now is a great time to review your coverage and make sure everything still fits your needs.\n\nI'd love to connect and walk you through your options. Reply to this email or give me a call — whichever works best for you.\n\nTalk soon,\n{{agent_name}}`,
     },
     email_60: {
       subject: `Following up — ${policy.policy_name} renews in 60 days`,
-      body: `Hi ${policy.client_name.split(" ")[0]},\n\nI wanted to follow up on my earlier note about your ${policy.policy_name} renewal. We're now 60 days out and I want to make sure we have plenty of time to get everything sorted.\n\nPlease reply or call me at your earliest convenience so we can review your options together.\n\nBest,\n[Agent Name]`,
+      body: `Hi {{client_first_name}},\n\nI wanted to follow up on my earlier note about your {{policy_name}} renewal. We're now 60 days out and I want to make sure we have plenty of time to get everything sorted.\n\nPlease reply or call me at your earliest convenience so we can review your options together.\n\nBest,\n{{agent_name}}`,
     },
     sms_30: {
-      body: `Hi ${policy.client_name.split(" ")[0]}, your ${policy.policy_name} expires in 30 days. Call us to renew. [Agency Name]`,
+      body: `Hi {{client_first_name}}, your {{policy_name}} expires in 30 days. Call us to renew. {{agency_name}}`,
     },
     script_14: {
-      body: `OPENING\nHi, may I speak with ${policy.client_name}? ... Hi ${policy.client_name.split(" ")[0]}, this is [Agent] from [Agency]. I'm calling about your ${policy.policy_name} that expires in 14 days.\n\nKEY POINTS\n- Without renewal, coverage lapses and you're unprotected\n- We can lock in your rate today\n- Takes about 10 minutes to confirm\n\nOBJECTION HANDLERS\n"Too expensive" → Let me see if we can find a better rate with a different carrier\n"Need to think" → Totally understand — can we schedule 15 minutes this week?\n"Looking elsewhere" → Happy to compete — what are they quoting you?\n\nCLOSE\nCan we confirm your details right now and get this wrapped up today?`,
+      body: `OPENING\nHi, may I speak with {{client_name}}? ... Hi {{client_first_name}}, this is {{agent_name}} from {{agency_name}}. I'm calling about your {{policy_name}} that expires in 14 days.\n\nKEY POINTS\n- Without renewal, coverage lapses and you're unprotected\n- We can lock in your rate today\n- Takes about 10 minutes to confirm\n\nOBJECTION HANDLERS\n"Too expensive" → Let me see if we can find a better rate with a different carrier\n"Need to think" → Totally understand — can we schedule 15 minutes this week?\n"Looking elsewhere" → Happy to compete — what are they quoting you?\n\nCLOSE\nCan we confirm your details right now and get this wrapped up today?`,
     },
   };
 }

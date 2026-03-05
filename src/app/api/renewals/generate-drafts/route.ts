@@ -45,7 +45,11 @@ export async function POST() {
     .order("expiration_date");
 
   if (fetchErr) {
-    return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+    console.error("[generate-drafts] Fetch error:", fetchErr);
+    return NextResponse.json(
+      { error: "Unable to generate drafts right now. Please try again shortly." },
+      { status: 500 }
+    );
   }
 
   const qualifying = policies ?? [];

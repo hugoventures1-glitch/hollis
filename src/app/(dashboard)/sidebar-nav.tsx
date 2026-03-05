@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Zap,
@@ -90,6 +90,35 @@ export default function SidebarNav() {
   const { openPanel } = useUnifiedPanel();
   const counts = useSidebarCounts();
 
+  const [agencyName, setAgencyName] = useState<string | null>(null);
+  const [planName, setPlanName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      Promise.all([
+        supabase
+          .from("agent_profiles")
+          .select("agency_name")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("agencies")
+          .select("plan, name")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]).then(([profileRes, agencyRes]) => {
+        const name =
+          profileRes.data?.agency_name ??
+          agencyRes.data?.name ??
+          null;
+        setAgencyName(name);
+        setPlanName(agencyRes.data?.plan ?? "Free");
+      });
+    });
+  }, []);
+
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -147,7 +176,7 @@ export default function SidebarNav() {
             </span>
           </button>
 
-          {/* Outbox */}
+          {/* Drafts */}
           <Link
             href="/outbox"
             className={`w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] transition-colors group ${
@@ -167,7 +196,7 @@ export default function SidebarNav() {
                 }
               />
               <span className="text-[15px] font-medium leading-none tracking-tight">
-                Outbox
+                Drafts
               </span>
             </div>
             {counts.outbox > 0 && (
@@ -175,23 +204,6 @@ export default function SidebarNav() {
                 {counts.outbox}
               </span>
             )}
-          </Link>
-
-          {/* Inbox */}
-          <Link
-            href="/inbox"
-            className="w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7] transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <Inbox
-                size={18}
-                strokeWidth={1.5}
-                className="text-[#8a8b91] group-hover:text-[#f5f5f7] transition-colors"
-              />
-              <span className="text-[15px] font-medium leading-none tracking-tight">
-                Inbox
-              </span>
-            </div>
           </Link>
 
           <SectionHeading>Workspace</SectionHeading>
@@ -220,12 +232,20 @@ export default function SidebarNav() {
               <div className="w-4 h-4 rounded-full bg-[#00d4aa]/60" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-medium text-[#f5f5f7] truncate">
-                Sully&apos;s Insurance
-              </div>
-              <span className="inline-block mt-0.5 px-1.5 py-px text-[10px] font-bold text-[#00d4aa] uppercase tracking-[0.06em] bg-[#00d4aa]/[0.1] border border-[#00d4aa]/20 rounded-full">
-                Free Plan
-              </span>
+              {agencyName === null ? (
+                <div className="h-3.5 w-28 rounded bg-[#2a2a35] animate-pulse mb-1.5" />
+              ) : (
+                <div className="text-[14px] font-medium text-[#f5f5f7] truncate">
+                  {agencyName || "My Agency"}
+                </div>
+              )}
+              {planName === null ? (
+                <div className="h-3 w-16 rounded bg-[#2a2a35] animate-pulse mt-0.5" />
+              ) : (
+                <span className="inline-block mt-0.5 px-1.5 py-px text-[10px] font-bold text-[#00d4aa] uppercase tracking-[0.06em] bg-[#00d4aa]/[0.1] border border-[#00d4aa]/20 rounded-full">
+                  {planName}
+                </span>
+              )}
             </div>
             <LogOut
               size={16}

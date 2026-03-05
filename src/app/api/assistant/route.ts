@@ -226,7 +226,7 @@ const PAGE_LABELS: Record<AssistantContext["page"], string> = {
   clients: "Clients CRM",
   documents: "Document Chasing — outstanding documents from clients",
   policies: "Policy Audit — coverage checks and flag review",
-  outbox: "Outbox — AI-generated email drafts awaiting review",
+  outbox: "Drafts — AI-generated email drafts awaiting review",
   other: "General",
 };
 

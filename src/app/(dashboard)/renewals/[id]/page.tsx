@@ -127,7 +127,7 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                   ? new Date(p.last_contact_at).toLocaleDateString("en-US", {
                       month: "short", day: "numeric", year: "numeric",
                     })
-                  : "—"}
+                  : "Never contacted"}
               />
               <InfoBlock
                 label="Created"

@@ -177,7 +177,7 @@ const TYPE_CONFIG: Record<
   client:       { label: "Clients",       icon: Users,       color: "#f59e0b", href: (id) => `/clients/${id}` },
   coi_request:  { label: "COI Requests",  icon: ShieldCheck, color: "#34d399", href: ()   => `/certificates?tab=requests` },
   doc_chase:    { label: "Doc Requests",  icon: FolderOpen,  color: "#60a5fa", href: ()   => `/documents` },
-  outbox_draft: { label: "Outbox",        icon: Inbox,       color: "#a78bfa", href: ()   => `/outbox` },
+  outbox_draft: { label: "Drafts",        icon: Inbox,       color: "#a78bfa", href: ()   => `/outbox` },
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -310,7 +310,7 @@ const PAGE_LABELS: Record<AssistantPage, string> = {
   clients: "Clients",
   documents: "Documents",
   policies: "Policy Audit",
-  outbox: "Outbox",
+  outbox: "Drafts",
   other: "Hollis",
 };
 
@@ -895,9 +895,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     <div className="w-6 h-6 rounded-md bg-[#00d4aa]/10 flex items-center justify-center">
                       <Sparkles size={12} className="text-[#00d4aa]/80" />
                     </div>
-                    <span className="text-[13px] font-medium text-white">Hollis</span>
-                    <span className="text-zinc-600">/</span>
-                    <span className="text-[13px] text-zinc-400">{PAGE_LABELS[page]}</span>
+                    <span className="text-[13px] font-medium text-white">Ask Hollis</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
