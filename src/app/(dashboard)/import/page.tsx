@@ -1,254 +1,1040 @@
 "use client";
 
+/**
+ * /import — AI-Powered Full Book Import
+ *
+ * Replaces the old multi-card hub with a single, premium import flow:
+ *   Step 1 — Drop Zone:     drag-and-drop .xlsx/.xls/.csv
+ *   Step 2 — Analysing:     client-side xlsx parse + Claude Haiku AI mapping
+ *   Step 3 — Confirm:       review AI mapping, resolve ambiguities, approve
+ *   Step 4 — Importing:     write to Supabase via /api/import/full
+ *   Step 5 — Done:          success summary
+ */
+
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
-  Users,
-  ShieldCheck,
-  RefreshCw,
-  Layers,
-  Download,
-  ChevronRight,
+  Upload,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
   ArrowRight,
+  Check,
+  X,
+  Zap,
+  FileSpreadsheet,
 } from "lucide-react";
-import { triggerCsvDownload, generateTemplateCsv } from "@/lib/import/csv-utils";
+import { normaliseDate } from "@/lib/import/csv-utils";
 
-// ── Template definitions ───────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-const TEMPLATES = {
-  policies: {
-    headers: ["Client Name", "Expiration Date", "Policy Name", "Client Email", "Carrier", "Client Phone", "Premium"],
-    rows: [
-      ["Acme Corp", "2025-12-31", "Commercial GL", "acme@example.com", "Travelers", "5551234567", "4500"],
-      ["Beta LLC", "2026-03-15", "BOP", "beta@example.com", "Hartford", "5559876543", "2200"],
-    ],
-  },
-  clients: {
-    headers: ["Name", "Email", "Phone", "Address", "Industry", "Notes"],
-    rows: [
-      ["Acme Corp", "acme@example.com", "555-123-4567", "123 Main St, Austin TX", "Construction", "Key account"],
-      ["Beta LLC", "beta@example.com", "555-987-6543", "456 Oak Ave, Dallas TX", "Retail", ""],
-    ],
-  },
-  certificates: {
-    headers: ["Insured Name", "Holder Name", "Holder Email", "Expiration Date", "Certificate Number", "Coverage Type"],
-    rows: [
-      ["Acme Corp", "City of Austin", "certs@austin.gov", "2025-12-31", "HOL-2025-00001", "General Liability"],
-      ["Beta LLC", "Westfield Mall", "insurance@westfield.com", "2026-03-15", "HOL-2025-00002", "GL, Auto"],
-    ],
-  },
-  full: {
-    headers: ["Client Name", "Client Email", "Client Phone", "Client Industry", "Policy Name", "Expiration Date", "Carrier", "Premium", "Holder Name", "Holder Email", "Cert Expiration"],
-    rows: [
-      ["Acme Corp", "acme@example.com", "555-123-4567", "Construction", "Commercial GL", "2025-12-31", "Travelers", "4500", "City of Austin", "certs@austin.gov", "2025-12-31"],
-      ["Beta LLC", "beta@example.com", "555-987-6543", "Retail", "BOP", "2026-03-15", "Hartford", "2200", "", "", ""],
-    ],
-  },
-};
+type Step = "drop" | "analysing" | "confirm" | "importing" | "done";
 
-interface ImportCard {
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  href: string;
-  cta: string;
-  expectedColumns: string[];
-  templateKey: keyof typeof TEMPLATES;
-  featured?: boolean;
+interface ParsedFile {
+  name: string;
+  sheetNames: string[];
+  headers: string[];
+  sampleRows: Record<string, string>[];
+  allRows: Record<string, string>[];
+  totalRows: number;
 }
 
-const CARDS: ImportCard[] = [
-  {
-    icon: RefreshCw,
-    iconColor: "text-[#00d4aa]",
-    iconBg: "bg-[#00d4aa]/10 border border-[#00d4aa]/20",
-    title: "Policies & Renewals",
-    subtitle: "Existing flow",
-    description: "Import your active policies to generate renewal campaigns automatically at 90, 60, 30, and 14 days before expiry.",
-    href: "/renewals/upload",
-    cta: "Go to Upload",
-    expectedColumns: ["Client Name", "Expiration Date", "Policy Name", "Client Email", "Carrier", "Premium"],
-    templateKey: "policies",
-  },
-  {
-    icon: Users,
-    iconColor: "text-blue-400",
-    iconBg: "bg-blue-900/20 border border-blue-800/30",
-    title: "Clients",
-    subtitle: "New",
-    description: "Import your client list — names, emails, phone numbers, industry, and notes. Deduplicates by name + email.",
-    href: "/import/clients",
-    cta: "Import Clients",
-    expectedColumns: ["Name (required)", "Email", "Phone", "Address", "Industry", "Notes"],
-    templateKey: "clients",
-  },
-  {
-    icon: ShieldCheck,
-    iconColor: "text-amber-400",
-    iconBg: "bg-amber-900/20 border border-amber-800/30",
-    title: "Certificates",
-    subtitle: "New",
-    description: "Import issued COIs with insured, certificate holder, and expiry data. Deduplicates on certificate number.",
-    href: "/import/certificates",
-    cta: "Import Certificates",
-    expectedColumns: ["Insured Name (required)", "Holder Name (required)", "Expiration Date (required)", "Holder Email", "Cert Number", "Coverage Type"],
-    templateKey: "certificates",
-  },
-];
+interface ColumnMapping {
+  client_name?: string | null;
+  client_abn?: string | null;
+  client_email?: string | null;
+  client_phone?: string | null;
+  client_address?: string | null;
+  policy_number?: string | null;
+  policy_type?: string | null;
+  insurer?: string | null;
+  premium?: string | null;
+  renewal_date?: string | null;
+  inception_date?: string | null;
+  expiry_date?: string | null;
+  sum_insured?: string | null;
+  coverage_description?: string | null;
+}
 
-// ── Component ──────────────────────────────────────────────────
+interface AmbiguousColumn {
+  header: string;
+  possible_meanings: string[];
+  recommendation: string;
+}
 
-function TemplateButton({ templateKey }: { templateKey: keyof typeof TEMPLATES }) {
-  const t = TEMPLATES[templateKey];
+interface AIAnalysis {
+  confidence: "high" | "medium" | "low";
+  detected_system: string;
+  summary: {
+    total_rows: number;
+    clients_detected: number;
+    policies_detected: number;
+    renewals_in_90_days: number;
+  };
+  column_mapping: ColumnMapping;
+  ambiguous_columns: AmbiguousColumn[];
+  warnings: string[];
+  unmapped_columns: string[];
+}
+
+interface ImportResult {
+  clients: { inserted: number; duplicates: number };
+  policies: { inserted: number; duplicates: number };
+  certificates: { inserted: number; duplicates: number };
+  errors: Array<{ row: number; reason: string }>;
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const HOLLIS_FIELD_LABELS: Record<string, string> = {
+  client_name: "Client Name",
+  client_abn: "ABN",
+  client_email: "Client Email",
+  client_phone: "Client Phone",
+  client_address: "Client Address",
+  policy_number: "Policy Number",
+  policy_type: "Policy Type / Class",
+  insurer: "Insurer",
+  premium: "Premium",
+  renewal_date: "Renewal Date",
+  inception_date: "Inception Date",
+  expiry_date: "Expiry Date",
+  sum_insured: "Sum Insured",
+  coverage_description: "Coverage Description",
+};
+
+const CONFIDENCE_STYLES = {
+  high: { label: "High confidence", className: "text-emerald-400 bg-emerald-900/20 border-emerald-700/30" },
+  medium: { label: "Medium confidence", className: "text-amber-400 bg-amber-900/20 border-amber-700/30" },
+  low: { label: "Low confidence", className: "text-red-400 bg-red-900/20 border-red-700/30" },
+};
+
+// ── File parsing ──────────────────────────────────────────────────────────────
+
+async function parseFile(file: File): Promise<ParsedFile> {
+  // Dynamic import — keeps xlsx out of the server bundle
+  const XLSX = await import("xlsx");
+
+  let wb: import("xlsx").WorkBook;
+
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    const text = await file.text();
+    wb = XLSX.read(text, { type: "string" });
+  } else {
+    const ab = await file.arrayBuffer();
+    wb = XLSX.read(new Uint8Array(ab), { type: "array", cellDates: false });
+  }
+
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+
+  // raw: false converts all cells to formatted strings (dates, numbers, etc.)
+  const allRows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, {
+    raw: false,
+    defval: "",
+  });
+
+  const headers = allRows.length > 0 ? Object.keys(allRows[0]) : [];
+
+  return {
+    name: file.name,
+    sheetNames: wb.SheetNames,
+    headers,
+    sampleRows: allRows.slice(0, 5),
+    allRows,
+    totalRows: allRows.length,
+  };
+}
+
+// ── Import payload builder ────────────────────────────────────────────────────
+
+interface ClientRow {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  industry: string;
+  notes: string;
+}
+
+interface PolicyRow {
+  client_name: string;
+  policy_name: string;
+  expiration_date: string;
+  carrier: string;
+  premium?: number;
+  client_email: string;
+}
+
+function buildImportPayload(
+  allRows: Record<string, string>[],
+  mapping: ColumnMapping,
+  ambiguityChoices: Record<string, string>
+): { clients: ClientRow[]; policies: PolicyRow[] } {
+  // Merge user-resolved ambiguities into the mapping
+  const fm = { ...mapping } as Record<string, string | null>;
+  for (const [header, field] of Object.entries(ambiguityChoices)) {
+    if (field) fm[field] = header;
+  }
+
+  const clientsSeen = new Set<string>();
+  const clients: ClientRow[] = [];
+  const policies: PolicyRow[] = [];
+
+  for (const row of allRows) {
+    const get = (field: keyof ColumnMapping): string => {
+      const col = fm[field];
+      return col ? (row[col] ?? "").trim() : "";
+    };
+
+    const clientName = get("client_name");
+    const clientEmail = get("client_email").toLowerCase();
+    const clientPhone = get("client_phone");
+    const clientAddress = get("client_address");
+    const abn = get("client_abn");
+
+    // Deduplicate clients by name
+    if (clientName) {
+      const key = clientName.toLowerCase();
+      if (!clientsSeen.has(key)) {
+        clientsSeen.add(key);
+        clients.push({
+          name: clientName,
+          email: clientEmail,
+          phone: clientPhone,
+          address: clientAddress,
+          industry: "",
+          notes: abn ? `ABN: ${abn}` : "",
+        });
+      }
+    }
+
+    // Each row → one policy
+    const policyType = get("policy_type");
+    const policyNumber = get("policy_number");
+    const policyName =
+      [policyType, policyNumber].filter(Boolean).join(" — ") || "Imported Policy";
+
+    const insurer = get("insurer");
+
+    // Date: prefer renewal_date, fallback to expiry_date, then inception_date
+    const rawDate =
+      get("renewal_date") || get("expiry_date") || get("inception_date");
+    const expirationDate = rawDate
+      ? normaliseDate(rawDate) ?? rawDate
+      : "";
+
+    const premiumStr = get("premium").replace(/[^0-9.]/g, "");
+    const premium = premiumStr ? parseFloat(premiumStr) || undefined : undefined;
+
+    if (clientName || policyName !== "Imported Policy") {
+      policies.push({
+        client_name: clientName,
+        policy_name: policyName,
+        expiration_date: expirationDate,
+        carrier: insurer,
+        premium,
+        client_email: clientEmail,
+      });
+    }
+  }
+
+  return { clients, policies };
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SummaryCard({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: string;
+}) {
   return (
-    <button
-      onClick={() => {
-        const csv = generateTemplateCsv(t.headers, t.rows);
-        triggerCsvDownload(`hollis-${templateKey}-template.csv`, csv);
-      }}
-      className="flex items-center gap-1.5 text-[11px] text-[#505057] hover:text-[#8a8b91] transition-colors"
-    >
-      <Download size={11} />
-      Template
-    </button>
+    <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-5 flex flex-col gap-1.5">
+      <span className="text-[11px] font-bold text-[#505057] uppercase tracking-[0.1em]">
+        {label}
+      </span>
+      <span
+        className={`text-[36px] font-bold leading-none tracking-tight ${accent ?? "text-[#f5f5f7]"}`}
+      >
+        {value}
+      </span>
+      {sub && (
+        <span className="text-[12px] text-[#505057] font-medium">{sub}</span>
+      )}
+    </div>
   );
 }
 
-export default function ImportHubPage() {
+function MappingRow({
+  field,
+  header,
+  sample,
+}: {
+  field: string;
+  header: string;
+  sample: string;
+}) {
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12]">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-10 h-[56px] border-b border-[#1e1e2a] shrink-0">
-        <span className="text-[13px] text-[#f5f5f7] font-medium">Import</span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-10 py-10">
-
-          <div className="mb-8">
-            <h1 className="text-[24px] font-bold text-[#f5f5f7] mb-2">
-              Import your book of business
-            </h1>
-            <p className="text-[14px] text-[#8a8b91]">
-              Import your existing data from any AMS, spreadsheet, or export file. All imports are non-destructive — duplicates are detected and skipped.
-            </p>
+    <tr className="border-b border-[#1e1e2a]/50 last:border-b-0">
+      <td className="px-5 py-3 w-[200px]">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center shrink-0">
+            <Check size={9} className="text-emerald-400" strokeWidth={3} />
           </div>
+          <span className="text-[13px] text-[#f5f5f7] font-medium">
+            {HOLLIS_FIELD_LABELS[field] ?? field}
+          </span>
+        </div>
+      </td>
+      <td className="px-5 py-3">
+        <span className="text-[12px] font-mono text-[#8a8b91] bg-[#1a1a24] border border-[#2e2e3a] px-2 py-0.5 rounded">
+          {header}
+        </span>
+      </td>
+      <td className="px-5 py-3">
+        <span className="text-[13px] text-[#c5c5cb] truncate max-w-[220px] block">
+          {sample || <span className="text-[#3a3a42]">—</span>}
+        </span>
+      </td>
+    </tr>
+  );
+}
 
-          {/* Standard import cards */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {CARDS.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.href}
-                  className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 flex flex-col"
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function FullBookImportPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<Step>("drop");
+  const [dragging, setDragging] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [analysingPhase, setAnalysingPhase] = useState(0); // 1=parsing, 2=AI, 3=done
+
+  // Data
+  const [parsedFile, setParsedFile] = useState<ParsedFile | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // Ambiguity choices: header → resolved field name
+  const [ambiguityChoices, setAmbiguityChoices] = useState<Record<string, string>>({});
+  const [unmappedOpen, setUnmappedOpen] = useState(false);
+
+  // Import result
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // Pre-fill ambiguity choices with recommendations
+  useEffect(() => {
+    if (!aiAnalysis?.ambiguous_columns?.length) return;
+    const defaults: Record<string, string> = {};
+    for (const col of aiAnalysis.ambiguous_columns) {
+      defaults[col.header] = col.recommendation;
+    }
+    setAmbiguityChoices(defaults);
+  }, [aiAnalysis]);
+
+  const processFile = useCallback(async (file: File) => {
+    setFileError(null);
+    setAnalysisError(null);
+
+    // Validate
+    const ext = file.name.toLowerCase().split(".").pop() ?? "";
+    if (!["xlsx", "xls", "csv"].includes(ext)) {
+      setFileError("Unsupported file type. Upload an Excel (.xlsx, .xls) or CSV file.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setFileError("File exceeds 10 MB limit.");
+      return;
+    }
+
+    setStep("analysing");
+    setAnalysingPhase(1); // Parsing
+
+    let parsed: ParsedFile;
+    try {
+      parsed = await parseFile(file);
+      setParsedFile(parsed);
+    } catch (err) {
+      console.error("Parse error:", err);
+      setFileError("Could not read this file. Try saving as .xlsx or .csv and uploading again.");
+      setStep("drop");
+      return;
+    }
+
+    if (parsed.headers.length === 0 || parsed.totalRows === 0) {
+      setFileError("This file appears empty. Check that it has headers and data rows.");
+      setStep("drop");
+      return;
+    }
+
+    setAnalysingPhase(2); // AI call
+
+    try {
+      const res = await fetch("/api/import/analyse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetNames: parsed.sheetNames,
+          headers: parsed.headers,
+          sampleRows: parsed.sampleRows,
+          totalRows: parsed.totalRows,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setAnalysisError(data.error ?? "Analysis failed — please try again.");
+        setStep("drop");
+        return;
+      }
+
+      setAnalysingPhase(3); // Done
+      await new Promise((r) => setTimeout(r, 600)); // brief pause for UX
+      setAiAnalysis(data as AIAnalysis);
+      setStep("confirm");
+    } catch {
+      setAnalysisError("Couldn't reach the AI service. Check your connection and try again.");
+      setStep("drop");
+    }
+  }, []);
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    },
+    [processFile]
+  );
+
+  const handleImport = useCallback(async () => {
+    if (!parsedFile || !aiAnalysis) return;
+    setImporting(true);
+    setImportError(null);
+    setStep("importing");
+
+    const { clients, policies } = buildImportPayload(
+      parsedFile.allRows,
+      aiAnalysis.column_mapping,
+      ambiguityChoices
+    );
+
+    try {
+      const isLarge = parsedFile.totalRows > 500;
+      const res = await fetch("/api/import/full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clients,
+          policies,
+          certificates: [],
+          async: isLarge,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setImportError(data.error ?? "Import failed — please try again.");
+        setStep("confirm");
+        setImporting(false);
+        return;
+      }
+
+      // Store counts for overview banner
+      if (typeof window !== "undefined") {
+        const existing = JSON.parse(
+          localStorage.getItem("hollis_import_counts") ?? "{}"
+        );
+        existing.policies = (existing.policies ?? 0) + (data.policies?.inserted ?? 0);
+        existing.clients = (existing.clients ?? 0) + (data.clients?.inserted ?? 0);
+        localStorage.setItem("hollis_import_counts", JSON.stringify(existing));
+      }
+
+      setImportResult(data as ImportResult);
+      setStep("done");
+    } catch {
+      setImportError("Network error — please try again.");
+      setStep("confirm");
+    } finally {
+      setImporting(false);
+    }
+  }, [parsedFile, aiAnalysis, ambiguityChoices]);
+
+  function reset() {
+    setStep("drop");
+    setParsedFile(null);
+    setAiAnalysis(null);
+    setAmbiguityChoices({});
+    setImportResult(null);
+    setImportError(null);
+    setFileError(null);
+    setAnalysisError(null);
+    setAnalysingPhase(0);
+    setUnmappedOpen(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  // ── Derived data for confirm screen ──────────────────────────
+
+  const mappedFields = aiAnalysis
+    ? (Object.entries(aiAnalysis.column_mapping) as [string, string | null][]).filter(
+        ([, col]) => col != null
+      )
+    : [];
+
+  // First non-empty sample value for a column
+  const sampleFor = (col: string | null): string => {
+    if (!col || !parsedFile) return "";
+    for (const row of parsedFile.sampleRows) {
+      const val = (row[col] ?? "").trim();
+      if (val) return val;
+    }
+    return "";
+  };
+
+  // ── Render ────────────────────────────────────────────────────
+
+  return (
+    <div className="flex flex-col h-full bg-[#0d0d12] text-[#f5f5f7] antialiased">
+
+      {/* Header */}
+      <header className="h-[56px] shrink-0 border-b border-[#1e1e2a] flex items-center px-10 gap-3">
+        <div className="flex items-center gap-2 text-[13px]">
+          <span className="text-[#505057]">Import</span>
+          <span className="text-[#2a2a35]">/</span>
+          <span className="text-[#f5f5f7] font-medium">Full Book Import</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Zap size={13} className="text-[#00d4aa]" />
+          <span className="text-[12px] text-[#505057] font-medium">AI-Powered</span>
+        </div>
+      </header>
+
+      {/* ── Step: Drop ──────────────────────────────────────────── */}
+      {step === "drop" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-10 py-16">
+          <div className="w-full max-w-[600px]">
+
+            {/* Headline */}
+            <div className="text-center mb-10">
+              <h1 className="text-[28px] font-bold text-[#f5f5f7] tracking-tight mb-2">
+                Drop your AMS export
+              </h1>
+              <p className="text-[15px] text-[#505057]">
+                Hollis reads any WinBEAT, Sunrise, or Applied Epic export and maps every field automatically.
+              </p>
+            </div>
+
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative flex flex-col items-center justify-center min-h-[280px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
+                dragging
+                  ? "border-[#00d4aa] bg-[#00d4aa]/[0.04] shadow-[0_0_60px_rgba(0,212,170,0.08)]"
+                  : "border-[#2e2e3a] bg-[#111118] hover:border-[#3e3e4a] hover:bg-[#111820]"
+              }`}
+            >
+              <div
+                className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-colors ${
+                  dragging
+                    ? "bg-[#00d4aa]/15 border border-[#00d4aa]/30"
+                    : "bg-[#1a1a24] border border-[#2e2e3a]"
+                }`}
+              >
+                <Upload
+                  size={26}
+                  className={`transition-colors ${dragging ? "text-[#00d4aa]" : "text-[#505057]"}`}
+                />
+              </div>
+
+              <p className={`text-[17px] font-semibold mb-1 transition-colors ${dragging ? "text-[#00d4aa]" : "text-[#f5f5f7]"}`}>
+                {dragging ? "Release to analyse" : "Drop file here"}
+              </p>
+              <p className="text-[13px] text-[#505057] mb-6">
+                Excel (.xlsx, .xls) or CSV · max 10 MB
+              </p>
+
+              <div
+                className="h-9 px-5 rounded-lg border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors font-medium"
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+              >
+                Browse files
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) processFile(f);
+                }}
+              />
+            </div>
+
+            {/* Error */}
+            {(fileError || analysisError) && (
+              <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-red-950/30 border border-red-800/40 px-4 py-3">
+                <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-red-300">{fileError ?? analysisError}</p>
+              </div>
+            )}
+
+            {/* Supported systems */}
+            <div className="flex items-center justify-center gap-4 mt-8">
+              {["WinBEAT", "Sunrise", "Applied Epic", "Insight", "Any CSV"].map((s) => (
+                <span
+                  key={s}
+                  className="text-[11px] text-[#3a3a42] font-medium px-2 py-0.5 rounded border border-[#1e1e2a]"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${card.iconBg}`}>
-                      <Icon size={18} className={card.iconColor} />
-                    </div>
-                    <TemplateButton templateKey={card.templateKey} />
-                  </div>
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="text-[15px] font-semibold text-[#f5f5f7]">{card.title}</span>
-                    {card.subtitle === "New" && (
-                      <span className="text-[10px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 border border-[#00d4aa]/20 rounded-full px-1.5 py-0.5 uppercase tracking-wide">
-                        New
-                      </span>
-                    )}
-                  </div>
+      {/* ── Step: Analysing ─────────────────────────────────────── */}
+      {step === "analysing" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-10 py-16">
+          <div className="w-full max-w-[420px] text-center">
 
-                  <p className="text-[12px] text-[#8a8b91] leading-relaxed mb-4 flex-1">
-                    {card.description}
+            {/* Pulsing ring */}
+            <div className="relative w-20 h-20 mx-auto mb-8">
+              <div className="absolute inset-0 rounded-full border-2 border-[#00d4aa]/20 animate-ping" />
+              <div className="absolute inset-0 rounded-full border-2 border-[#00d4aa]/10 animate-ping [animation-delay:0.5s]" />
+              <div className="w-20 h-20 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center relative">
+                <Zap size={26} className="text-[#00d4aa]" />
+              </div>
+            </div>
+
+            <h2 className="text-[20px] font-bold text-[#f5f5f7] mb-2">
+              {analysingPhase <= 1 ? "Reading your file…" : analysingPhase === 2 ? "Analysing format…" : "Building mapping…"}
+            </h2>
+            <p className="text-[13px] text-[#505057] mb-10">
+              {parsedFile?.name ?? "Processing"}
+            </p>
+
+            {/* Step indicators */}
+            <div className="space-y-3 text-left">
+              {[
+                { label: "Parsing spreadsheet", phase: 1 },
+                { label: "Detecting AMS system with AI", phase: 2 },
+                { label: "Building field mapping", phase: 3 },
+              ].map(({ label, phase }) => (
+                <div key={phase} className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                    analysingPhase > phase
+                      ? "bg-[#00d4aa]/20 border border-[#00d4aa]/40"
+                      : analysingPhase === phase
+                      ? "border border-[#00d4aa]/30 bg-transparent"
+                      : "border border-[#2e2e3a] bg-transparent"
+                  }`}>
+                    {analysingPhase > phase ? (
+                      <Check size={10} className="text-[#00d4aa]" strokeWidth={3} />
+                    ) : analysingPhase === phase ? (
+                      <Loader2 size={11} className="text-[#00d4aa] animate-spin" />
+                    ) : null}
+                  </div>
+                  <span className={`text-[13px] transition-colors ${
+                    analysingPhase >= phase ? "text-[#c5c5cb]" : "text-[#3a3a42]"
+                  }`}>
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step: Confirm ───────────────────────────────────────── */}
+      {step === "confirm" && aiAnalysis && parsedFile && (
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[820px] mx-auto px-10 py-10">
+
+            {/* Headline */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                <FileSpreadsheet size={18} className="text-[#00d4aa]" />
+                <h1 className="text-[22px] font-bold text-[#f5f5f7] tracking-tight">
+                  Hollis detected{" "}
+                  <span className="text-[#00d4aa]">
+                    {aiAnalysis.summary.clients_detected} clients
+                  </span>{" "}
+                  and{" "}
+                  <span className="text-[#00d4aa]">
+                    {aiAnalysis.summary.policies_detected} policies
+                  </span>{" "}
+                  in your {aiAnalysis.detected_system} export.
+                </h1>
+              </div>
+              <p className="text-[14px] text-[#505057]">
+                Review the mapping below, resolve any flagged fields, then confirm to import.
+              </p>
+            </div>
+
+            {/* Low confidence warning */}
+            {aiAnalysis.confidence === "low" && (
+              <div className="flex items-start gap-3 rounded-xl bg-amber-950/30 border border-amber-700/40 px-5 py-4 mb-6">
+                <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[13px] font-semibold text-amber-300 mb-0.5">Low confidence mapping</p>
+                  <p className="text-[13px] text-amber-400/80">
+                    The field mapping is uncertain. Review carefully before importing.
                   </p>
+                </div>
+              </div>
+            )}
 
-                  <div className="mb-4">
-                    <div className="text-[10px] font-semibold text-[#505057] uppercase tracking-wider mb-2">
-                      Expected columns
+            {/* Import error */}
+            {importError && (
+              <div className="flex items-start gap-3 rounded-xl bg-red-950/30 border border-red-700/40 px-5 py-4 mb-6">
+                <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-red-300 flex-1">{importError}</p>
+                <button onClick={() => setImportError(null)}>
+                  <X size={13} className="text-red-400 hover:text-red-300" />
+                </button>
+              </div>
+            )}
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-4 gap-3 mb-8">
+              <SummaryCard
+                label="Clients"
+                value={aiAnalysis.summary.clients_detected}
+                sub="unique clients"
+                accent="text-[#00d4aa]"
+              />
+              <SummaryCard
+                label="Policies"
+                value={aiAnalysis.summary.policies_detected}
+                sub="total policies"
+                accent="text-[#f5f5f7]"
+              />
+              <SummaryCard
+                label="Due in 90 days"
+                value={aiAnalysis.summary.renewals_in_90_days}
+                sub="upcoming renewals"
+                accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#3a3a42]"}
+              />
+              <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-5 flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold text-[#505057] uppercase tracking-[0.1em]">
+                  Detected System
+                </span>
+                <span className="text-[20px] font-bold text-[#f5f5f7] leading-tight mt-0.5">
+                  {aiAnalysis.detected_system}
+                </span>
+                <span
+                  className={`self-start text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                    CONFIDENCE_STYLES[aiAnalysis.confidence].className
+                  }`}
+                >
+                  {CONFIDENCE_STYLES[aiAnalysis.confidence].label}
+                </span>
+              </div>
+            </div>
+
+            {/* Field mapping table */}
+            {mappedFields.length > 0 && (
+              <div className="rounded-xl border border-[#1e1e2a] bg-[#111118] overflow-hidden mb-6">
+                <div className="px-5 py-3 border-b border-[#1e1e2a] bg-[#0d0d12]">
+                  <span className="text-[12px] font-bold text-[#505057] uppercase tracking-[0.1em]">
+                    Field Mapping — {mappedFields.length} fields detected
+                  </span>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#1e1e2a]">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#505057] uppercase tracking-wider w-[200px]">
+                        Hollis Field
+                      </th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+                        Detected From
+                      </th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+                        Sample Value
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mappedFields.map(([field, col]) => (
+                      <MappingRow
+                        key={field}
+                        field={field}
+                        header={col as string}
+                        sample={sampleFor(col)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Ambiguous columns */}
+            {aiAnalysis.ambiguous_columns.length > 0 && (
+              <div className="rounded-xl border border-amber-700/30 bg-amber-950/10 overflow-hidden mb-6">
+                <div className="px-5 py-3 border-b border-amber-700/25 flex items-center gap-2.5">
+                  <AlertTriangle size={13} className="text-amber-400" />
+                  <span className="text-[12px] font-bold text-amber-400/80 uppercase tracking-[0.1em]">
+                    {aiAnalysis.ambiguous_columns.length} field{aiAnalysis.ambiguous_columns.length !== 1 ? "s" : ""} need clarification
+                  </span>
+                </div>
+                <div className="divide-y divide-amber-700/20">
+                  {aiAnalysis.ambiguous_columns.map((col) => (
+                    <div key={col.header} className="px-5 py-4 flex items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[13px] font-mono text-[#f5f5f7] bg-[#1a1a24] border border-[#2e2e3a] px-2 py-0.5 rounded">
+                            {col.header}
+                          </span>
+                          <span className="text-[12px] text-amber-400/70">
+                            is ambiguous
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-[#505057]">
+                          AI suggests: <span className="text-amber-300">{col.recommendation}</span>
+                        </p>
+                      </div>
+                      <select
+                        value={ambiguityChoices[col.header] ?? ""}
+                        onChange={(e) =>
+                          setAmbiguityChoices((prev) => ({
+                            ...prev,
+                            [col.header]: e.target.value,
+                          }))
+                        }
+                        className="bg-[#1a1a24] border border-amber-700/40 rounded-lg px-3 py-2 text-[12px] text-[#f5f5f7] outline-none focus:border-amber-500/60 shrink-0"
+                      >
+                        <option value="">— ignore this column —</option>
+                        {col.possible_meanings.map((m) => (
+                          <option key={m} value={m}>
+                            {HOLLIS_FIELD_LABELS[m] ?? m}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {card.expectedColumns.map((col) => (
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {aiAnalysis.warnings.length > 0 && (
+              <div className="space-y-2.5 mb-6">
+                {aiAnalysis.warnings.map((w, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 rounded-lg bg-amber-950/20 border border-amber-800/30 px-4 py-3"
+                  >
+                    <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-amber-300/90">{w}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Unmapped columns — collapsible */}
+            {aiAnalysis.unmapped_columns.length > 0 && (
+              <div className="rounded-xl border border-[#1e1e2a] bg-[#0d0d12] overflow-hidden mb-8">
+                <button
+                  onClick={() => setUnmappedOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[12px] font-bold text-[#3a3a42] uppercase tracking-[0.1em]">
+                      {aiAnalysis.unmapped_columns.length} columns won&apos;t be imported
+                    </span>
+                  </div>
+                  {unmappedOpen ? (
+                    <ChevronUp size={14} className="text-[#505057]" />
+                  ) : (
+                    <ChevronDown size={14} className="text-[#505057]" />
+                  )}
+                </button>
+                {unmappedOpen && (
+                  <div className="border-t border-[#1e1e2a] px-5 py-4">
+                    <p className="text-[12px] text-[#3a3a42] mb-3">
+                      These columns don&apos;t match any Hollis field and will be skipped.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {aiAnalysis.unmapped_columns.map((col) => (
                         <span
                           key={col}
-                          className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${
-                            col.includes("required")
-                              ? "text-[#f5f5f7] bg-[#ffffff08] border-[#ffffff15]"
-                              : "text-[#505057] bg-transparent border-[#1e1e2a]"
-                          }`}
+                          className="text-[11px] font-mono text-[#505057] bg-[#111118] border border-[#1e1e2a] px-2 py-0.5 rounded"
                         >
-                          {col.replace(" (required)", "")}
+                          {col}
                         </span>
                       ))}
                     </div>
                   </div>
-
-                  <Link
-                    href={card.href}
-                    className="w-full h-8 flex items-center justify-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[12px] font-semibold hover:bg-[#00c49b] transition-colors"
-                  >
-                    {card.cta}
-                    <ChevronRight size={13} />
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Full book import — featured card */}
-          <div className="rounded-xl bg-[#111118] border border-[#00d4aa]/20 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-9 h-9 rounded-lg bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center">
-                    <Layers size={18} className="text-[#00d4aa]" />
-                  </div>
-                  <span className="text-[17px] font-bold text-[#f5f5f7]">Full Book Import</span>
-                  <span className="text-[10px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 border border-[#00d4aa]/20 rounded-full px-2 py-0.5 uppercase tracking-wide">
-                    Power Feature
-                  </span>
-                </div>
-                <p className="text-[13px] text-[#8a8b91] leading-relaxed max-w-2xl">
-                  Import everything from a single AMS export (Applied Epic, AMS360, HawkSoft, EZLynx). Hollis detects
-                  which columns are clients, policies, and certificates — you confirm, then it imports all three entity
-                  types at once. Supports files up to 10 MB. Large imports ({">"}500 rows) run asynchronously.
-                </p>
+                )}
               </div>
-              <TemplateButton templateKey="full" />
+            )}
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-3 pt-2 pb-8">
+              <button
+                onClick={handleImport}
+                disabled={importing}
+                className="h-11 px-7 rounded-xl bg-[#00d4aa] text-[#0d0d12] text-[14px] font-bold hover:bg-[#00c49b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
+              >
+                {importing ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <ArrowRight size={15} strokeWidth={2.5} />
+                )}
+                Import {aiAnalysis.summary.clients_detected} Clients &amp;{" "}
+                {aiAnalysis.summary.policies_detected} Policies
+              </button>
+              <button
+                onClick={reset}
+                className="h-11 px-5 rounded-xl border border-[#2e2e3a] text-[14px] text-[#505057] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+              >
+                Cancel
+              </button>
             </div>
 
-            <div className="flex items-center gap-4 mb-5">
+          </div>
+        </div>
+      )}
+
+      {/* ── Step: Importing ─────────────────────────────────────── */}
+      {step === "importing" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-10 py-16">
+          <div className="w-full max-w-[400px] text-center">
+            <div className="w-20 h-20 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center mx-auto mb-6">
+              <Loader2 size={30} className="text-[#00d4aa] animate-spin" />
+            </div>
+            <h2 className="text-[20px] font-bold text-[#f5f5f7] mb-2">
+              Writing to your book…
+            </h2>
+            <p className="text-[13px] text-[#505057]">
+              Matching clients, creating policies, scheduling renewals.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step: Done ──────────────────────────────────────────── */}
+      {step === "done" && importResult && (
+        <div className="flex-1 flex flex-col items-center justify-center px-10 py-16">
+          <div className="w-full max-w-[480px]">
+
+            {/* Icon */}
+            <div className="flex justify-center mb-7">
+              <div className="w-20 h-20 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center shadow-[0_0_40px_rgba(0,212,170,0.15)]">
+                <CheckCircle2 size={32} className="text-[#00d4aa]" />
+              </div>
+            </div>
+
+            <h1 className="text-[26px] font-bold text-[#f5f5f7] text-center tracking-tight mb-8">
+              Import complete
+            </h1>
+
+            {/* Result cards */}
+            <div className="space-y-3 mb-8">
               {[
-                "Upload one CSV",
-                "Hollis detects entity types",
-                "Confirm column mapping",
-                "Preview & import all at once",
-              ].map((step, i) => (
-                <div key={step} className="flex items-center gap-2">
-                  {i > 0 && <ArrowRight size={12} className="text-[#505057]" />}
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#8a8b91]">
-                    <div className="w-4 h-4 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center text-[9px] font-bold text-[#00d4aa]">
-                      {i + 1}
+                {
+                  label: "Clients",
+                  inserted: importResult.clients.inserted,
+                  dupes: importResult.clients.duplicates,
+                  color: "text-[#00d4aa]",
+                },
+                {
+                  label: "Policies",
+                  inserted: importResult.policies.inserted,
+                  dupes: importResult.policies.duplicates,
+                  color: "text-[#f5f5f7]",
+                },
+              ].map(({ label, inserted, dupes, color }) => (
+                <div
+                  key={label}
+                  className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-4 flex items-center justify-between"
+                >
+                  <span className="text-[14px] font-semibold text-[#8a8b91]">
+                    {label}
+                  </span>
+                  <div className="flex items-baseline gap-4">
+                    <div className="text-right">
+                      <span className={`text-[22px] font-bold tabular-nums ${color}`}>
+                        {inserted}
+                      </span>
+                      <span className="text-[12px] text-[#505057] ml-1.5">added</span>
                     </div>
-                    {step}
+                    {dupes > 0 && (
+                      <div className="text-right">
+                        <span className="text-[16px] font-bold tabular-nums text-[#3a3a42]">
+                          {dupes}
+                        </span>
+                        <span className="text-[12px] text-[#3a3a42] ml-1">skipped</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
 
-            <Link
-              href="/import/full"
-              className="inline-flex items-center gap-1.5 h-9 px-5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors"
-            >
-              Start Full Book Import
-              <ChevronRight size={14} />
-            </Link>
-          </div>
+            {/* Row errors */}
+            {importResult.errors.length > 0 && (
+              <div className="rounded-xl bg-[#111118] border border-[#2e2e3a] px-5 py-4 mb-6">
+                <p className="text-[12px] text-[#505057] mb-2">
+                  {importResult.errors.length} row{importResult.errors.length !== 1 ? "s" : ""} couldn&apos;t be imported and were skipped.
+                </p>
+                <ul className="space-y-1 max-h-24 overflow-y-auto">
+                  {importResult.errors.slice(0, 5).map((err, i) => (
+                    <li key={i} className="text-[11px] text-[#505057] font-mono">
+                      Row {err.row}: {err.reason}
+                    </li>
+                  ))}
+                  {importResult.errors.length > 5 && (
+                    <li className="text-[11px] text-[#3a3a42]">
+                      + {importResult.errors.length - 5} more
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
 
+            {/* Actions */}
+            <div className="flex items-center justify-center gap-3">
+              <Link
+                href="/clients"
+                className="h-11 px-7 rounded-xl bg-[#00d4aa] text-[#0d0d12] text-[14px] font-bold hover:bg-[#00c49b] transition-colors flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
+              >
+                View your book
+                <ArrowRight size={14} strokeWidth={2.5} />
+              </Link>
+              <button
+                onClick={reset}
+                className="h-11 px-5 rounded-xl border border-[#2e2e3a] text-[14px] text-[#505057] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+              >
+                Import another file
+              </button>
+            </div>
+
+          </div>
         </div>
-      </div>
+      )}
+
     </div>
   );
 }
