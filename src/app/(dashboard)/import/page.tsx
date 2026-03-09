@@ -215,6 +215,28 @@ function computeStats(
 
 // ── File parsing ──────────────────────────────────────────────────────────────
 
+/**
+ * Returns true if a raw spreadsheet row looks like a header row.
+ * Header rows have ≥3 non-empty cells, most of which are short label strings —
+ * not the long banner/sentence strings that AMS exports place in row 0
+ * (e.g. "COASTAL BROKING GROUP PTY LTD — WinBEAT Policy Register Export").
+ */
+function isHeaderRow(row: unknown[]): boolean {
+  const nonEmpty = row.filter((v) => v !== null && v !== "" && v !== undefined);
+  if (nonEmpty.length < 3) return false;
+  const shortLabels = nonEmpty.filter((v) => {
+    const s = String(v).trim();
+    return (
+      s.length > 0 &&
+      s.length < 40 &&
+      !s.includes("—") &&
+      !s.includes("Printed") &&
+      !s.includes("Export")
+    );
+  });
+  return shortLabels.length / nonEmpty.length > 0.5;
+}
+
 async function parseFile(file: File): Promise<ParsedFile> {
   // Dynamic import — keeps xlsx out of the server bundle
   const XLSX = await import("xlsx");
@@ -229,16 +251,49 @@ async function parseFile(file: File): Promise<ParsedFile> {
     wb = XLSX.read(new Uint8Array(ab), { type: "array", cellDates: false });
   }
 
-  const sheetName = wb.SheetNames[0];
+  // Pick the sheet with the most rows — avoids summary/cover sheets that
+  // some AMS exports place first (e.g. WinBEAT "Cover" tab before data tab).
+  const sheetName = wb.SheetNames.reduce((best, name) => {
+    const range = XLSX.utils.decode_range(wb.Sheets[name]["!ref"] || "A1:A1");
+    const bestRange = XLSX.utils.decode_range(
+      wb.Sheets[best]["!ref"] || "A1:A1"
+    );
+    return range.e.r > bestRange.e.r ? name : best;
+  }, wb.SheetNames[0]);
+
   const ws = wb.Sheets[sheetName];
 
-  // raw: false converts all cells to formatted strings (dates, numbers, etc.)
-  const allRows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, {
-    raw: false,
+  // Read as raw arrays so we can inspect each row before committing to headers.
+  // raw:false gives formatted strings (dates, numbers) rather than raw values.
+  const rawRows = XLSX.utils.sheet_to_json<unknown[]>(ws, {
+    header: 1,
     defval: "",
+    raw: false,
   });
 
-  const headers = allRows.length > 0 ? Object.keys(allRows[0]) : [];
+  // Find the first row that looks like column headers (not a banner row).
+  const headerRowIndex = rawRows.findIndex(isHeaderRow);
+  if (headerRowIndex === -1) {
+    throw new Error(
+      "Could not detect a header row. Check the file has column labels and try again."
+    );
+  }
+
+  const headers = rawRows[headerRowIndex].map((h) => String(h).trim());
+
+  // Everything after the header row, minus blank rows and AMS junk rows
+  // (SUBTOTAL banners, *** separators, etc.)
+  const dataRows = rawRows.slice(headerRowIndex + 1).filter(
+    (row) =>
+      row.some((v) => v !== "" && v !== null && v !== undefined) &&
+      !String(row[0]).includes("SUBTOTAL") &&
+      !String(row[0]).includes("***")
+  );
+
+  // Convert each data row array to an object keyed by header name
+  const allRows: Record<string, string>[] = dataRows.map((row) =>
+    Object.fromEntries(headers.map((h, i) => [h, String(row[i] ?? "")]))
+  );
 
   return {
     name: file.name,
