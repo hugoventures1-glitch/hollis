@@ -24,6 +24,8 @@ const SYSTEM_PROMPT = `You are an expert insurance data analyst specialising in 
 
 You will receive raw spreadsheet data extracted from an insurance broker's AMS export. Your job is to analyse the headers and sample rows and return a structured JSON mapping that identifies every recognisable insurance data field.
 
+CRITICAL COUNTING RULE: The user message will include pre-computed counts (total_rows, unique_clients, renewals_in_next_90_days, overdue_renewals) derived from the FULL dataset by the client application. You MUST copy these numbers verbatim into your summary object. Do NOT re-estimate, re-count, or extrapolate from the 5-row sample. These are ground-truth values.
+
 Return ONLY a valid JSON object. No explanation, no markdown, no preamble.
 
 Return this exact structure:
@@ -34,7 +36,8 @@ Return this exact structure:
     "total_rows": number,
     "clients_detected": number,
     "policies_detected": number,
-    "renewals_in_90_days": number
+    "renewals_in_90_days": number,
+    "overdue_renewals": number
   },
   "column_mapping": {
     "client_name": "exact column header or null",
@@ -78,6 +81,9 @@ export async function POST(req: NextRequest) {
     headers: string[];
     sampleRows: Record<string, string>[];
     totalRows: number;
+    uniqueClients: number | null;
+    renewalsIn90Days: number | null;
+    overdueRenewals: number | null;
   };
 
   try {
@@ -86,23 +92,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { sheetNames = [], headers = [], sampleRows = [], totalRows = 0 } = body;
+  const {
+    sheetNames = [],
+    headers = [],
+    sampleRows = [],
+    totalRows = 0,
+    uniqueClients = null,
+    renewalsIn90Days = null,
+    overdueRenewals = null,
+  } = body;
 
   if (!headers.length) {
     return NextResponse.json({ error: "No headers provided" }, { status: 400 });
   }
 
+  // Pre-computed ground-truth counts (derived from full dataset by the client)
+  const factsBlock =
+    `PRE-COMPUTED FACTS (copy verbatim into summary — do NOT re-estimate):\n` +
+    `  total_rows: ${totalRows}\n` +
+    `  unique_clients: ${uniqueClients ?? "unknown"}\n` +
+    `  renewals_in_next_90_days: ${renewalsIn90Days ?? "unknown"}\n` +
+    `  overdue_renewals: ${overdueRenewals ?? "unknown"}\n\n`;
+
   const userMessage =
+    factsBlock +
     `Sheet names: ${JSON.stringify(sheetNames)}\n` +
     `Headers: ${JSON.stringify(headers)}\n` +
-    `Sample rows (first 5): ${JSON.stringify(sampleRows)}\n` +
-    `Total rows in file: ${totalRows}`;
+    `Sample rows (first 5 only — use PRE-COMPUTED FACTS above for all counts): ${JSON.stringify(sampleRows)}`;
 
   try {
     const anthropic = getAnthropicClient();
 
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],

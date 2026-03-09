@@ -5,10 +5,14 @@
  *
  * Replaces the old multi-card hub with a single, premium import flow:
  *   Step 1 — Drop Zone:     drag-and-drop .xlsx/.xls/.csv
- *   Step 2 — Analysing:     client-side xlsx parse + Claude Haiku AI mapping
+ *   Step 2 — Analysing:     client-side xlsx parse + Claude AI mapping
  *   Step 3 — Confirm:       review AI mapping, resolve ambiguities, approve
  *   Step 4 — Importing:     write to Supabase via /api/import/full
  *   Step 5 — Done:          success summary
+ *
+ * Architecture note: JavaScript owns all counting (it has the full dataset).
+ * AI owns only meaning — column mapping, AMS detection, data quality warnings.
+ * Pre-computed facts are passed to the AI as ground truth; it must not re-estimate.
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -72,6 +76,7 @@ interface AIAnalysis {
     clients_detected: number;
     policies_detected: number;
     renewals_in_90_days: number;
+    overdue_renewals: number;
   };
   column_mapping: ColumnMapping;
   ambiguous_columns: AmbiguousColumn[];
@@ -110,6 +115,103 @@ const CONFIDENCE_STYLES = {
   medium: { label: "Medium confidence", className: "text-amber-400 bg-amber-900/20 border-amber-700/30" },
   low: { label: "Low confidence", className: "text-red-400 bg-red-900/20 border-red-700/30" },
 };
+
+// ── Pre-computation helpers (JS owns all counting) ────────────────────────────
+
+/** Find the most likely client-name column from headers. */
+function detectNameColumn(headers: string[]): string | null {
+  const patterns = ["client", "insured", "clientname", "client name", "name", "business", "account"];
+  return (
+    headers.find((h) => patterns.some((p) => h.toLowerCase().includes(p))) ?? null
+  );
+}
+
+/** Find the most likely renewal/expiry date column from headers. */
+function detectRenewalColumn(headers: string[]): string | null {
+  const patterns = ["renewal", "r/d", "renew", "expiry", "expiration", "exp date", "due date", "expiry date"];
+  return (
+    headers.find((h) => patterns.some((p) => h.toLowerCase().includes(p))) ?? null
+  );
+}
+
+/** Parse a date value from a spreadsheet cell (handles AU format, ISO, Excel serials). */
+function parseImportDate(value: unknown): Date | null {
+  if (value === null || value === undefined || value === "") return null;
+  // Excel serial number (40000–60000 ≈ years 2009–2064)
+  if (typeof value === "number" && value > 40000 && value < 60000) {
+    return new Date((value - 25569) * 86400 * 1000);
+  }
+  const str = String(value).trim();
+  if (!str) return null;
+  // AU/UK: DD/MM/YYYY — check this before JS Date (which assumes US order)
+  const auMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (auMatch) {
+    const d = new Date(
+      `${auMatch[3]}-${auMatch[2].padStart(2, "0")}-${auMatch[1].padStart(2, "0")}`
+    );
+    if (!isNaN(d.getTime())) return d;
+  }
+  // ISO: YYYY-MM-DD (safe — unambiguous)
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const d = new Date(str.slice(0, 10));
+    if (!isNaN(d.getTime())) return d;
+  }
+  // Fallback to JS Date parser
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+interface PrecomputedStats {
+  totalRows: number;
+  uniqueClients: number | null;
+  renewalsIn90Days: number | null;
+  overdueRenewals: number | null;
+}
+
+/** Compute ground-truth counts from the full parsed dataset before calling AI. */
+function computeStats(
+  allRows: Record<string, string>[],
+  headers: string[]
+): PrecomputedStats {
+  // Exclude entirely blank rows (subtotals, spacer rows, etc.)
+  const dataRows = allRows.filter((row) =>
+    Object.values(row).some((v) => v !== null && v !== "" && v !== undefined)
+  );
+  const totalRows = dataRows.length;
+
+  // Unique clients — deduplicate by the detected name column
+  const nameCol = detectNameColumn(headers);
+  const uniqueClients = nameCol
+    ? new Set(
+        dataRows
+          .map((r) => String(r[nameCol] ?? "").trim().toLowerCase())
+          .filter(Boolean)
+      ).size
+    : null;
+
+  // Renewal counts — scan all rows against the detected date column
+  const renewalCol = detectRenewalColumn(headers);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+  let renewalsIn90Days: number | null = null;
+  let overdueRenewals: number | null = null;
+
+  if (renewalCol) {
+    renewalsIn90Days = 0;
+    overdueRenewals = 0;
+    for (const row of dataRows) {
+      const d = parseImportDate(row[renewalCol]);
+      if (!d) continue;
+      if (d >= today && d <= in90) renewalsIn90Days++;
+      if (d < today) overdueRenewals++;
+    }
+  }
+
+  return { totalRows, uniqueClients, renewalsIn90Days, overdueRenewals };
+}
 
 // ── File parsing ──────────────────────────────────────────────────────────────
 
@@ -379,6 +481,9 @@ export default function FullBookImportPage() {
 
     setAnalysingPhase(2); // AI call
 
+    // JS owns all counting — compute ground-truth stats before calling AI
+    const stats = computeStats(parsed.allRows, parsed.headers);
+
     try {
       const res = await fetch("/api/import/analyse", {
         method: "POST",
@@ -387,7 +492,10 @@ export default function FullBookImportPage() {
           sheetNames: parsed.sheetNames,
           headers: parsed.headers,
           sampleRows: parsed.sampleRows,
-          totalRows: parsed.totalRows,
+          totalRows: stats.totalRows,
+          uniqueClients: stats.uniqueClients,
+          renewalsIn90Days: stats.renewalsIn90Days,
+          overdueRenewals: stats.overdueRenewals,
         }),
       });
 
@@ -717,7 +825,7 @@ export default function FullBookImportPage() {
             )}
 
             {/* Summary cards */}
-            <div className="grid grid-cols-4 gap-3 mb-8">
+            <div className="grid grid-cols-5 gap-3 mb-8">
               <SummaryCard
                 label="Clients"
                 value={aiAnalysis.summary.clients_detected}
@@ -735,6 +843,16 @@ export default function FullBookImportPage() {
                 value={aiAnalysis.summary.renewals_in_90_days}
                 sub="upcoming renewals"
                 accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#3a3a42]"}
+              />
+              <SummaryCard
+                label="At Risk"
+                value={aiAnalysis.summary.overdue_renewals ?? "—"}
+                sub="overdue renewals"
+                accent={
+                  (aiAnalysis.summary.overdue_renewals ?? 0) > 0
+                    ? "text-red-400"
+                    : "text-[#3a3a42]"
+                }
               />
               <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-5 flex flex-col gap-1.5">
                 <span className="text-[11px] font-bold text-[#505057] uppercase tracking-[0.1em]">
