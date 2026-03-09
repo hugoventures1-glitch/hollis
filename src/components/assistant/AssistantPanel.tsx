@@ -730,6 +730,13 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           >
             {!inChatMode ? (
               <>
+                {/* Header */}
+                <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+                  <div className="w-6 h-6 rounded-md bg-[#00d4aa]/10 flex items-center justify-center">
+                    <Sparkles size={12} className="text-[#00d4aa]/80" />
+                  </div>
+                  <span className="text-[14px] font-medium text-white">Ask Hollis</span>
+                </div>
                 {/* Unified input: search + ask */}
                 <form onSubmit={handleUnifiedSubmit} className="flex items-center gap-3 px-5 py-4 pb-2">
                   <div className="w-8 h-8 rounded-lg bg-[#00d4aa]/10 flex items-center justify-center shrink-0">
@@ -775,7 +782,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
 
                 <div className="flex items-center justify-between px-5 pb-3 -mt-1">
                   <span className="text-[11px] text-zinc-500">
-                    {PAGE_LABELS[page]}
+                    Search or ask anything
                   </span>
                   <button
                     type="button"
@@ -979,7 +986,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           }}
         >
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 shrink-0">
-            <span className="text-[12px] font-medium text-[#00d4aa]/80">Hollis</span>
+            <span className="text-[12px] font-medium text-[#00d4aa]/80">Ask Hollis</span>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={clearAndClose}

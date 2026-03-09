@@ -19,6 +19,7 @@ import { COVERAGE_TYPE_LABELS, formatLimit } from "@/types/coi";
 import { RejectButton } from "./_components/RejectButton";
 import { ApproveButton } from "./_components/ApproveButton";
 import { CertsTable, type CertWithSequences } from "./_components/CertsTable";
+import { SequencesTab } from "./_components/SequencesTab";
 import { useHollisData } from "@/hooks/useHollisData";
 
 // ── Status style maps ─────────────────────────────────────────────────────────
@@ -223,8 +224,9 @@ function CertificatesContent() {
       {/* Tabs */}
       <div className="flex items-center gap-1 px-10 py-3 border-b border-[#1e1e2a] shrink-0">
         {[
-          { key: "requests",     label: "Requests",    count: pendingCount  },
-          { key: "certificates", label: "Issued COIs", count: certs.length  },
+          { key: "requests",     label: "Requests",           count: pendingCount },
+          { key: "certificates", label: "Issued COIs",        count: certs.length },
+          { key: "sequences",    label: "Follow-Up Sequences", count: 0           },
         ].map(({ key, label, count }) => (
           <Link
             key={key}
@@ -289,6 +291,9 @@ function CertificatesContent() {
           ) : (
             <CertsTable certs={certs as CertWithSequences[]} />
           ))}
+
+        {/* ── Follow-Up Sequences tab ── */}
+        {tab === "sequences" && <SequencesTab />}
 
       </div>
     </div>

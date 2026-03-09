@@ -17,7 +17,6 @@ import {
   FileText,
   ChevronDown,
   LogOut,
-  Mail,
   Upload,
   Settings,
 } from "lucide-react";
@@ -47,12 +46,10 @@ function NavItem({ href, icon: Icon, label, badge, pathname }: NavItemProps) {
   const active =
     href === "/overview"
       ? pathname === "/overview"
-      // Exact match, OR starts with href + "/" — but exclude deeper fixed sub-routes
-      // that have their own nav item (e.g. /certificates/sequences vs /certificates)
+      // Exact match, OR starts with href + "/"
       : href === "/certificates"
       ? pathname === "/certificates" ||
-        (pathname.startsWith("/certificates/") &&
-          !pathname.startsWith("/certificates/sequences"))
+        pathname.startsWith("/certificates/")
       : pathname === href || pathname.startsWith(href + "/");
   return (
     <Link
@@ -210,7 +207,6 @@ export default function SidebarNav() {
           <NavItem href="/overview"               icon={LayoutGrid}  label="Overview"         pathname={pathname} />
           <NavItem href="/renewals"               icon={RefreshCw}   label="Renewals"         pathname={pathname} badge={counts.renewals > 0 ? String(counts.renewals) : undefined} />
           <NavItem href="/certificates"           icon={ShieldCheck} label="Certificates"     pathname={pathname} badge={counts.coi > 0 ? String(counts.coi) : undefined} />
-          <NavItem href="/certificates/sequences" icon={Mail}        label="Follow-Ups"       pathname={pathname} />
           <NavItem href="/policies"               icon={Layers}      label="Policy Audit"     pathname={pathname} />
           <NavItem href="/import"                icon={Upload}      label="Import"           pathname={pathname} />
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/actions/MicroToast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { SearchResult } from "@/lib/search-types";
 
 // ── Row link (detail page) per type ──────────────────────────────────────────
@@ -89,29 +90,13 @@ export function SearchResultActions({ result, onActionComplete }: SearchResultAc
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const rowHref = getRowHref(result);
   const action = getActionConfig(result);
 
-  const handleAction = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!action || loading) return;
-
-    if (action.kind === "navigate") {
-      router.push(action.target);
-      onActionComplete();
-      return;
-    }
-
-    // Confirmation guard for destructive / email-sending actions
-    if (action.label === "Start Campaign") {
-      const clientName = result.client_name ?? result.policy_name ?? "this client";
-      if (!window.confirm(`Start 90-day renewal campaign for ${clientName}? This will begin sending emails immediately.`)) {
-        return;
-      }
-    }
-
+  const fireAction = async () => {
+    if (!action) return;
     setLoading(true);
     try {
       const res = await fetch(action.target, {
@@ -133,10 +118,43 @@ export function SearchResultActions({ result, onActionComplete }: SearchResultAc
     }
   };
 
+  const handleAction = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!action || loading) return;
+
+    if (action.kind === "navigate") {
+      router.push(action.target);
+      onActionComplete();
+      return;
+    }
+
+    if (action.label === "Start Campaign") {
+      setShowConfirm(true);
+      return;
+    }
+
+    fireAction();
+  };
+
   if (!action) return null;
+
+  const clientName =
+    (result as { client_name?: string }).client_name ??
+    (result as { policy_name?: string }).policy_name ??
+    "this client";
 
   return (
     <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+      {showConfirm && (
+        <ConfirmDialog
+          title="Start renewal campaign?"
+          body={`This will begin a 90-day email and SMS sequence for ${clientName}. This cannot be undone.`}
+          confirmLabel="Start Campaign"
+          onConfirm={() => { setShowConfirm(false); fireAction(); }}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
       <button
         type="button"
         onClick={handleAction}

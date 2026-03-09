@@ -45,9 +45,9 @@ export default function SignupPage() {
   if (confirmedEmail) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20">
           <svg
-            className="h-6 w-6 text-gray-600"
+            className="h-6 w-6 text-[#00d4aa]"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -60,17 +60,17 @@ export default function SignupPage() {
             />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">Check your email</h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <h2 className="text-xl font-semibold text-[#f5f5f7]">Check your email</h2>
+        <p className="mt-2 text-sm text-[#8a8b91]">
           We sent a confirmation link to{" "}
-          <span className="font-medium text-gray-700">{confirmedEmail}</span>.
+          <span className="font-medium text-[#f5f5f7]">{confirmedEmail}</span>.
           Click it to activate your account and sign in.
         </p>
-        <p className="mt-6 text-sm text-gray-400">
+        <p className="mt-6 text-sm text-[#505057]">
           Already confirmed?{" "}
           <Link
             href="/login"
-            className="font-medium text-gray-900 underline-offset-4 hover:underline"
+            className="font-medium text-[#00d4aa] hover:text-[#00e6b8] underline-offset-4 hover:underline"
           >
             Sign in
           </Link>
@@ -82,17 +82,17 @@ export default function SignupPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#f5f5f7]">
           Create your account
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-[#8a8b91]">
           Get started with Hollis today
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {serverError && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg bg-red-950/40 border border-red-800/50 px-4 py-3 text-sm text-red-400">
             {serverError}
           </div>
         )}
@@ -100,7 +100,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700 mb-1.5"
+            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
           >
             Full name
           </label>
@@ -110,17 +110,17 @@ export default function SignupPage() {
             type="text"
             autoComplete="name"
             placeholder="Jane Smith"
-            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="block w-full rounded-lg border border-[#2e2e3a] bg-[#111118] px-3.5 py-2.5 text-sm text-[#f5f5f7] placeholder-[#505057] transition-colors focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20"
           />
           {errors.name && (
-            <p className="mt-1.5 text-xs text-red-600">{errors.name.message}</p>
+            <p className="mt-1.5 text-xs text-red-400">{errors.name.message}</p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700 mb-1.5"
+            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
           >
             Email
           </label>
@@ -130,10 +130,10 @@ export default function SignupPage() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="block w-full rounded-lg border border-[#2e2e3a] bg-[#111118] px-3.5 py-2.5 text-sm text-[#f5f5f7] placeholder-[#505057] transition-colors focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20"
           />
           {errors.email && (
-            <p className="mt-1.5 text-xs text-red-600">
+            <p className="mt-1.5 text-xs text-red-400">
               {errors.email.message}
             </p>
           )}
@@ -142,7 +142,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-1.5"
+            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
           >
             Password
           </label>
@@ -152,14 +152,14 @@ export default function SignupPage() {
             type="password"
             autoComplete="new-password"
             placeholder="••••••••"
-            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="block w-full rounded-lg border border-[#2e2e3a] bg-[#111118] px-3.5 py-2.5 text-sm text-[#f5f5f7] placeholder-[#505057] transition-colors focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20"
           />
           {errors.password ? (
-            <p className="mt-1.5 text-xs text-red-600">
+            <p className="mt-1.5 text-xs text-red-400">
               {errors.password.message}
             </p>
           ) : (
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-[#505057]">
               At least 8 characters, one uppercase letter, and one number
             </p>
           )}
@@ -168,17 +168,17 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-[#00d4aa] px-4 py-2.5 text-sm font-semibold text-[#0d0d12] transition-colors hover:bg-[#00c49b] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="mt-6 text-center text-sm text-[#8a8b91]">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-medium text-gray-900 underline-offset-4 hover:underline"
+          className="font-medium text-[#00d4aa] hover:text-[#00e6b8] underline-offset-4 hover:underline"
         >
           Sign in
         </Link>

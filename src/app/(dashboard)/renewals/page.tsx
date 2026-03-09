@@ -64,6 +64,12 @@ function RenewalsContent() {
   if (filterParam === "stalled") {
     // Stalled filter overrides stage/status — shows quiet policies with health_label === "stalled"
     rows = activePolicies.filter((p) => p.health_label === "stalled");
+  } else if (filterParam === "upcoming") {
+    // Upcoming: policies expiring within next 60 days
+    rows = activePolicies.filter((p) => {
+      const days = daysUntilExpiry(p.expiration_date);
+      return days >= 0 && days <= 60;
+    });
   } else if (statusFilter === "active") {
     rows = activePolicies.filter(
       (p) => stageFilter === "all" || p.campaign_stage === stageFilter
@@ -84,9 +90,9 @@ function RenewalsContent() {
   ).length;
 
   const isLoading =
-    (filterParam === "stalled" && storeLoading) ||
-    (filterParam !== "stalled" && statusFilter === "active" && storeLoading) ||
-    (filterParam !== "stalled" && statusFilter !== "active" && altLoading);
+    ((filterParam === "stalled" || filterParam === "upcoming") && storeLoading) ||
+    (filterParam !== "stalled" && filterParam !== "upcoming" && statusFilter === "active" && storeLoading) ||
+    (filterParam !== "stalled" && filterParam !== "upcoming" && statusFilter !== "active" && altLoading);
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12]">

@@ -178,22 +178,26 @@ export default async function DashboardPage() {
                 label: "Book Value",
                 value: formatBookValue(bookValue),
                 sub: bookValue > 0 ? "total premium" : null,
+                href: "/renewals",
               },
               {
                 label: "Active Policies",
                 value: activeCount.toLocaleString(),
                 sub: null,
+                href: "/renewals",
               },
               {
                 label: "Upcoming Renewals",
                 value: upcomingCount.toString(),
                 red: upcomingCount > 0,
                 sub: "next 60 days",
+                href: "/renewals?filter=upcoming",
               },
               {
                 label: "Stalled Renewals",
                 value: stalledCount.toString(),
                 purple: stalledCount > 0,
+                dim: stalledCount === 0,
                 sub: stalledCount > 0 ? "need attention" : null,
                 href: stalledCount > 0 ? "/renewals?filter=stalled" : undefined,
               },
@@ -203,6 +207,7 @@ export default async function DashboardPage() {
               sub?: string | null;
               red?: boolean;
               purple?: boolean;
+              dim?: boolean;
               href?: string;
             }>
           ).map((stat, i, arr) => {
@@ -210,11 +215,13 @@ export default async function DashboardPage() {
               ? "text-[#ff4d4d]"
               : stat.purple && stalledCount > 0
               ? "text-purple-400"
+              : stat.dim
+              ? "text-[#3a3a42]"
               : "text-white";
 
             const inner = (
               <>
-                <span className="text-[12px] font-bold text-zinc-600 uppercase tracking-[0.12em]">
+                <span className={`text-[12px] font-bold uppercase tracking-[0.12em] ${stat.dim ? "text-[#2a2a35]" : "text-zinc-600"}`}>
                   {stat.label}
                 </span>
                 <div className="flex items-baseline gap-3">
@@ -234,6 +241,7 @@ export default async function DashboardPage() {
 
             const wrapperClass = [
               "flex flex-col gap-2.5",
+              stat.href ? "cursor-pointer" : "",
               i !== 0 ? "border-l border-[#1e1e2a] pl-12" : "",
               i !== arr.length - 1 ? "pr-12" : "",
             ].join(" ");
@@ -242,7 +250,7 @@ export default async function DashboardPage() {
               <Link
                 key={stat.label}
                 href={stat.href}
-                className={`${wrapperClass} hover:opacity-80 transition-opacity`}
+                className={`${wrapperClass} hover:opacity-80 transition-opacity rounded-r first:rounded-l`}
               >
                 {inner}
               </Link>
@@ -263,7 +271,7 @@ export default async function DashboardPage() {
           <div className="px-6 py-3 flex items-center justify-between sticky top-0 z-10 bg-[#0d0d12] border-b border-[#1e1e2a]">
             <div className="flex items-center gap-4">
               <span className="text-[14px] font-semibold text-zinc-500">
-                Priority Renewals
+                Active Renewals
               </span>
               {urgentPolicies.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-[#00d4aa]/[0.1] text-[12px] font-bold text-[#00d4aa]">

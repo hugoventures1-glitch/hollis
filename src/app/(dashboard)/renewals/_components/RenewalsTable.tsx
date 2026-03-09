@@ -42,6 +42,7 @@ interface RenewalRowProps {
   optimisticStage: CampaignStage | null;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
+  showHealth: boolean;
 }
 
 function RenewalRow({
@@ -49,6 +50,7 @@ function RenewalRow({
   optimisticStage,
   onStageUpdate,
   onStageRevert,
+  showHealth,
 }: RenewalRowProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -165,9 +167,11 @@ function RenewalRow({
       <td className="px-4 py-3">
         <StageBadge stage={effectiveStage} />
       </td>
-      <td className="px-4 py-3">
-        <HealthBadge label={policy.health_label} />
-      </td>
+      {showHealth && (
+        <td className="px-4 py-3">
+          <HealthBadge label={policy.health_label} />
+        </td>
+      )}
       <td className="px-4 py-3">
         <span className="text-[12px] text-[#8a8b91]">
           {policy.last_contact_at
@@ -184,9 +188,9 @@ function RenewalRow({
         </span>
       </td>
 
-      {/* Actions column — fixed 120px, fade in on hover */}
+      {/* Actions column — fixed 120px, always visible */}
       <td className="px-4 py-3 w-[120px]">
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <div className="flex items-center gap-1">
           {canSend ? (
             <ActionButton
               label={SEND_LABEL[effectiveStage]}
@@ -215,6 +219,8 @@ interface RenewalsTableProps {
 }
 
 export function RenewalsTable({ policies }: RenewalsTableProps) {
+  const showHealth = policies.some((p) => p.health_label);
+
   // Per-row optimistic stage overrides
   const [optimisticStages, setOptimisticStages] = useState<
     Record<string, CampaignStage>
@@ -253,9 +259,11 @@ export function RenewalsTable({ policies }: RenewalsTableProps) {
           <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
             Stage
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-            Health
-          </th>
+          {showHealth && (
+            <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+              Health
+            </th>
+          )}
           <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
             Last Contact
           </th>
@@ -276,6 +284,7 @@ export function RenewalsTable({ policies }: RenewalsTableProps) {
             optimisticStage={optimisticStages[policy.id] ?? null}
             onStageUpdate={updateStage}
             onStageRevert={revertStage}
+            showHealth={showHealth}
           />
         ))}
       </tbody>

@@ -840,7 +840,7 @@ export default function DocumentsPage() {
                                     document_type: req.document_type,
                                   })
                                 }
-                                className="h-7 px-2.5 text-[12px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                                className="h-7 px-2.5 text-[12px] rounded-md text-zinc-600 border border-zinc-800/60 hover:text-zinc-400 hover:border-zinc-700 transition-colors"
                               >
                                 Cancel
                               </button>

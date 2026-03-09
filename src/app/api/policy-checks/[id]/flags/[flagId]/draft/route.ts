@@ -26,7 +26,7 @@ const DRAFT_SYSTEM_PROMPTS: Record<ActionType, string> = {
 - Open with a brief context-setting sentence
 - Clearly explain the issue found and why it matters
 - State exactly what the client needs to do or provide
-- Close with a professional sign-off placeholder: "[Your Name]"
+- Close with a professional sign-off placeholder: "{{agent_name}}"
 - Be concise (150–250 words)
 - Use plain English — avoid excessive jargon`,
 

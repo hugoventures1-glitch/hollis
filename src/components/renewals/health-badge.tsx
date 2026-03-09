@@ -27,9 +27,15 @@ export function HealthBadge({
     return <span className="text-[11px] text-[#505057]">—</span>;
   }
 
+  const tooltip =
+    label === "at_risk"
+      ? "No response to recent outreach. Consider calling this client directly."
+      : undefined;
+
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${BADGE_STYLES[label]}`}
+      title={tooltip}
     >
       {label === "stalled" && (
         <span aria-hidden className="text-[10px]">⚠</span>

@@ -29,7 +29,7 @@ export function ProfileSection({ profile, userEmail }: Props) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -61,10 +61,10 @@ export function ProfileSection({ profile, userEmail }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <SettingsField label="First name" error={errors.first_name?.message}>
-          <SettingsInput {...register("first_name")} placeholder="Sarah" error={!!errors.first_name} />
+          <SettingsInput {...register("first_name")} placeholder="" error={!!errors.first_name} />
         </SettingsField>
         <SettingsField label="Last name" error={errors.last_name?.message}>
-          <SettingsInput {...register("last_name")} placeholder="Chen" error={!!errors.last_name} />
+          <SettingsInput {...register("last_name")} placeholder="" error={!!errors.last_name} />
         </SettingsField>
       </div>
 
@@ -72,8 +72,8 @@ export function ProfileSection({ profile, userEmail }: Props) {
         <SettingsInput {...register("title")} placeholder="Insurance Broker" error={!!errors.title} />
       </SettingsField>
 
-      <SettingsField label="Phone" error={errors.phone?.message}>
-        <SettingsInput {...register("phone")} placeholder="+61 4XX XXX XXX" error={!!errors.phone} />
+      <SettingsField label="Phone" error={errors.phone?.message} hint="E.g. +1 (555) 000-0000 or +61 4XX XXX XXX">
+        <SettingsInput {...register("phone")} placeholder="+1 (555) 000-0000" error={!!errors.phone} />
       </SettingsField>
 
       <SettingsField label="Email">
@@ -82,7 +82,7 @@ export function ProfileSection({ profile, userEmail }: Props) {
       </SettingsField>
 
       <div className="pt-2">
-        <SaveButton saving={saving} saved={saved} onClick={onSave} />
+        <SaveButton saving={saving} saved={saved} onClick={onSave} disabled={!isDirty} />
       </div>
     </div>
   );

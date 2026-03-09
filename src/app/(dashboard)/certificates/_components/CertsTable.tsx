@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
-import { AlertTriangle, ArrowRight, ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import { ActionButton } from "@/components/actions/ActionButton";
 import { useToast } from "@/components/actions/MicroToast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Certificate } from "@/types/coi";
 
 // ── Extended Certificate type with joined sequences ────────────────────────────
@@ -63,21 +64,26 @@ interface CertRowProps {
 }
 
 function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleFollowUp = useCallback(async () => {
+  const handleRowClick = useCallback(() => {
+    router.push(`/certificates/${cert.id}`);
+  }, [router, cert.id]);
+
+  const handleFollowUp = useCallback(() => {
     if (followUpLoading || hasActiveSequence) return;
-
     if (!cert.holder_email) {
       toast(`No holder email on file for ${cert.holder_name}`, "error");
       return;
     }
+    setShowConfirm(true);
+  }, [cert, followUpLoading, hasActiveSequence, toast]);
 
-    if (!window.confirm(`Start 3-touch follow-up sequence for ${cert.holder_name}?`)) {
-      return;
-    }
-
+  const confirmFollowUp = useCallback(async () => {
+    setShowConfirm(false);
     setFollowUpLoading(true);
     try {
       const res = await fetch("/api/holder-followup/create", {
@@ -105,34 +111,46 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
     } finally {
       setFollowUpLoading(false);
     }
-  }, [cert, followUpLoading, hasActiveSequence, toast, onSequenceStarted]);
+  }, [cert, toast, onSequenceStarted]);
 
   const handleViewPDF = useCallback(() => {
     window.open(`/api/coi/${cert.id}/pdf`, "_blank");
   }, [cert.id]);
 
   return (
+    <>
+    {showConfirm && (
+      <ConfirmDialog
+        title="Start follow-up sequence?"
+        body={`This will send a 3-touch email sequence to ${cert.holder_name}. This cannot be undone.`}
+        confirmLabel="Start Sequence"
+        onConfirm={confirmFollowUp}
+        onCancel={() => setShowConfirm(false)}
+      />
+    )}
     <tr
-      className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors ${
+      role="button"
+      tabIndex={0}
+      onClick={handleRowClick}
+      onKeyDown={(e) => e.key === "Enter" && handleRowClick()}
+      className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors cursor-pointer ${
         cert.has_gap ? "bg-red-950/[0.06]" : ""
       }`}
     >
       <td className="px-10 py-3">
-        <Link href={`/certificates/${cert.id}`} className="block">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[11px] text-[#505057]">
-              {cert.certificate_number}
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-[#505057]">
+            {cert.certificate_number}
+          </span>
+          {cert.has_gap && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-red-400">
+              <AlertTriangle size={10} /> Gap
             </span>
-            {cert.has_gap && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-red-400">
-                <AlertTriangle size={10} /> Gap
-              </span>
-            )}
-          </div>
-          <div className="text-[14px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors mt-0.5">
-            {cert.insured_name}
-          </div>
-        </Link>
+          )}
+        </div>
+        <div className="text-[14px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors mt-0.5">
+          {cert.insured_name}
+        </div>
       </td>
       <td className="px-4 py-3">
         <div className="text-[13px] text-[#c5c5cb]">{cert.holder_name}</div>
@@ -141,14 +159,6 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
             {[cert.holder_city, cert.holder_state].filter(Boolean).join(", ")}
           </div>
         )}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex flex-wrap gap-1">
-          {cert.coverage_snapshot.gl?.enabled && <CovTag label="GL" />}
-          {cert.coverage_snapshot.auto?.enabled && <CovTag label="Auto" />}
-          {cert.coverage_snapshot.umbrella?.enabled && <CovTag label="Umb" />}
-          {cert.coverage_snapshot.wc?.enabled && <CovTag label="WC" />}
-        </div>
       </td>
       <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
         {new Date(cert.created_at).toLocaleDateString("en-US", {
@@ -169,8 +179,8 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
         <StatusBadge status={cert.status} />
       </td>
 
-      {/* Actions — fixed 120px, fade on hover */}
-      <td className="px-4 py-3 w-[120px]">
+      {/* Actions — fixed 120px, fade on hover; stop propagation so row click doesn't fire */}
+      <td className="px-4 py-3 w-[120px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           {hasActiveSequence ? (
             <span className="text-[12px] text-zinc-500 whitespace-nowrap px-1">
@@ -191,16 +201,10 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
           >
             <ExternalLink size={12} />
           </button>
-          <Link
-            href={`/certificates/${cert.id}`}
-            className="inline-flex items-center h-7 px-2 text-zinc-600 hover:text-zinc-300 transition-colors"
-            title="View certificate"
-          >
-            <ArrowRight size={13} />
-          </Link>
         </div>
       </td>
     </tr>
+    </>
   );
 }
 
@@ -231,9 +235,6 @@ export function CertsTable({ certs }: CertsTableProps) {
           </th>
           <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
             Holder
-          </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
-            Coverage
           </th>
           <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
             Issued
