@@ -21,6 +21,12 @@ const SEND_LABEL: Record<CampaignStage, string> = {
   sms_30_sent: "View Script",
   script_14_ready: "Mark Complete",
   complete: "Complete",
+  questionnaire_sent: "View",
+  submission_sent: "View",
+  recommendation_sent: "View",
+  final_notice_sent: "View",
+  confirmed: "Confirmed",
+  lapsed: "Lapsed",
 };
 
 function toastMessageForAction(
@@ -60,7 +66,11 @@ function RenewalRow({
   const days = daysUntilExpiry(policy.expiration_date);
   const rowUrgent = days <= 14 && policy.status === "active";
   const effectiveStage = optimisticStage ?? policy.campaign_stage;
-  const canSend = effectiveStage !== "complete";
+  const TERMINAL_STAGES: CampaignStage[] = ["complete", "confirmed", "lapsed"];
+  const NEW_STAGES: CampaignStage[] = [
+    "questionnaire_sent", "submission_sent", "recommendation_sent", "final_notice_sent",
+  ];
+  const canSend = !TERMINAL_STAGES.includes(effectiveStage) && !NEW_STAGES.includes(effectiveStage);
 
   const handleSendNow = useCallback(async () => {
     if (!canSend || sendLoading) return;
@@ -73,6 +83,7 @@ function RenewalRow({
       email_60_sent: "sms_30_sent",
       sms_30_sent: "script_14_ready",
       script_14_ready: "complete",
+      // New stages navigate to the detail page — no direct send action
     };
     const predictedStage = nextStageMap[effectiveStage];
     if (predictedStage) onStageUpdate(policy.id, predictedStage);

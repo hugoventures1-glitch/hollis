@@ -8,9 +8,25 @@ export type CampaignStage =
   | "email_60_sent"
   | "sms_30_sent"
   | "script_14_ready"
-  | "complete";
+  | "complete"
+  // New stages (Features 3, 5, 6, 7)
+  | "questionnaire_sent"
+  | "submission_sent"
+  | "recommendation_sent"
+  | "final_notice_sent"
+  | "confirmed"
+  | "lapsed";
 
-export type TouchpointType = "email_90" | "email_60" | "sms_30" | "script_14";
+export type TouchpointType =
+  | "email_90"
+  | "email_60"
+  | "sms_30"
+  | "script_14"
+  // New touchpoint types (Features 3, 5, 7, 2)
+  | "questionnaire_90"
+  | "submission_60"
+  | "recommendation_30"
+  | "final_notice_7";
 export type TouchpointStatus = "pending" | "processing" | "sent" | "failed" | "skipped";
 export type SendChannel = "email" | "sms";
 export type SendStatus = "sent" | "failed" | "bounced";
@@ -42,6 +58,9 @@ export interface Policy {
   health_label?: HealthLabel | null;
   health_updated_at?: string | null;
   stalled_at?: string | null;
+  // ── Renewal outcome columns (migration 022) ───────────────────────────────
+  client_confirmed_at?: string | null;
+  lapsed_at?: string | null;
 }
 
 export interface CampaignTouchpoint {
@@ -129,6 +148,10 @@ export function touchpointScheduledDate(
     email_60: -60,
     sms_30: -30,
     script_14: -14,
+    questionnaire_90: -90,
+    submission_60: -60,
+    recommendation_30: -30,
+    final_notice_7: -7,
   };
   expiry.setDate(expiry.getDate() + offsets[type]);
   return expiry.toISOString().split("T")[0];
@@ -139,6 +162,10 @@ export const TOUCHPOINT_LABELS: Record<TouchpointType, string> = {
   email_60: "60-Day Follow-up",
   sms_30: "30-Day SMS",
   script_14: "14-Day Call Script",
+  questionnaire_90: "90-Day Questionnaire",
+  submission_60: "Insurer Submission",
+  recommendation_30: "Recommendation Pack",
+  final_notice_7: "7-Day Final Notice",
 };
 
 export const STAGE_LABELS: Record<CampaignStage, string> = {
@@ -148,4 +175,100 @@ export const STAGE_LABELS: Record<CampaignStage, string> = {
   sms_30_sent: "SMS Sent",
   script_14_ready: "Call Script Ready",
   complete: "Complete",
+  questionnaire_sent: "Questionnaire Sent",
+  submission_sent: "Submission Sent",
+  recommendation_sent: "Recommendation Sent",
+  final_notice_sent: "Final Notice Sent",
+  confirmed: "Confirmed",
+  lapsed: "Lapsed",
 };
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+
+export type AuditEventType =
+  | "email_sent"
+  | "sms_sent"
+  | "questionnaire_sent"
+  | "questionnaire_responded"
+  | "insurer_terms_logged"
+  | "submission_sent"
+  | "recommendation_sent"
+  | "client_confirmed"
+  | "final_notice_sent"
+  | "lapse_recorded"
+  | "doc_requested"
+  | "doc_received"
+  | "note_added";
+
+export interface AuditLogEntry {
+  id: string;
+  policy_id: string;
+  user_id: string;
+  event_type: AuditEventType;
+  channel: "email" | "sms" | "internal" | "web" | null;
+  recipient: string | null;
+  content_snapshot: string | null;
+  metadata: Record<string, unknown>;
+  actor_type: "system" | "agent";
+  created_at: string;
+}
+
+// ── Insurer Terms ─────────────────────────────────────────────────────────────
+
+export interface InsurerTerms {
+  id: string;
+  policy_id: string;
+  user_id: string;
+  insurer_name: string;
+  quoted_premium: number | null;
+  premium_change: number | null;
+  premium_change_pct: number | null;
+  payment_terms: string | null;
+  new_exclusions: string[];
+  changed_conditions: string[];
+  effective_date: string | null;
+  expiry_date: string | null;
+  raw_input_text: string | null;
+  parsed_data: Record<string, unknown>;
+  is_recommended: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Renewal Questionnaire ─────────────────────────────────────────────────────
+
+export interface RenewalQuestionnaire {
+  id: string;
+  policy_id: string;
+  user_id: string;
+  token: string;
+  status: "sent" | "responded" | "expired";
+  sent_at: string;
+  responded_at: string | null;
+  expires_at: string;
+  responses: Record<string, string> | null;
+  ai_suggestions: QuestionnaireSuggestions | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+}
+
+export interface QuestionnaireSuggestions {
+  suggested_updates: Array<{
+    field: string;
+    current_value: string | null;
+    suggested_value: string;
+    reason: string;
+  }>;
+  summary: string;
+  risk_flags: string[];
+}
+
+// ── Extended policy detail ────────────────────────────────────────────────────
+
+export interface PolicyDetailFull extends PolicyDetail {
+  renewal_audit_log: AuditLogEntry[];
+  insurer_terms: InsurerTerms[];
+  renewal_questionnaires: RenewalQuestionnaire[];
+}

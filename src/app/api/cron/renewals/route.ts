@@ -24,12 +24,18 @@ import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignTouchpoint, TouchpointType } from "@/types/renewals";
 import { refreshPolicyHealthScore } from "@/lib/renewals/health-score";
 import { isSendThrottled } from "@/lib/cron/throttle";
+import { writeAuditLog } from "@/lib/audit/log";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
   email_60: "email_60_sent",
   sms_30: "sms_30_sent",
   script_14: "script_14_ready",
+  // New touchpoint types map to new stages (F3, F7, F2, F5)
+  questionnaire_90: "questionnaire_sent",
+  submission_60: "submission_sent",
+  recommendation_30: "recommendation_sent",
+  final_notice_7: "final_notice_sent",
 };
 
 // Stale claim threshold: reset 'processing' rows older than this many minutes.
@@ -68,13 +74,13 @@ export async function GET(request: NextRequest) {
     .eq("renewal_paused", true)
     .lt("renewal_paused_until", today);
 
-  // Fetch all active, non-paused policies
+  // Fetch all active, non-paused policies that have not reached a terminal state
   const { data: policies, error: policiesError } = await supabase
     .from("policies")
     .select("*")
     .eq("status", "active")
-    .neq("campaign_stage", "complete")
-    .eq("renewal_paused", false);
+    .eq("renewal_paused", false)
+    .not("campaign_stage", "in", '("complete","confirmed","lapsed","final_notice_sent")');
 
   if (policiesError) {
     console.error("[cron/renewals] Failed to fetch policies:", policiesError.message);
@@ -99,11 +105,64 @@ export async function GET(request: NextRequest) {
     results.processed++;
     const days = daysUntilExpiry(policy.expiration_date);
 
-    // Mark expired policies
-    if (days < 0) {
+    // Lapse detection: policy has expired with no client confirmation
+    if (days <= 0) {
+      // Send lapse confirmation email
+      if (policy.client_email) {
+        const expiryFormatted = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString(
+          "en-AU",
+          { day: "numeric", month: "long", year: "numeric" }
+        );
+        const lapseBody = `Dear ${policy.client_name},\n\nThis is to confirm that your ${policy.policy_name} with ${policy.carrier} lapsed on ${expiryFormatted}.\n\nAs of this date, your cover has ended and you are currently uninsured. Any claims arising after this date will not be covered.\n\nPlease contact us immediately to discuss reinstating your cover or arranging alternative insurance.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
+        const lapseSubject = `IMPORTANT: Your ${policy.policy_name} has lapsed`;
+
+        try {
+          const { data: sent } = await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+            to: policy.client_email,
+            subject: lapseSubject,
+            text: lapseBody,
+          });
+          await supabase.from("send_logs").insert({
+            policy_id: policy.id,
+            user_id: policy.user_id,
+            channel: "email",
+            recipient: policy.client_email,
+            status: "sent",
+            provider_message_id: sent?.id ?? null,
+            sent_at: new Date().toISOString(),
+          });
+          await writeAuditLog({
+            supabase,
+            policy_id: policy.id,
+            user_id: policy.user_id,
+            event_type: "lapse_recorded",
+            channel: "email",
+            recipient: policy.client_email,
+            content_snapshot: `Subject: ${lapseSubject}\n\n${lapseBody}`,
+            metadata: { expiration_date: policy.expiration_date },
+            actor_type: "system",
+          });
+        } catch (err) {
+          console.error("[cron/renewals] Lapse email failed for", policy.client_name, err instanceof Error ? err.message : err);
+        }
+      } else {
+        // No email — still write audit log
+        await writeAuditLog({
+          supabase,
+          policy_id: policy.id,
+          user_id: policy.user_id,
+          event_type: "lapse_recorded",
+          channel: "internal",
+          content_snapshot: `Policy lapsed on ${policy.expiration_date} — no client email on record.`,
+          metadata: { expiration_date: policy.expiration_date },
+          actor_type: "system",
+        });
+      }
+
       await supabase
         .from("policies")
-        .update({ status: "expired" })
+        .update({ status: "expired", campaign_stage: "lapsed", lapsed_at: new Date().toISOString() })
         .eq("id", policy.id);
       continue;
     }
@@ -270,6 +329,24 @@ async function fireTouchpoint(
     status: "sent",
     provider_message_id: providerId,
     sent_at: new Date().toISOString(),
+  });
+
+  // Write to renewal audit log
+  await writeAuditLog({
+    supabase,
+    policy_id: policy.id,
+    user_id: policy.user_id,
+    event_type: channel === "sms" ? "sms_sent" : "email_sent",
+    channel,
+    recipient: channel === "sms" ? (policy.client_phone ?? null) : (policy.client_email ?? null),
+    content_snapshot: subject ? `Subject: ${subject}\n\n${content}` : content,
+    metadata: {
+      touchpoint_id: touchpoint.id,
+      touchpoint_type: type,
+      subject: subject ?? null,
+      provider_id: providerId,
+    },
+    actor_type: "system",
   });
 
   // Advance policy campaign stage

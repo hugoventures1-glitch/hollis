@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { PatchDocChaseBody } from "@/types/doc-chase";
+import { writeAuditLog } from "@/lib/audit/log";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -91,10 +92,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    // Verify ownership
+    // Verify ownership (also fetch policy_id and document_type for audit log)
     const { data: existing, error: existErr } = await supabase
       .from("doc_chase_requests")
-      .select("id, status")
+      .select("id, status, policy_id, document_type, client_email, client_name")
       .eq("id", id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -146,6 +147,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           .update({ sequence_status: "cancelled" })
           .eq("id", seq.id);
       }
+    }
+
+    // Write audit log when document is received and linked to a policy
+    if (status === "received" && existing.status !== "received" && existing.policy_id) {
+      await writeAuditLog({
+        supabase,
+        policy_id: existing.policy_id,
+        user_id: user.id,
+        event_type: "doc_received",
+        channel: "internal",
+        content_snapshot: `Document received: ${existing.document_type} from ${existing.client_name}`,
+        metadata: {
+          doc_chase_request_id: id,
+          document_type: existing.document_type,
+          client_name: existing.client_name,
+        },
+        actor_type: "agent",
+      });
     }
 
     return NextResponse.json(updated);

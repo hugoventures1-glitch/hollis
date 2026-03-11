@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PauseCircle, PlayCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { PauseCircle, PlayCircle, CheckCircle2, AlertTriangle, BadgeCheck } from "lucide-react";
 import { useToast } from "@/components/actions/MicroToast";
-import type { Policy } from "@/types/renewals";
+import type { Policy, CampaignStage } from "@/types/renewals";
+
+const TERMINAL_STAGES: CampaignStage[] = ["confirmed", "lapsed", "complete"];
 
 interface RenewalOverrideControlsProps {
-  policy: Pick<Policy, "id" | "renewal_paused" | "renewal_paused_until" | "renewal_manual_override">;
+  policy: Pick<Policy, "id" | "renewal_paused" | "renewal_paused_until" | "renewal_manual_override" | "campaign_stage">;
 }
 
 export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps) {
@@ -85,6 +87,24 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
     });
   };
 
+  const handleConfirmRenewal = () => {
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/renewals/${policy.id}/confirm`, { method: "POST" });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? "Confirm failed");
+        }
+        toast("Renewal confirmed", "success");
+        router.refresh();
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Failed to confirm", "error");
+      }
+    });
+  };
+
+  const canConfirm = !TERMINAL_STAGES.includes(policy.campaign_stage as CampaignStage);
+
   return (
     <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 space-y-4">
       <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest">
@@ -157,6 +177,17 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
           >
             <CheckCircle2 size={13} />
             Mark Manually Handled
+          </button>
+        )}
+
+        {canConfirm && (
+          <button
+            onClick={handleConfirmRenewal}
+            disabled={isPending}
+            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#16a34a]/10 text-[#4ade80] hover:bg-[#16a34a]/20 transition-colors disabled:opacity-50"
+          >
+            <BadgeCheck size={13} />
+            Confirm Renewal
           </button>
         )}
       </div>

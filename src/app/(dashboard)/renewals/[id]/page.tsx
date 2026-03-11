@@ -15,8 +15,18 @@ import {
 import { StageBadge } from "@/components/renewals/stage-badge";
 import { DaysBadge } from "@/components/renewals/days-badge";
 import { daysUntilExpiry, TOUCHPOINT_LABELS } from "@/types/renewals";
-import type { PolicyDetail, CampaignTouchpoint, SendLog, TouchpointStatus } from "@/types/renewals";
+import type {
+  PolicyDetailFull,
+  CampaignTouchpoint,
+  SendLog,
+  TouchpointStatus,
+} from "@/types/renewals";
 import { RenewalOverrideControls } from "@/components/renewals/RenewalOverrideControls";
+import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
+import { QuestionnairePanel } from "@/components/renewals/QuestionnairePanel";
+import { AuditTimeline } from "@/components/renewals/AuditTimeline";
+import { SubmissionPanel } from "@/components/renewals/SubmissionPanel";
+import { RecommendationButton } from "@/components/renewals/RecommendationButton";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +34,15 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const TOUCHPOINT_ICONS = {
+const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
   email_90: Mail,
   email_60: Mail,
   sms_30: MessageSquare,
   script_14: Phone,
+  questionnaire_90: Mail,
+  submission_60: Mail,
+  recommendation_30: Mail,
+  final_notice_7: Mail,
 };
 
 const STATUS_ICON_MAP: Record<TouchpointStatus, React.ReactNode> = {
@@ -56,14 +70,21 @@ export default async function PolicyDetailPage({ params }: PageProps) {
 
   const { data: policy, error } = await supabase
     .from("policies")
-    .select("*, campaign_touchpoints(*), send_logs(*)")
+    .select(`
+      *,
+      campaign_touchpoints(*),
+      send_logs(*),
+      renewal_audit_log(*),
+      insurer_terms(*),
+      renewal_questionnaires(*)
+    `)
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
 
   if (error || !policy) notFound();
 
-  const p = policy as PolicyDetail;
+  const p = policy as unknown as PolicyDetailFull;
   const days = daysUntilExpiry(p.expiration_date);
 
   const touchpoints = [...(p.campaign_touchpoints ?? [])].sort(
@@ -73,6 +94,12 @@ export default async function PolicyDetailPage({ params }: PageProps) {
   const sendLogs = [...(p.send_logs ?? [])].sort(
     (a: SendLog, b: SendLog) => b.sent_at.localeCompare(a.sent_at)
   );
+
+  const auditEntries = p.renewal_audit_log ?? [];
+  const insurerTerms = p.insurer_terms ?? [];
+  const questionnaires = p.renewal_questionnaires ?? [];
+
+  const hasTerms = insurerTerms.length > 0;
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d12]">
@@ -116,22 +143,38 @@ export default async function PolicyDetailPage({ params }: PageProps) {
               />
               <InfoBlock
                 label="Expiration"
-                value={new Date(p.expiration_date + "T00:00:00").toLocaleDateString("en-US", {
+                value={new Date(p.expiration_date + "T00:00:00").toLocaleDateString("en-AU", {
                   month: "long", day: "numeric", year: "numeric",
                 })}
               />
               <InfoBlock label="Status" value={p.status} capitalize />
+              {p.client_confirmed_at && (
+                <InfoBlock
+                  label="Confirmed"
+                  value={new Date(p.client_confirmed_at).toLocaleDateString("en-AU", {
+                    month: "short", day: "numeric", year: "numeric",
+                  })}
+                />
+              )}
+              {p.lapsed_at && (
+                <InfoBlock
+                  label="Lapsed"
+                  value={new Date(p.lapsed_at).toLocaleDateString("en-AU", {
+                    month: "short", day: "numeric", year: "numeric",
+                  })}
+                />
+              )}
               <InfoBlock
                 label="Last Contact"
                 value={p.last_contact_at
-                  ? new Date(p.last_contact_at).toLocaleDateString("en-US", {
+                  ? new Date(p.last_contact_at).toLocaleDateString("en-AU", {
                       month: "short", day: "numeric", year: "numeric",
                     })
                   : "Never contacted"}
               />
               <InfoBlock
                 label="Created"
-                value={new Date(p.created_at).toLocaleDateString("en-US", {
+                value={new Date(p.created_at).toLocaleDateString("en-AU", {
                   month: "short", day: "numeric", year: "numeric",
                 })}
               />
@@ -145,8 +188,39 @@ export default async function PolicyDetailPage({ params }: PageProps) {
               renewal_paused: p.renewal_paused ?? false,
               renewal_paused_until: p.renewal_paused_until ?? null,
               renewal_manual_override: p.renewal_manual_override ?? null,
+              campaign_stage: p.campaign_stage,
             }}
           />
+
+          {/* Questionnaire (F3) */}
+          <QuestionnairePanel policyId={p.id} questionnaires={questionnaires} />
+
+          {/* Insurer Terms (F1) */}
+          <InsurerTermsPanel
+            policyId={p.id}
+            terms={insurerTerms}
+            priorPremium={p.premium ?? null}
+          />
+
+          {/* Recommendation Pack (F2) */}
+          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 space-y-3">
+            <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest">
+              Recommendation Pack
+            </div>
+            <div className="text-[12px] text-zinc-500">
+              Generate a formal renewal recommendation for the client based on insurer quotes above.
+              Sent to the client&apos;s email address.
+            </div>
+            {!hasTerms && (
+              <div className="text-[12px] text-amber-400/80">
+                Add at least one insurer quote before generating a recommendation.
+              </div>
+            )}
+            <RecommendationButton policyId={p.id} hasTerms={hasTerms} />
+          </div>
+
+          {/* Submission Builder (F7) */}
+          <SubmissionPanel policyId={p.id} hasTerms={hasTerms} />
 
           {/* Campaign timeline */}
           <div>
@@ -154,8 +228,13 @@ export default async function PolicyDetailPage({ params }: PageProps) {
               Campaign Timeline
             </div>
             <div className="space-y-3">
+              {touchpoints.length === 0 && (
+                <div className="text-[13px] text-[#505057] py-4 text-center">
+                  No touchpoints yet.
+                </div>
+              )}
               {touchpoints.map((tp: CampaignTouchpoint) => {
-                const Icon = TOUCHPOINT_ICONS[tp.type];
+                const Icon = TOUCHPOINT_ICONS[tp.type] ?? Mail;
                 return (
                   <div
                     key={tp.id}
@@ -201,7 +280,7 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                             <span className="text-[#505057]">·</span>
                             <span className="text-[12px] text-[#505057]">
                               Scheduled{" "}
-                              {new Date(tp.scheduled_at + "T00:00:00").toLocaleDateString("en-US", {
+                              {new Date(tp.scheduled_at + "T00:00:00").toLocaleDateString("en-AU", {
                                 month: "short", day: "numeric", year: "numeric",
                               })}
                             </span>
@@ -210,7 +289,7 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                                 <span className="text-[#505057]">·</span>
                                 <span className="text-[12px] text-[#505057]">
                                   Sent{" "}
-                                  {new Date(tp.sent_at).toLocaleDateString("en-US", {
+                                  {new Date(tp.sent_at).toLocaleDateString("en-AU", {
                                     month: "short", day: "numeric",
                                   })}
                                 </span>
@@ -221,7 +300,6 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Subject + content preview for sent touchpoints */}
                     {tp.status === "sent" && tp.content && (
                       <div className="mt-4 pt-4 border-t border-[#1e1e2a]">
                         {tp.subject && (
@@ -280,7 +358,7 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                           </span>
                         </td>
                         <td className="px-5 py-3 text-[12px] text-[#505057] tabular-nums">
-                          {new Date(log.sent_at).toLocaleString("en-US", {
+                          {new Date(log.sent_at).toLocaleString("en-AU", {
                             month: "short", day: "numeric",
                             hour: "numeric", minute: "2-digit",
                           })}
@@ -292,6 +370,10 @@ export default async function PolicyDetailPage({ params }: PageProps) {
               </div>
             </div>
           )}
+
+          {/* Audit Timeline (F4) */}
+          <AuditTimeline entries={auditEntries} />
+
         </div>
       </div>
     </div>

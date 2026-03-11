@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { draftDocumentChaseSequence } from "@/lib/doc-chase/generate";
 import type { CreateDocChaseBody } from "@/types/doc-chase";
+import { writeAuditLog } from "@/lib/audit/log";
 
 // Touch schedule: offsets in days from now
 const TOUCH_DELAYS_DAYS = [0, 5, 10, 20];
@@ -176,6 +177,25 @@ export async function POST(request: NextRequest) {
     await supabase.from("doc_chase_sequences").delete().eq("id", seq.id);
     await supabase.from("doc_chase_requests").delete().eq("id", req.id);
     return NextResponse.json({ error: msgErr.message }, { status: 500 });
+  }
+
+  // Write to renewal audit log if this doc chase is linked to a policy
+  if (policy_id) {
+    await writeAuditLog({
+      supabase,
+      policy_id,
+      user_id: user.id,
+      event_type: "doc_requested",
+      channel: "email",
+      recipient: client_email.trim().toLowerCase(),
+      content_snapshot: `Document requested: ${document_type.trim()}${notes?.trim() ? ` — ${notes.trim()}` : ""}`,
+      metadata: {
+        doc_chase_request_id: req.id,
+        document_type: document_type.trim(),
+        client_name: client_name.trim(),
+      },
+      actor_type: "agent",
+    });
   }
 
   return NextResponse.json(

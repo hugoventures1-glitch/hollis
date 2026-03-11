@@ -20,6 +20,7 @@ import {
   generateCallScript,
 } from "@/lib/renewals/generate";
 import type { Policy, CampaignStage, TouchpointType } from "@/types/renewals";
+import { writeAuditLog } from "@/lib/audit/log";
 
 // Campaign stage → next touchpoint type mapping
 const STAGE_TO_TOUCHPOINT: Partial<Record<CampaignStage, TouchpointType>> = {
@@ -35,6 +36,10 @@ const TOUCHPOINT_TO_STAGE: Record<TouchpointType, CampaignStage> = {
   email_60: "email_60_sent",
   sms_30: "sms_30_sent",
   script_14: "script_14_ready",
+  questionnaire_90: "questionnaire_sent",
+  submission_60: "submission_sent",
+  recommendation_30: "recommendation_sent",
+  final_notice_7: "final_notice_sent",
 };
 
 export async function POST(
@@ -214,6 +219,25 @@ export async function POST(
     status: "sent",
     provider_message_id: providerId,
     sent_at: new Date().toISOString(),
+  });
+
+  // ── Write to renewal audit log ────────────────────────────────────────────
+  await writeAuditLog({
+    supabase,
+    policy_id: policy.id,
+    user_id: user.id,
+    event_type: channel === "sms" ? "sms_sent" : "email_sent",
+    channel,
+    recipient,
+    content_snapshot: subject ? `Subject: ${subject}\n\n${content}` : content,
+    metadata: {
+      touchpoint_id: touchpointId,
+      touchpoint_type: touchpointType,
+      subject: subject ?? null,
+      provider_id: providerId,
+      triggered_by: "agent",
+    },
+    actor_type: "agent",
   });
 
   // ── Advance campaign stage ────────────────────────────────────────────────

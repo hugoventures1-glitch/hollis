@@ -11,13 +11,19 @@ import { useHollisData } from "@/hooks/useHollisData";
 import { createClient } from "@/lib/supabase/client";
 
 const STAGE_FILTER_OPTIONS: { label: string; value: CampaignStage | "all" }[] = [
-  { label: "All",           value: "all"             },
-  { label: "Not Started",   value: "pending"         },
-  { label: "90-Day Sent",   value: "email_90_sent"   },
-  { label: "60-Day Sent",   value: "email_60_sent"   },
-  { label: "SMS Sent",      value: "sms_30_sent"     },
-  { label: "Script Ready",  value: "script_14_ready" },
-  { label: "Complete",      value: "complete"        },
+  { label: "All",                value: "all"                  },
+  { label: "Not Started",        value: "pending"              },
+  { label: "90-Day Sent",        value: "email_90_sent"        },
+  { label: "60-Day Sent",        value: "email_60_sent"        },
+  { label: "SMS Sent",           value: "sms_30_sent"          },
+  { label: "Script Ready",       value: "script_14_ready"      },
+  { label: "Questionnaire Sent", value: "questionnaire_sent"   },
+  { label: "Submission Sent",    value: "submission_sent"      },
+  { label: "Recommendation Sent",value: "recommendation_sent"  },
+  { label: "Final Notice",       value: "final_notice_sent"    },
+  { label: "Confirmed",          value: "confirmed"            },
+  { label: "Lapsed",             value: "lapsed"               },
+  { label: "Complete",           value: "complete"             },
 ];
 
 // ── Inner content (needs Suspense because it calls useSearchParams) ────────────
@@ -88,6 +94,9 @@ function RenewalsContent() {
       ["pending", "email_90_sent", "email_60_sent"].includes(p.campaign_stage) &&
       daysUntilExpiry(p.expiration_date) <= 60
   ).length;
+  const questionnaireAwaiting = active.filter(
+    (p) => p.campaign_stage === "questionnaire_sent"
+  ).length;
 
   const isLoading =
     ((filterParam === "stalled" || filterParam === "upcoming") && storeLoading) ||
@@ -147,6 +156,12 @@ function RenewalsContent() {
           <div className="text-[32px] font-bold text-amber-400 leading-none">{needsAction}</div>
           <div className="text-[12px] text-[#8a8b91] mt-1.5">Need Outreach</div>
         </div>
+        {questionnaireAwaiting > 0 && (
+          <div className="px-10 border-l border-[#1e1e2a]">
+            <div className="text-[32px] font-bold text-[#818cf8] leading-none">{questionnaireAwaiting}</div>
+            <div className="text-[12px] text-[#8a8b91] mt-1.5">Awaiting Questionnaire</div>
+          </div>
+        )}
       </div>
 
       {/* Filter tabs */}
@@ -175,6 +190,18 @@ function RenewalsContent() {
           }`}
         >
           ⚠ Stalled
+        </Link>
+
+        {/* Lapsed filter */}
+        <Link
+          href="/renewals?stage=lapsed&status=expired"
+          className={`px-3 py-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors border ${
+            stageFilter === "lapsed" && statusFilter === "expired"
+              ? "bg-red-950/40 text-red-400 border-red-800/40"
+              : "text-[#8a8b91] hover:text-red-400 hover:bg-red-950/20 border-transparent"
+          }`}
+        >
+          ✕ Lapsed
         </Link>
 
         <div className="ml-auto flex items-center gap-1">
