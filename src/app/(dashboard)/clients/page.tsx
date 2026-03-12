@@ -10,23 +10,22 @@ export default function ClientsPage() {
   const rows = clients;
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12] text-[#f5f5f7]">
+    <div className="flex flex-col h-full" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
 
       {/* Header */}
-      <header className="h-[56px] shrink-0 border-b border-[#1e1e2a] flex items-center justify-between px-6">
+      <header className="h-[56px] shrink-0 flex items-center justify-between px-6" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-2.5 text-sm font-medium tracking-tight">
-          <span className="text-[#5e5e64]">CRM</span>
-          <span className="text-[#2a2a35]">/</span>
-          <span className="text-[#f5f5f7]">Clients</span>
+          <span style={{ color: "#555555", fontSize: 12 }}>CRM</span>
         </div>
         <div className="flex items-center gap-2.5">
           {backgroundRefreshing && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse shrink-0" title="Syncing…" />
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: "rgba(250,250,250,0.2)" }} title="Syncing…" />
           )}
-          <span className="text-[13px] text-[#505057]">{rows.length} clients</span>
+          <span className="text-[13px]" style={{ color: "#333333" }}>{rows.length} clients</span>
           <Link
             href="/import/clients"
-            className="h-8 bg-[#00d4aa] text-black px-3.5 rounded text-[13px] font-bold hover:bg-[#00bfa0] transition-colors flex items-center gap-2"
+            className="h-8 px-3.5 rounded text-[13px] font-bold flex items-center gap-2 transition-colors"
+            style={{ background: "#FAFAFA", color: "#0C0C0C" }}
           >
             <Plus size={14} strokeWidth={3} />
             Import
@@ -38,20 +37,21 @@ export default function ClientsPage() {
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <Loader2 size={22} className="animate-spin text-zinc-600" />
+            <Loader2 size={22} className="animate-spin" style={{ color: "#333333" }} />
           </div>
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <div className="w-14 h-14 rounded-full bg-[#111118] border border-[#1e1e2a] flex items-center justify-center mb-4">
-              <Users size={22} className="text-[#3a3a42]" />
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <Users size={22} style={{ color: "#333333" }} />
             </div>
-            <h2 className="text-[16px] font-semibold text-[#f5f5f7] mb-1">No clients yet</h2>
-            <p className="text-[13px] text-[#505057] mb-6 max-w-xs">
+            <h2 className="text-[16px] font-semibold mb-1" style={{ color: "#FAFAFA" }}>No clients yet</h2>
+            <p className="text-[13px] mb-6 max-w-xs" style={{ color: "#555555" }}>
               Import a CSV or add clients manually to get started.
             </p>
             <Link
               href="/import/clients"
-              className="h-9 px-5 rounded-md bg-[#00d4aa] text-black text-[13px] font-semibold hover:bg-[#00bfa0] transition-colors"
+              className="h-9 px-5 rounded-md text-[13px] font-semibold transition-colors"
+              style={{ background: "#FAFAFA", color: "#0C0C0C" }}
             >
               Import CSV
             </Link>

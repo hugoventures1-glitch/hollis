@@ -29,9 +29,9 @@ const SEQ_STATUS_STYLES: Record<
   SequenceRow["sequence_status"],
   { className: string; icon: React.ElementType; label: string }
 > = {
-  active:    { className: "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",  icon: Clock,        label: "Active"    },
-  completed: { className: "bg-[#ffffff08] text-[#8a8b91] border border-[#ffffff10]",     icon: CheckCircle2, label: "Completed" },
-  cancelled: { className: "bg-[#ffffff08] text-[#505057] border border-[#ffffff10]",     icon: XCircle,      label: "Cancelled" },
+  active:    { className: "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",  icon: Clock,        label: "Active"    },
+  completed: { className: "bg-[#ffffff08] text-[#555555] border border-[#ffffff10]",     icon: CheckCircle2, label: "Completed" },
+  cancelled: { className: "bg-[#ffffff08] text-[#333333] border border-[#ffffff10]",     icon: XCircle,      label: "Cancelled" },
 };
 
 function fmtDate(iso: string) {
@@ -73,7 +73,7 @@ export function SequencesTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 size={22} className="animate-spin text-zinc-600" />
+        <Loader2 size={22} className="animate-spin text-[#333333]" />
       </div>
     );
   }
@@ -81,11 +81,11 @@ export function SequencesTab() {
   if (sequences.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-        <div className="w-14 h-14 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center mb-4">
-          <Mail size={22} className="text-[#00d4aa]" />
+        <div className="w-14 h-14 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mb-4">
+          <Mail size={22} className="text-[#FAFAFA]" />
         </div>
-        <div className="text-[16px] font-semibold text-[#f5f5f7] mb-1">No follow-up sequences yet</div>
-        <div className="text-[13px] text-[#505057] max-w-xs">
+        <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">No follow-up sequences yet</div>
+        <div className="text-[13px] text-[#333333] max-w-xs">
           Start a sequence from the Issued COIs tab to automatically follow up with certificate holders.
         </div>
       </div>
@@ -94,12 +94,12 @@ export function SequencesTab() {
 
   return (
     <div className="max-w-5xl mx-auto px-10 py-6">
-      <div className="rounded-xl border border-[#1e1e2a] bg-[#111118] overflow-hidden">
+      <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#1e1e2a]">
+            <tr className="border-b border-[#1C1C1C]">
               {["Holder", "Certificate", "Status", "Touches", "Next Touch", "Started"].map((h) => (
-                <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold text-[#505057] uppercase tracking-wider">
+                <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold text-[#333333] uppercase tracking-wider">
                   {h}
                 </th>
               ))}
@@ -120,20 +120,20 @@ export function SequencesTab() {
                 : null;
 
               return (
-                <tr key={seq.id} className="border-b border-[#1e1e2a] last:border-0 hover:bg-white/[0.02] transition-colors group">
+                <tr key={seq.id} className="border-b border-[#1C1C1C] last:border-0 hover:bg-white/[0.02] transition-colors group">
                   <td className="px-5 py-3.5">
                     <Link href={`/certificates/${seq.certificate_id}`} className="block">
-                      <div className="text-[13px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors">
+                      <div className="text-[13px] font-medium text-[#FAFAFA] group-hover:text-[#FAFAFA] transition-colors">
                         {seq.holder_name}
                       </div>
-                      <div className="text-[11px] text-[#505057] font-mono mt-0.5">{seq.holder_email}</div>
+                      <div className="text-[11px] text-[#333333] font-mono mt-0.5">{seq.holder_email}</div>
                     </Link>
                   </td>
                   <td className="px-5 py-3.5">
                     <Link href={`/certificates/${seq.certificate_id}`} className="block">
-                      <div className="text-[13px] text-[#c5c5cb]">{seq.certificates?.insured_name ?? "—"}</div>
+                      <div className="text-[13px] text-[#FAFAFA]">{seq.certificates?.insured_name ?? "—"}</div>
                       {seq.certificates?.certificate_number && (
-                        <div className="text-[11px] text-[#505057] font-mono mt-0.5">{seq.certificates.certificate_number}</div>
+                        <div className="text-[11px] text-[#333333] font-mono mt-0.5">{seq.certificates.certificate_number}</div>
                       )}
                     </Link>
                   </td>
@@ -144,23 +144,23 @@ export function SequencesTab() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="text-[13px] text-[#c5c5cb] tabular-nums">{sentCount} / {msgs.length}</div>
-                    <div className="text-[11px] text-[#505057] mt-0.5">sent</div>
+                    <div className="text-[13px] text-[#FAFAFA] tabular-nums">{sentCount} / {msgs.length}</div>
+                    <div className="text-[11px] text-[#333333] mt-0.5">sent</div>
                   </td>
                   <td className="px-5 py-3.5">
                     {nextTouchDate ? (
                       <>
-                        <div className="text-[13px] text-[#c5c5cb]">{fmtDate(nextTouchDate.toISOString())}</div>
-                        <div className="text-[11px] text-[#505057] mt-0.5">scheduled</div>
+                        <div className="text-[13px] text-[#FAFAFA]">{fmtDate(nextTouchDate.toISOString())}</div>
+                        <div className="text-[11px] text-[#333333] mt-0.5">scheduled</div>
                       </>
                     ) : (
-                      <span className="text-[12px] text-[#505057]">—</span>
+                      <span className="text-[12px] text-[#333333]">—</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="text-[13px] text-[#c5c5cb]">{fmtDate(seq.created_at)}</div>
+                    <div className="text-[13px] text-[#FAFAFA]">{fmtDate(seq.created_at)}</div>
                     {seq.completed_at && (
-                      <div className="text-[11px] text-[#505057] mt-0.5">Done {fmtDate(seq.completed_at)}</div>
+                      <div className="text-[11px] text-[#333333] mt-0.5">Done {fmtDate(seq.completed_at)}</div>
                     )}
                   </td>
                 </tr>

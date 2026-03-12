@@ -11,6 +11,7 @@ export interface SidebarCounts {
   coi: number;
   docChase: number;
   outbox: number;
+  review: number;
 }
 
 function todayISO(): string {
@@ -26,7 +27,7 @@ function in60DaysISO(): string {
 async function fetchCounts(): Promise<SidebarCounts> {
   const supabase = createClient();
 
-  const [renewalsRes, coiRes, docChaseRes, outboxRes] = await Promise.all([
+  const [renewalsRes, coiRes, docChaseRes, outboxRes, reviewRes] = await Promise.all([
     // Active policies expiring within 60 days
     supabase
       .from("policies")
@@ -52,6 +53,12 @@ async function fetchCounts(): Promise<SidebarCounts> {
       .from("outbox_drafts")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
+
+    // Pending agent Tier 2 review items
+    supabase
+      .from("approval_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
   ]);
 
   return {
@@ -59,6 +66,7 @@ async function fetchCounts(): Promise<SidebarCounts> {
     coi: coiRes.count ?? 0,
     docChase: docChaseRes.count ?? 0,
     outbox: outboxRes.count ?? 0,
+    review: reviewRes.count ?? 0,
   };
 }
 
@@ -69,6 +77,7 @@ export function useSidebarCounts(): SidebarCounts {
     coi: 0,
     docChase: 0,
     outbox: 0,
+    review: 0,
   });
 
   const refresh = useCallback(() => {

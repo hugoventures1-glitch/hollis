@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SidebarNav from "./sidebar-nav";
 import { ToastProvider } from "@/components/actions/ToastProvider";
-import AssistantPanelWrapper from "@/components/assistant/AssistantPanelWrapper";
+import { CommandBar } from "@/components/assistant/CommandBar";
 import { UnifiedPanelProvider } from "@/contexts/UnifiedPanelContext";
 import { ProfileCompletionBanner } from "@/components/onboarding/ProfileCompletionBanner";
 
@@ -34,12 +34,12 @@ export default async function DashboardLayout({
       <UnifiedPanelProvider>
         <div className="flex h-screen overflow-hidden">
           <SidebarNav />
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             {profileIncomplete && <ProfileCompletionBanner />}
             <main className="flex-1 overflow-hidden">{children}</main>
           </div>
-          <AssistantPanelWrapper />
         </div>
+        <CommandBar />
       </UnifiedPanelProvider>
     </ToastProvider>
   );

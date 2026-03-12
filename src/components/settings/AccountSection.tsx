@@ -90,7 +90,7 @@ export function AccountSection({ planName }: Props) {
         <div className="rounded-lg border border-[#2a2a36] bg-[#111118] px-4 py-3 flex items-center justify-between">
           <div>
             <p className="text-[14px] font-medium text-[#f5f5f7]">Current plan</p>
-            <p className="text-[13px] text-[#00d4aa] mt-0.5 capitalize">{planName}</p>
+            <p className="text-[13px] text-[#FAFAFA] mt-0.5 capitalize">{planName}</p>
           </div>
           <span className="text-[12px] text-zinc-500">Billing management coming soon.</span>
         </div>
@@ -124,7 +124,7 @@ export function AccountSection({ planName }: Props) {
           <p className="text-[13px] text-red-400">{pwError}</p>
         )}
         {pwSaved && (
-          <div className="flex items-center gap-2 text-[13px] text-[#00d4aa]">
+          <div className="flex items-center gap-2 text-[13px] text-[#FAFAFA]">
             <CheckCircle2 size={14} />
             Password updated successfully.
           </div>
@@ -167,7 +167,7 @@ export function AccountSection({ planName }: Props) {
                 value={deleteInput}
                 onChange={(e) => setDeleteInput(e.target.value)}
                 placeholder="DELETE"
-                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#1a1a24] border border-red-700/40 text-[14px] text-[#f5f5f7] placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors"
+                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#111111] border border-red-700/40 text-[14px] text-[#f5f5f7] placeholder-[#333333] focus:outline-none focus:border-red-500/60 transition-colors"
               />
               {deleteError && <p className="text-[12px] text-red-400">{deleteError}</p>}
               <div className="flex items-center gap-2 pt-1">
@@ -175,7 +175,7 @@ export function AccountSection({ planName }: Props) {
                   type="button"
                   disabled={deleteInput !== "DELETE" || deleting}
                   onClick={handleDeleteAccount}
-                  className="px-3 py-1.5 rounded-md bg-red-700 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1.5 rounded-md bg-red-700 text-[#0C0C0C] text-[13px] font-medium hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {deleting ? "Deleting…" : "Confirm delete"}
                 </button>

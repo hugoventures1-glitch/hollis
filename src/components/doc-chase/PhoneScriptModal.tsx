@@ -96,7 +96,7 @@ export function PhoneScriptModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2a] shrink-0">
           <div className="flex items-center gap-2">
-            <Phone size={16} className="text-purple-400" />
+            <Phone size={16} className="text-[#888888]" />
             <span className="text-[15px] font-semibold text-[#f5f5f7]">
               Phone Script
             </span>
@@ -136,7 +136,7 @@ export function PhoneScriptModal({
                       key={i}
                       className="flex gap-3 text-[14px] text-[#c5c5cb] leading-relaxed"
                     >
-                      <span className="text-purple-400 shrink-0">•</span>
+                      <span className="text-[#888888] shrink-0">•</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -150,11 +150,11 @@ export function PhoneScriptModal({
           ) : null}
         </div>
 
-        <div className="px-5 py-4 border-t border-[#1e1e2a] bg-[#0d0d12] shrink-0">
+        <div className="px-5 py-4 border-t border-[#1e1e2a] bg-[#0C0C0C] shrink-0">
           <button
             onClick={handleMarkCalled}
             disabled={submitting || loading}
-            className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-[#FAFAFA] hover:bg-[#E8E8E8] text-[#0C0C0C] text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? (
               <>
@@ -165,7 +165,7 @@ export function PhoneScriptModal({
               "Mark as Called"
             )}
           </button>
-          <p className="text-[11px] text-zinc-600 mt-2 text-center">
+          <p className="text-[11px] text-[#333333] mt-2 text-center">
             Marks the document as received and cancels pending follow-ups
           </p>
         </div>

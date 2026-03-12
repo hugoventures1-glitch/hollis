@@ -16,7 +16,7 @@ export function SaveButton({ saving, saved, onClick, label = "Save changes", dis
       type="button"
       disabled={saving || !!disabled}
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#00d4aa] text-black font-semibold text-[14px] hover:bg-[#00bfa0] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#FAFAFA] text-[#0C0C0C] font-semibold text-[14px] hover:bg-[#E8E8E8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
     >
       {saving ? (
         <>

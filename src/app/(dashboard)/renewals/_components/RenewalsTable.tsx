@@ -143,29 +143,35 @@ function RenewalRow({
 
   return (
     <tr
-      className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors ${
-        rowUrgent ? "bg-red-950/[0.08]" : ""
-      }`}
+      className="group transition-colors"
+      style={{ borderBottom: "1px solid #1C1C1C" }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#161616"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
     >
       <td className="px-10 py-3">
         <Link href={`/renewals/${policy.id}`} className="block">
-          <div className="text-[14px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors leading-snug">
-            {policy.policy_name}
+          <div className="flex items-center gap-1.5">
+            {rowUrgent && (
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#FF4444" }} />
+            )}
+            <span className="text-[13px] font-medium leading-snug transition-colors" style={{ color: "#FAFAFA" }}>
+              {policy.policy_name}
+            </span>
           </div>
-          <div className="text-[12px] text-[#8a8b91] mt-0.5">
+          <div className="text-[12px] mt-0.5" style={{ color: "#555555" }}>
             {policy.client_name}
             {policy.client_email && (
-              <span className="text-[#ffffff30] mx-1">·</span>
+              <span style={{ color: "#333333", margin: "0 4px" }}>·</span>
             )}
-            <span className="text-[#505057]">{policy.client_email}</span>
+            <span style={{ color: "#333333" }}>{policy.client_email}</span>
           </div>
         </Link>
       </td>
       <td className="px-4 py-3">
-        <span className="text-[13px] text-[#c5c5cb]">{policy.carrier}</span>
+        <span className="text-[13px]" style={{ color: "#555555" }}>{policy.carrier}</span>
       </td>
       <td className="px-4 py-3">
-        <span className="text-[13px] text-[#c5c5cb] tabular-nums">
+        <span className="text-[13px] tabular-nums" style={{ color: "#555555" }}>
           {new Date(policy.expiration_date + "T00:00:00").toLocaleDateString(
             "en-US",
             { month: "short", day: "numeric", year: "numeric" }
@@ -184,23 +190,23 @@ function RenewalRow({
         </td>
       )}
       <td className="px-4 py-3">
-        <span className="text-[12px] text-[#8a8b91]">
+        <span className="text-[12px]" style={{ color: "#555555" }}>
           {policy.last_contact_at
             ? new Date(policy.last_contact_at).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
               })
-            : "Never contacted"}
+            : <span style={{ color: "#333333" }}>Never</span>}
         </span>
       </td>
       <td className="px-4 py-3">
-        <span className="text-[13px] text-[#c5c5cb]">
+        <span className="text-[13px]" style={{ color: "#555555" }}>
           {policy.premium ? `$${Number(policy.premium).toLocaleString()}` : "—"}
         </span>
       </td>
 
-      {/* Actions column — fixed 120px, always visible */}
-      <td className="px-4 py-3 w-[120px]">
+      {/* Actions column */}
+      <td className="px-4 py-3 w-[140px]">
         <div className="flex items-center gap-1">
           {canSend ? (
             <ActionButton
@@ -212,7 +218,8 @@ function RenewalRow({
           ) : null}
           <Link
             href={`/renewals/${policy.id}`}
-            className="inline-flex items-center h-7 px-2 text-zinc-600 hover:text-zinc-300 transition-colors"
+            className="inline-flex items-center h-7 px-2 transition-colors"
+            style={{ color: "#333333" }}
             title="View policy"
           >
             <ArrowRight size={13} />
@@ -253,36 +260,35 @@ export function RenewalsTable({ policies }: RenewalsTableProps) {
 
   return (
     <table className="w-full">
-      <thead className="sticky top-0 bg-[#0d0d12] z-10">
-        <tr className="border-b border-[#1e1e2a]">
-          <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+      <thead className="sticky top-0 z-10" style={{ background: "var(--background)" }}>
+        <tr style={{ borderBottom: "1px solid #1C1C1C" }}>
+          <th className="px-10 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Policy
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Carrier
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Expiry
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Days
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Stage
           </th>
           {showHealth && (
-            <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
               Health
             </th>
           )}
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Last Contact
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             Premium
           </th>
-          {/* Fixed-width actions column — always present, buttons fade on hover */}
-          <th className="px-4 py-3 w-[120px] text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 w-[140px] text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
             <span className="sr-only">Actions</span>
           </th>
         </tr>
@@ -307,10 +313,10 @@ export function RenewalsTable({ policies }: RenewalsTableProps) {
 
 export function RenewalsBreadcrumb() {
   return (
-    <div className="flex items-center gap-2 text-[13px] text-[#8a8b91]">
+    <div className="flex items-center gap-2 text-[13px] text-[#555555]">
       <span>Hollis</span>
       <ChevronRight size={12} />
-      <span className="text-[#f5f5f7]">Renewals</span>
+      <span className="text-[#FAFAFA]">Renewals</span>
     </div>
   );
 }

@@ -21,7 +21,7 @@ export interface CertWithSequences extends Certificate {
 
 function CovTag({ label }: { label: string }) {
   return (
-    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ffffff06] text-[#8a8b91] border border-[#ffffff0f]">
+    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ffffff06] text-[#555555] border border-[#ffffff0f]">
       {label}
     </span>
   );
@@ -30,10 +30,10 @@ function CovTag({ label }: { label: string }) {
 // ── Status badge ──────────────────────────────────────────────────────────────
 
 const CERT_STATUS_STYLES: Record<string, string> = {
-  draft:    "bg-[#ffffff08] text-[#8a8b91] border border-[#ffffff10]",
-  sent:     "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
+  draft:    "bg-[#ffffff08] text-[#555555] border border-[#ffffff10]",
+  sent:     "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
   expired:  "bg-red-900/30 text-red-400 border border-red-700/30",
-  outdated: "bg-orange-900/30 text-orange-400 border border-orange-700/30",
+  outdated: "bg-[#FF4444]/[0.06] text-[#FF4444] border border-[#FF4444]/[0.2]",
 };
 
 const CERT_STATUS_LABELS: Record<string, string> = {
@@ -133,13 +133,13 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
       tabIndex={0}
       onClick={handleRowClick}
       onKeyDown={(e) => e.key === "Enter" && handleRowClick()}
-      className={`group border-b border-[#1e1e2a]/60 hover:bg-white/[0.02] transition-colors cursor-pointer ${
+      className={`group border-b border-[#1C1C1C]/60 hover:bg-white/[0.02] transition-colors cursor-pointer ${
         cert.has_gap ? "bg-red-950/[0.06]" : ""
       }`}
     >
       <td className="px-10 py-3">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-[#505057]">
+          <span className="font-mono text-[11px] text-[#333333]">
             {cert.certificate_number}
           </span>
           {cert.has_gap && (
@@ -148,26 +148,26 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
             </span>
           )}
         </div>
-        <div className="text-[14px] font-medium text-[#f5f5f7] group-hover:text-[#00d4aa] transition-colors mt-0.5">
+        <div className="text-[14px] font-medium text-[#FAFAFA] group-hover:text-[#FAFAFA] transition-colors mt-0.5">
           {cert.insured_name}
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="text-[13px] text-[#c5c5cb]">{cert.holder_name}</div>
+        <div className="text-[13px] text-[#FAFAFA]">{cert.holder_name}</div>
         {cert.holder_city && (
-          <div className="text-[11px] text-[#505057]">
+          <div className="text-[11px] text-[#333333]">
             {[cert.holder_city, cert.holder_state].filter(Boolean).join(", ")}
           </div>
         )}
       </td>
-      <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
+      <td className="px-4 py-3 text-[12px] text-[#555555] tabular-nums">
         {new Date(cert.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           year: "numeric",
         })}
       </td>
-      <td className="px-4 py-3 text-[12px] text-[#8a8b91] tabular-nums">
+      <td className="px-4 py-3 text-[12px] text-[#555555] tabular-nums">
         {cert.expiration_date
           ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString(
               "en-US",
@@ -183,7 +183,7 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
       <td className="px-4 py-3 w-[120px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           {hasActiveSequence ? (
-            <span className="text-[12px] text-zinc-500 whitespace-nowrap px-1">
+            <span className="text-[12px] text-[#555555] whitespace-nowrap px-1">
               Sequence Active
             </span>
           ) : (
@@ -196,7 +196,7 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
           )}
           <button
             onClick={handleViewPDF}
-            className="inline-flex items-center h-7 px-2 text-zinc-600 hover:text-zinc-300 transition-colors"
+            className="inline-flex items-center h-7 px-2 text-[#333333] hover:text-[#FAFAFA] transition-colors"
             title="View PDF"
           >
             <ExternalLink size={12} />
@@ -228,21 +228,21 @@ export function CertsTable({ certs }: CertsTableProps) {
 
   return (
     <table className="w-full">
-      <thead className="sticky top-0 bg-[#0d0d12] z-10">
-        <tr className="border-b border-[#1e1e2a]">
-          <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+      <thead className="sticky top-0 bg-[#0C0C0C] z-10">
+        <tr className="border-b border-[#1C1C1C]">
+          <th className="px-10 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
             Certificate
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
             Holder
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
             Issued
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
             Expires
           </th>
-          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">
+          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
             Status
           </th>
           {/* Fixed-width actions column */}

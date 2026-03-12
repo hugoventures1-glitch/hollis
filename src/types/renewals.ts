@@ -61,6 +61,8 @@ export interface Policy {
   // ── Renewal outcome columns (migration 022) ───────────────────────────────
   client_confirmed_at?: string | null;
   lapsed_at?: string | null;
+  // ── Agent tier system (migration 025) ─────────────────────────────────────
+  renewal_flags?: import("@/types/agent").RenewalFlags | null;
 }
 
 export interface CampaignTouchpoint {
@@ -198,7 +200,14 @@ export type AuditEventType =
   | "lapse_recorded"
   | "doc_requested"
   | "doc_received"
-  | "note_added";
+  | "note_added"
+  // Agent tier system event types (migration 025)
+  | "signal_received"
+  | "tier_1_action"
+  | "tier_2_drafted"
+  | "tier_3_escalated"
+  | "sequence_halted"
+  | "flag_set";
 
 export interface AuditLogEntry {
   id: string;

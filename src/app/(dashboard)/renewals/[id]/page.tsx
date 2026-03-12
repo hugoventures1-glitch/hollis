@@ -46,11 +46,11 @@ const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
 };
 
 const STATUS_ICON_MAP: Record<TouchpointStatus, React.ReactNode> = {
-  pending:    <Clock size={14} className="text-[#8a8b91]" />,
-  processing: <Clock size={14} className="text-amber-400" />,
-  sent:       <CheckCircle2 size={14} className="text-[#00d4aa]" />,
-  failed:     <XCircle size={14} className="text-red-400" />,
-  skipped:    <SkipForward size={14} className="text-[#505057]" />,
+  pending:    <Clock size={14} className="text-[#555555]" />,
+  processing: <Clock size={14} className="text-[#888888]" />,
+  sent:       <CheckCircle2 size={14} className="text-[#FAFAFA]" />,
+  failed:     <XCircle size={14} className="text-[#FF4444]" />,
+  skipped:    <SkipForward size={14} className="text-[#333333]" />,
 };
 
 const STATUS_LABEL_MAP: Record<TouchpointStatus, string> = {
@@ -102,18 +102,19 @@ export default async function PolicyDetailPage({ params }: PageProps) {
   const hasTerms = insurerTerms.length > 0;
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12]">
+    <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1e1e2a] shrink-0">
+      <div className="flex items-center gap-3 px-10 h-[56px] shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
         <Link
           href="/renewals"
-          className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] transition-colors"
+          style={{ color: "#555555" }}
         >
           <ArrowLeft size={13} />
           Renewals
         </Link>
-        <ChevronRight size={12} className="text-[#505057]" />
-        <span className="text-[13px] text-[#f5f5f7] truncate max-w-xs">{p.policy_name}</span>
+        <ChevronRight size={12} style={{ color: "#333333" }} />
+        <span className="text-[13px] truncate max-w-xs" style={{ color: "#FAFAFA" }}>{p.policy_name}</span>
 
         <div className="ml-auto">
           <StageBadge stage={p.campaign_stage} />
@@ -124,16 +125,16 @@ export default async function PolicyDetailPage({ params }: PageProps) {
         <div className="max-w-4xl mx-auto px-10 py-10 space-y-8">
 
           {/* Policy summary card */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
+          <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-[22px] font-bold text-[#f5f5f7] leading-tight">{p.policy_name}</h1>
-                <p className="text-[14px] text-[#8a8b91] mt-1">{p.carrier}</p>
+                <h1 className="text-[22px] font-bold leading-tight" style={{ color: "#FAFAFA" }}>{p.policy_name}</h1>
+                <p className="text-[14px] mt-1" style={{ color: "#555555" }}>{p.carrier}</p>
               </div>
               <DaysBadge days={days} className="text-[13px] px-3 py-1" />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-[#1e1e2a]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6" style={{ borderTop: "1px solid var(--border)" }}>
               <InfoBlock label="Client" value={p.client_name} />
               <InfoBlock label="Email" value={p.client_email ?? "—"} />
               <InfoBlock label="Phone" value={p.client_phone ?? "—"} />
@@ -203,16 +204,16 @@ export default async function PolicyDetailPage({ params }: PageProps) {
           />
 
           {/* Recommendation Pack (F2) */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 space-y-3">
-            <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest">
+          <div className="rounded-xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#555555" }}>
               Recommendation Pack
             </div>
-            <div className="text-[12px] text-zinc-500">
+            <div className="text-[12px]" style={{ color: "#555555" }}>
               Generate a formal renewal recommendation for the client based on insurer quotes above.
               Sent to the client&apos;s email address.
             </div>
             {!hasTerms && (
-              <div className="text-[12px] text-amber-400/80">
+              <div className="text-[12px]" style={{ color: "#888888" }}>
                 Add at least one insurer quote before generating a recommendation.
               </div>
             )}
@@ -224,61 +225,44 @@ export default async function PolicyDetailPage({ params }: PageProps) {
 
           {/* Campaign timeline */}
           <div>
-            <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest mb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#555555" }}>
               Campaign Timeline
             </div>
             <div className="space-y-3">
               {touchpoints.length === 0 && (
-                <div className="text-[13px] text-[#505057] py-4 text-center">
+                <div className="text-[13px] py-4 text-center" style={{ color: "#333333" }}>
                   No touchpoints yet.
                 </div>
               )}
               {touchpoints.map((tp: CampaignTouchpoint) => {
                 const Icon = TOUCHPOINT_ICONS[tp.type] ?? Mail;
+                const tpBg = tp.status === "failed" ? "rgba(255,68,68,0.06)" : "var(--surface)";
+                const tpBorder = tp.status === "failed" ? "rgba(255,68,68,0.2)" : "var(--border)";
+                const tpOpacity = tp.status === "skipped" ? 0.5 : 1;
+                const iconBg = tp.status === "sent" ? "rgba(250,250,250,0.08)" : tp.status === "failed" ? "rgba(255,68,68,0.08)" : "rgba(255,255,255,0.04)";
+                const iconColor = tp.status === "sent" ? "#FAFAFA" : tp.status === "failed" ? "#FF4444" : "#555555";
                 return (
                   <div
                     key={tp.id}
-                    className={`rounded-xl border p-5 transition-colors ${
-                      tp.status === "sent"
-                        ? "bg-[#111118] border-[#1e1e2a]"
-                        : tp.status === "failed"
-                        ? "bg-red-950/20 border-red-800/30"
-                        : tp.status === "skipped"
-                        ? "bg-[#0d0d12] border-[#1e1e2a]/60 opacity-50"
-                        : "bg-[#111118] border-[#1e1e2a]"
-                    }`}
+                    className="rounded-xl p-5 transition-colors"
+                    style={{ background: tpBg, border: `1px solid ${tpBorder}`, opacity: tpOpacity }}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          tp.status === "sent"
-                            ? "bg-[#00d4aa]/10"
-                            : tp.status === "failed"
-                            ? "bg-red-900/30"
-                            : "bg-[#ffffff06]"
-                        }`}>
-                          <Icon
-                            size={15}
-                            className={
-                              tp.status === "sent"
-                                ? "text-[#00d4aa]"
-                                : tp.status === "failed"
-                                ? "text-red-400"
-                                : "text-[#8a8b91]"
-                            }
-                          />
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: iconBg }}>
+                          <Icon size={15} style={{ color: iconColor }} />
                         </div>
                         <div>
-                          <div className="text-[14px] font-medium text-[#f5f5f7]">
+                          <div className="text-[14px] font-medium" style={{ color: "#FAFAFA" }}>
                             {TOUCHPOINT_LABELS[tp.type]}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <div className="flex items-center gap-1 text-[12px] text-[#8a8b91]">
+                            <div className="flex items-center gap-1 text-[12px]" style={{ color: "#555555" }}>
                               {STATUS_ICON_MAP[tp.status]}
                               <span>{STATUS_LABEL_MAP[tp.status]}</span>
                             </div>
-                            <span className="text-[#505057]">·</span>
-                            <span className="text-[12px] text-[#505057]">
+                            <span style={{ color: "#333333" }}>·</span>
+                            <span className="text-[12px]" style={{ color: "#333333" }}>
                               Scheduled{" "}
                               {new Date(tp.scheduled_at + "T00:00:00").toLocaleDateString("en-AU", {
                                 month: "short", day: "numeric", year: "numeric",
@@ -286,8 +270,8 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                             </span>
                             {tp.sent_at && (
                               <>
-                                <span className="text-[#505057]">·</span>
-                                <span className="text-[12px] text-[#505057]">
+                                <span style={{ color: "#333333" }}>·</span>
+                                <span className="text-[12px]" style={{ color: "#333333" }}>
                                   Sent{" "}
                                   {new Date(tp.sent_at).toLocaleDateString("en-AU", {
                                     month: "short", day: "numeric",
@@ -301,13 +285,13 @@ export default async function PolicyDetailPage({ params }: PageProps) {
                     </div>
 
                     {tp.status === "sent" && tp.content && (
-                      <div className="mt-4 pt-4 border-t border-[#1e1e2a]">
+                      <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
                         {tp.subject && (
-                          <div className="text-[12px] font-medium text-[#8a8b91] mb-1">
-                            Subject: <span className="text-[#c5c5cb]">{tp.subject}</span>
+                          <div className="text-[12px] font-medium mb-1" style={{ color: "#555555" }}>
+                            Subject: <span style={{ color: "#FAFAFA" }}>{tp.subject}</span>
                           </div>
                         )}
-                        <pre className="text-[12px] text-[#8a8b91] whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
+                        <pre className="text-[12px] whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto" style={{ color: "#555555" }}>
                           {tp.content}
                         </pre>
                       </div>
@@ -321,43 +305,41 @@ export default async function PolicyDetailPage({ params }: PageProps) {
           {/* Send logs */}
           {sendLogs.length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest mb-4">
+              <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#555555" }}>
                 Send Log
               </div>
-              <div className="rounded-xl border border-[#1e1e2a] bg-[#111118] overflow-hidden">
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e1e2a] bg-[#0d0d12]">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Channel</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Recipient</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Status</th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Sent At</th>
+                    <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--background)" }}>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Channel</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Recipient</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Status</th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Sent At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sendLogs.map((log: SendLog) => (
-                      <tr key={log.id} className="border-b border-[#1e1e2a]/60 last:border-b-0">
+                      <tr key={log.id} style={{ borderBottom: "1px solid var(--border)" }} className="last:border-b-0">
                         <td className="px-5 py-3">
-                          <span className={`inline-flex items-center gap-1.5 text-[12px] capitalize ${
-                            log.channel === "email" ? "text-[#60a5fa]" : "text-[#c084fc]"
-                          }`}>
+                          <span className="inline-flex items-center gap-1.5 text-[12px] capitalize" style={{ color: "#555555" }}>
                             {log.channel === "email"
                               ? <Mail size={12} />
                               : <MessageSquare size={12} />}
                             {log.channel}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[12px] text-[#c5c5cb]">{log.recipient}</td>
+                        <td className="px-4 py-3 text-[12px]" style={{ color: "#FAFAFA" }}>{log.recipient}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-[12px] ${
-                            log.status === "sent"    ? "text-[#00d4aa]" :
-                            log.status === "bounced" ? "text-amber-400"  :
-                            "text-red-400"
-                          }`}>
+                          <span className="text-[12px]" style={{
+                            color: log.status === "sent" ? "#FAFAFA" :
+                                   log.status === "bounced" ? "#888888" :
+                                   "#FF4444"
+                          }}>
                             {log.status}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-[12px] text-[#505057] tabular-nums">
+                        <td className="px-5 py-3 text-[12px] tabular-nums" style={{ color: "#333333" }}>
                           {new Date(log.sent_at).toLocaleString("en-AU", {
                             month: "short", day: "numeric",
                             hour: "numeric", minute: "2-digit",
@@ -391,10 +373,10 @@ function InfoBlock({
 }) {
   return (
     <div>
-      <div className="text-[11px] font-medium text-[#505057] uppercase tracking-wider mb-0.5">
+      <div className="text-[11px] font-medium uppercase tracking-wider mb-0.5" style={{ color: "#333333" }}>
         {label}
       </div>
-      <div className={`text-[14px] text-[#c5c5cb] ${capitalize ? "capitalize" : ""}`}>
+      <div className={`text-[14px] ${capitalize ? "capitalize" : ""}`} style={{ color: "#FAFAFA" }}>
         {value}
       </div>
     </div>

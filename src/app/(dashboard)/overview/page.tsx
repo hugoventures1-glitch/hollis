@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { HealthLabel } from "@/types/renewals";
 import {
-  Zap,
   Plus,
   CheckCircle2,
   ArrowRight,
@@ -143,21 +142,20 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12] text-[#f5f5f7] antialiased select-none">
+    <div className="flex flex-col h-full antialiased" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
 
       {/* ── Top header ── */}
-      <header className="h-[56px] shrink-0 border-b border-[#1e1e2a] flex items-center justify-between px-6">
+      <header className="h-[56px] shrink-0 flex items-center justify-between px-6" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-2.5 text-sm font-medium tracking-tight">
-          <span className="text-[#5e5e64]">Workspace</span>
-          <span className="text-[#2a2a35]">/</span>
-          <span className="text-[#f5f5f7]">Overview</span>
+          <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>Overview</span>
         </div>
         <div className="flex items-center gap-2.5">
           <Link
             href="/renewals/upload"
-            className="h-8 bg-[#00d4aa] text-black px-3.5 rounded text-[13px] font-bold hover:bg-[#00bfa0] transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(0,212,170,0.35),0_0_6px_rgba(0,212,170,0.2)]"
+            className="h-8 px-4 rounded-[6px] text-[13px] font-medium flex items-center gap-2 transition-colors hover:opacity-80"
+            style={{ background: "#FAFAFA", color: "#0C0C0C" }}
           >
-            <Plus size={14} strokeWidth={3} />
+            <Plus size={13} />
             Import Policies
           </Link>
         </div>
@@ -170,7 +168,7 @@ export default async function DashboardPage() {
       <ImportBanner />
 
       {/* ── Stats bar ── */}
-      <div className="shrink-0 px-12 py-11 border-b border-[#252530]">
+      <div className="shrink-0 px-12 py-11" style={{ borderBottom: "1px solid #1C1C1C" }}>
         <div className="flex">
           {(
             [
@@ -189,14 +187,14 @@ export default async function DashboardPage() {
               {
                 label: "Upcoming Renewals",
                 value: upcomingCount.toString(),
-                red: upcomingCount > 0,
+                danger: upcomingCount > 0,
                 sub: "next 60 days",
                 href: "/renewals?filter=upcoming",
               },
               {
                 label: "Stalled Renewals",
                 value: stalledCount.toString(),
-                purple: stalledCount > 0,
+                warning: stalledCount > 0,
                 dim: stalledCount === 0,
                 sub: stalledCount > 0 ? "need attention" : null,
                 href: stalledCount > 0 ? "/renewals?filter=stalled" : undefined,
@@ -205,33 +203,38 @@ export default async function DashboardPage() {
               label: string;
               value: string;
               sub?: string | null;
-              red?: boolean;
-              purple?: boolean;
+              danger?: boolean;
+              warning?: boolean;
               dim?: boolean;
               href?: string;
             }>
           ).map((stat, i, arr) => {
-            const valueColor = stat.red
-              ? "text-[#ff4d4d]"
-              : stat.purple && stalledCount > 0
-              ? "text-purple-400"
+            const valueColor = stat.danger
+              ? "#FF4444"
+              : stat.warning
+              ? "#888888"
               : stat.dim
-              ? "text-[#3a3a42]"
-              : "text-white";
+              ? "#333333"
+              : "#FAFAFA";
 
             const inner = (
               <>
-                <span className={`text-[12px] font-bold uppercase tracking-[0.12em] ${stat.dim ? "text-[#2a2a35]" : "text-zinc-600"}`}>
+                <span className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#555555" }}>
                   {stat.label}
                 </span>
                 <div className="flex items-baseline gap-3">
                   <span
-                    className={`text-5xl font-bold tracking-tight leading-none ${valueColor}`}
+                    className="text-5xl tracking-tight leading-none"
+                    style={{
+                      fontFamily: "var(--font-playfair)",
+                      fontWeight: 700,
+                      color: valueColor,
+                    }}
                   >
                     {stat.value}
                   </span>
                   {stat.sub && (
-                    <span className="text-[13px] font-medium text-[#3a3a42]">
+                    <span className="text-[12px]" style={{ color: "#333333" }}>
                       {stat.sub}
                     </span>
                   )}
@@ -242,20 +245,23 @@ export default async function DashboardPage() {
             const wrapperClass = [
               "flex flex-col gap-2.5",
               stat.href ? "cursor-pointer" : "",
-              i !== 0 ? "border-l border-[#1e1e2a] pl-12" : "",
+              i !== 0 ? "pl-12" : "",
               i !== arr.length - 1 ? "pr-12" : "",
             ].join(" ");
+
+            const wrapperStyle = i !== 0 ? { borderLeft: "1px solid #1C1C1C" } : {};
 
             return stat.href ? (
               <Link
                 key={stat.label}
                 href={stat.href}
-                className={`${wrapperClass} hover:opacity-80 transition-opacity rounded-r first:rounded-l`}
+                className={`${wrapperClass} hover:opacity-80 transition-opacity`}
+                style={wrapperStyle}
               >
                 {inner}
               </Link>
             ) : (
-              <div key={stat.label} className={wrapperClass}>
+              <div key={stat.label} className={wrapperClass} style={wrapperStyle}>
                 {inner}
               </div>
             );
@@ -268,20 +274,21 @@ export default async function DashboardPage() {
 
         {/* Priority Workflows */}
         <div className="flex-1 overflow-y-auto min-w-0">
-          <div className="px-6 py-3 flex items-center justify-between sticky top-0 z-10 bg-[#0d0d12] border-b border-[#1e1e2a]">
+          <div className="px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
             <div className="flex items-center gap-4">
-              <span className="text-[14px] font-semibold text-zinc-500">
+              <span className="text-[13px] font-medium uppercase tracking-[0.06em]" style={{ color: "#555555" }}>
                 Active Renewals
               </span>
               {urgentPolicies.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-[#00d4aa]/[0.1] text-[12px] font-bold text-[#00d4aa]">
+                <span className="text-[12px]" style={{ color: "#333333" }}>
                   {urgentPolicies.length}
                 </span>
               )}
             </div>
             <Link
               href="/renewals"
-              className="text-[12px] text-[#505057] hover:text-[#00d4aa] transition-colors flex items-center gap-1"
+              className="text-[12px] flex items-center gap-1 transition-colors"
+              style={{ color: "#333333" }}
             >
               View all <ArrowRight size={11} />
             </Link>
@@ -290,9 +297,8 @@ export default async function DashboardPage() {
           <div className="pb-20">
             {urgentPolicies.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-                <CheckCircle2 size={28} className="text-[#00d4aa] mb-3 opacity-50" />
-                <p className="text-[14px] text-[#505057]">No urgent renewals right now</p>
-                <p className="text-[12px] text-[#3a3a42] mt-1">All active policies are more than 60 days out</p>
+                <CheckCircle2 size={28} className="mb-3 opacity-20" style={{ color: "#FAFAFA" }} />
+                <p className="text-[13px]" style={{ color: "#333333" }}>No urgent renewals right now</p>
               </div>
             ) : (
               <PriorityRenewalsTable policies={urgentPolicies} />
@@ -300,79 +306,68 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Assistant panel ── */}
-        <div className="w-[360px] shrink-0 bg-[#111118] border-l border-[#1e1e2a] overflow-y-auto flex flex-col">
+        {/* ── Activity panel ── */}
+        <div className="w-[300px] shrink-0 overflow-y-auto flex flex-col" style={{ background: "var(--surface)", borderLeft: "1px solid var(--border)" }}>
 
-          <div className="px-5 py-4 border-b border-[#1e1e2a] flex items-center justify-between sticky top-0 bg-[#111118] z-10">
-            <span className="text-[14px] font-semibold text-zinc-500">Assistant</span>
-            <div className="w-2 h-2 rounded-full bg-[#00d4aa] shadow-[0_0_8px_rgba(0,212,170,0.8)]" />
+          <div className="px-5 py-4 sticky top-0 z-10 flex items-center justify-between" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#555555" }}>Activity</span>
+            <div className="w-1.5 h-1.5 rounded-full animate-hollis-pulse" style={{ background: "#FAFAFA" }} />
           </div>
 
-          <div className="p-5 space-y-9">
+          <div className="p-5 space-y-8">
 
-            {/* Hollis Insight card */}
-            <div className="p-5 bg-[#1a1a24] border border-[#1e1e2a] rounded-lg">
-              <div className="flex items-center gap-2.5 mb-4">
-                <Zap size={15} className="text-[#00d4aa]" />
-                <span className="text-[13px] font-bold text-[#f5f5f7] uppercase tracking-widest">
-                  Hollis Insight
-                </span>
+            {/* Top insight */}
+            <div className="p-4 rounded-lg" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}>
+              <div className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3" style={{ color: "#555555" }}>
+                Priority
               </div>
               {topInsight && topDays !== null ? (
                 <>
-                  <p className="text-[14px] text-zinc-500 leading-[1.65]">
-                    <span className="text-[#f5f5f7] font-medium">{topInsight.client_name}</span>
+                  <p className="text-[13px] leading-[1.65]" style={{ color: "#555555" }}>
+                    <span className="font-medium" style={{ color: "#FAFAFA" }}>{topInsight.client_name}</span>
                     {`'s policy expires in `}
-                    <span className="text-[#00d4aa] font-semibold">{topDays} days</span>.
-                    {topDays <= 14
-                      ? " Call script is ready — reach out today."
-                      : topDays <= 30
-                      ? " SMS reminder due soon."
-                      : " Start renewal outreach."}
+                    <span style={{ color: topDays <= 30 ? "#FF4444" : "#888888" }}>{topDays} days</span>.
                   </p>
                   <Link
                     href={`/renewals/${topInsight.id}`}
-                    className="mt-5 text-[13px] font-semibold text-zinc-500 hover:text-[#00d4aa] transition-colors flex items-center gap-1.5 group/btn"
+                    className="mt-4 text-[12px] flex items-center gap-1 transition-colors"
+                    style={{ color: "#555555" }}
                   >
                     View Policy
-                    <ArrowRight
-                      size={13}
-                      className="group-hover/btn:translate-x-0.5 transition-transform"
-                    />
+                    <ArrowRight size={11} />
                   </Link>
                 </>
               ) : (
-                <p className="text-[14px] text-zinc-500 leading-[1.65]">
-                  No urgent renewals right now.{" "}
-                  <span className="text-[#00d4aa] font-semibold">Import policies</span> to start tracking campaigns.
+                <p className="text-[13px] leading-[1.65]" style={{ color: "#333333" }}>
+                  No urgent renewals right now.
                 </p>
               )}
             </div>
 
             {/* Activity Log */}
             <div>
-              <h4 className="text-[12px] font-bold text-[#2a2a35] uppercase tracking-widest mb-6">
-                Activity Log
+              <h4 className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4" style={{ color: "#333333" }}>
+                Recent
               </h4>
               {recentLogs.length === 0 ? (
-                <p className="text-[13px] text-[#3a3a42]">No activity yet.</p>
+                <p className="text-[13px]" style={{ color: "#333333" }}>No activity yet.</p>
               ) : (
-                <div className="space-y-0">
+                <div>
                   {recentLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="relative pl-4 border-l border-[#1e1e2a] pb-5 border-b border-[#1e1e2a]/50 last:pb-0 last:border-b-0 [&:not(:first-child)]:pt-5"
+                      className="py-3"
+                      style={{ borderBottom: "1px solid #1C1C1C" }}
                     >
-                      <div className="absolute top-1.5 -left-[3.5px] w-[6px] h-[6px] rounded-full bg-[#2a2a35]" />
                       <div className="flex justify-between items-baseline gap-2">
-                        <span className="text-[14px] font-semibold text-zinc-200">
+                        <span className="text-[13px] font-medium" style={{ color: "#FAFAFA" }}>
                           {CHANNEL_LABEL[log.channel] ?? "Outreach Sent"}
                         </span>
-                        <span className="text-[11px] text-zinc-600 font-medium tracking-tight uppercase whitespace-nowrap shrink-0">
+                        <span className="text-[11px] whitespace-nowrap shrink-0 tabular-nums" style={{ color: "#333333" }}>
                           {timeAgo(log.sent_at)}
                         </span>
                       </div>
-                      <span className="text-[12px] text-zinc-600 font-medium">
+                      <span className="text-[12px]" style={{ color: "#555555" }}>
                         {(Array.isArray(log.policies)
                           ? log.policies[0]?.client_name
                           : log.policies?.client_name) ?? "—"}

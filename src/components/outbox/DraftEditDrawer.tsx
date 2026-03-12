@@ -81,8 +81,8 @@ export default function DraftEditDrawer({
     days !== null && days <= 14
       ? "text-red-400"
       : days !== null && days <= 30
-      ? "text-amber-400"
-      : "text-[#00d4aa]";
+      ? "text-[#888888]"
+      : "text-[#FAFAFA]";
 
   if (!mounted) return null;
 
@@ -110,9 +110,9 @@ export default function DraftEditDrawer({
 
         {/* Client meta */}
         {policy && (
-          <div className="px-6 py-4 border-b border-[#1e1e2a] bg-[#0d0d12] flex items-center gap-4">
-            <div className="w-9 h-9 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center shrink-0">
-              <span className="text-[13px] font-bold text-[#00d4aa]">
+          <div className="px-6 py-4 border-b border-[#1e1e2a] bg-[#0C0C0C] flex items-center gap-4">
+            <div className="w-9 h-9 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
+              <span className="text-[13px] font-bold text-[#FAFAFA]">
                 {policy.client_name.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -148,7 +148,7 @@ export default function DraftEditDrawer({
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-4 py-2.5 text-[14px] text-[#f5f5f7] placeholder-[#3a3a42] outline-none focus:border-[#00d4aa]/50 transition-colors"
+              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-2.5 text-[14px] text-[#f5f5f7] placeholder-[#333333] outline-none focus:border-[#555555] transition-colors"
             />
           </div>
 
@@ -161,9 +161,9 @@ export default function DraftEditDrawer({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={14}
-              className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-4 py-3 text-[14px] text-[#f5f5f7] placeholder-[#3a3a42] outline-none focus:border-[#00d4aa]/50 transition-colors resize-none leading-relaxed font-mono"
+              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-3 text-[14px] text-[#f5f5f7] placeholder-[#333333] outline-none focus:border-[#555555] transition-colors resize-none leading-relaxed font-mono"
             />
-            <div className="text-[11px] text-[#3a3a42] mt-1.5 text-right">
+            <div className="text-[11px] text-[#333333] mt-1.5 text-right">
               {body.split(/\s+/).filter(Boolean).length} words
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function DraftEditDrawer({
           <button
             onClick={handleSend}
             disabled={sending || !subject.trim() || !body.trim()}
-            className="h-9 flex items-center gap-2 px-5 rounded-md bg-[#00d4aa] text-black text-[13px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 flex items-center gap-2 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sending ? (
               <Loader2 size={14} className="animate-spin" />
@@ -192,11 +192,11 @@ export default function DraftEditDrawer({
           <button
             onClick={onClose}
             disabled={sending}
-            className="h-9 px-5 rounded-md border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+            className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
           >
             Cancel
           </button>
-          <span className="ml-auto text-[11px] text-[#3a3a42]">
+          <span className="ml-auto text-[11px] text-[#333333]">
             Agent reviews before sending
           </span>
         </div>

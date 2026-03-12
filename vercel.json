@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/silence-check",
+      "schedule": "0 7 * * *"
+    },
+    {
       "path": "/api/cron/final-notice",
       "schedule": "0 8 * * *"
     },

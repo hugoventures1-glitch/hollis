@@ -115,14 +115,14 @@ export function EmailSection({ profile }: Props) {
         <div className="px-4 py-2 border-b border-[#2a2a36] bg-[#111118]">
           <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Signature preview</p>
         </div>
-        <div className="px-4 py-4 bg-[#0d0d12] text-[13px] text-zinc-400 space-y-3 font-mono leading-relaxed">
+        <div className="px-4 py-4 bg-[#0C0C0C] text-[13px] text-zinc-400 space-y-3 font-mono leading-relaxed">
           <p className="text-zinc-300">
             Hi Jane,<br />
             Your policy renewal is due on 1 June 2026. Please review the attached renewal notice…
           </p>
           <hr className="border-[#2a2a36]" />
           <pre className="whitespace-pre-wrap text-zinc-400 font-mono text-[13px]">
-            {signature || <span className="italic text-zinc-600">Your signature will appear here.</span>}
+            {signature || <span className="italic text-[#333333]">Your signature will appear here.</span>}
           </pre>
         </div>
       </div>

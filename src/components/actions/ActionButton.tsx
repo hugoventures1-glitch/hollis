@@ -17,11 +17,11 @@ interface ActionButtonProps {
 
 const VARIANT_STYLES: Record<ActionVariant, string> = {
   default:
-    "bg-[#1a1a24] border border-[#2a2a35] text-zinc-400 hover:border-[#00d4aa]/40 hover:text-[#00d4aa]",
+    "bg-[#1C1C1C] border border-[#2A2A2A] text-[#FAFAFA] hover:bg-[#222222] hover:border-[#333333]",
   destructive:
-    "bg-[#1a1a24] border border-red-900/40 text-red-500/70 hover:border-red-500/40 hover:text-red-500",
+    "bg-transparent border-transparent text-[#FF4444] hover:text-[#FF6666]",
   ghost:
-    "bg-transparent border-transparent text-zinc-600 hover:text-zinc-300",
+    "bg-transparent border border-[#1C1C1C] text-[#FAFAFA] hover:border-[#555555]",
 };
 
 export function ActionButton({
@@ -40,7 +40,7 @@ export function ActionButton({
       onClick={onClick}
       disabled={isDisabled}
       className={[
-        "inline-flex items-center gap-1.5 h-7 px-3 rounded text-[13px] font-medium",
+        "inline-flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[13px] font-medium",
         "transition-all whitespace-nowrap",
         VARIANT_STYLES[variant],
         isDisabled ? "pointer-events-none opacity-60" : "",

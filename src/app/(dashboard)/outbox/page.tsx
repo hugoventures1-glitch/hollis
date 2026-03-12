@@ -10,8 +10,8 @@ export default function OutboxPage() {
   // Show spinner only on the very first load (no cached data in the store yet)
   if (loading && !lastFetched) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#0d0d12]">
-        <Loader2 size={22} className="animate-spin text-zinc-600" />
+      <div className="flex h-full items-center justify-center bg-[#0C0C0C]">
+        <Loader2 size={22} className="animate-spin text-[#333333]" />
       </div>
     );
   }
@@ -20,7 +20,7 @@ export default function OutboxPage() {
     <div className="relative h-full">
       {backgroundRefreshing && (
         <span
-          className="absolute top-4 right-6 z-10 w-1.5 h-1.5 rounded-full bg-[#00d4aa]/40 animate-pulse"
+          className="absolute top-4 right-6 z-10 w-1.5 h-1.5 rounded-full bg-[#FAFAFA]/40 animate-pulse"
           title="Syncing…"
         />
       )}

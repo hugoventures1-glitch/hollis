@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#f5f5f7]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
           Welcome back
         </h1>
         <p className="mt-1 text-sm text-[#8a8b91]">Sign in to your account</p>
@@ -62,7 +62,7 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-[#2e2e3a] bg-[#111118] px-3.5 py-2.5 text-sm text-[#f5f5f7] placeholder-[#505057] transition-colors focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.email && (
             <p className="mt-1.5 text-xs text-red-400">{errors.email.message}</p>
@@ -82,7 +82,7 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             placeholder="••••••••"
-            className="block w-full rounded-lg border border-[#2e2e3a] bg-[#111118] px-3.5 py-2.5 text-sm text-[#f5f5f7] placeholder-[#505057] transition-colors focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.password && (
             <p className="mt-1.5 text-xs text-red-400">
@@ -94,7 +94,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-[#00d4aa] px-4 py-2.5 text-sm font-semibold text-[#0d0d12] transition-colors hover:bg-[#00c49b] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-[#FAFAFA] px-4 py-2.5 text-sm font-semibold text-[#0C0C0C] transition-colors hover:bg-[#E8E8E8] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Signing in…" : "Sign in"}
         </button>
@@ -104,7 +104,7 @@ export default function LoginPage() {
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"
-          className="font-medium text-[#00d4aa] hover:text-[#00e6b8] underline-offset-4 hover:underline"
+          className="font-medium text-[#FAFAFA] hover:text-[#FAFAFA] underline-offset-4 hover:underline"
         >
           Sign up
         </Link>

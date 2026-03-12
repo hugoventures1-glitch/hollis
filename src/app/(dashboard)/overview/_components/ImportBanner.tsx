@@ -68,27 +68,27 @@ export function ImportBanner() {
   const summary = parts.length > 0 ? parts.join(", ") : "your data";
 
   return (
-    <div className="mx-12 mt-6 mb-0 flex items-start gap-4 rounded-xl bg-[#00d4aa]/[0.06] border border-[#00d4aa]/20 px-5 py-4">
-      <CheckCircle2 size={18} className="text-[#00d4aa] shrink-0 mt-0.5" />
+    <div className="mx-12 mt-6 mb-0 flex items-start gap-4 rounded-xl bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] px-5 py-4">
+      <CheckCircle2 size={18} className="text-[#FAFAFA] shrink-0 mt-0.5" />
 
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-semibold text-[#f5f5f7] mb-0.5">
+        <div className="text-[14px] font-semibold text-[#FAFAFA] mb-0.5">
           You&apos;re all set — import complete
         </div>
-        <p className="text-[13px] text-[#8a8b91] leading-relaxed">
-          Hollis imported <span className="text-[#f5f5f7] font-medium">{summary}</span>.
+        <p className="text-[13px] text-[#555555] leading-relaxed">
+          Hollis imported <span className="text-[#FAFAFA] font-medium">{summary}</span>.
           Your first renewal reminders will go out automatically as policies approach their expiration date.
         </p>
         <div className="flex items-center gap-3 mt-3">
           <Link
             href="/renewals"
-            className="h-7 px-3 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[12px] font-semibold hover:bg-[#00c49b] transition-colors"
+            className="h-7 px-3 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[12px] font-semibold hover:bg-[#E8E8E8] transition-colors"
           >
             View Renewals
           </Link>
           <Link
             href="/import"
-            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#2e2e3a] text-[12px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
           >
             <Upload size={11} />
             Import more
@@ -98,7 +98,7 @@ export function ImportBanner() {
 
       <button
         onClick={dismiss}
-        className="shrink-0 text-[#505057] hover:text-[#f5f5f7] transition-colors mt-0.5"
+        className="shrink-0 text-[#333333] hover:text-[#FAFAFA] transition-colors mt-0.5"
         aria-label="Dismiss"
       >
         <X size={16} />

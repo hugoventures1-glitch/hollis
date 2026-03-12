@@ -106,23 +106,23 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
   const canConfirm = !TERMINAL_STAGES.includes(policy.campaign_stage as CampaignStage);
 
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 space-y-4">
-      <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest">
+    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-4">
+      <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest">
         Campaign Controls
       </div>
 
       {/* Manual override notice */}
       {policy.renewal_manual_override && (
-        <div className="flex items-start gap-3 rounded-lg bg-amber-900/20 border border-amber-700/30 px-4 py-3">
-          <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3">
+          <AlertTriangle size={14} className="text-[#888888] shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <div className="text-[12px] font-medium text-amber-300">Manually handled</div>
-            <div className="text-[12px] text-amber-400/80 mt-0.5">{policy.renewal_manual_override}</div>
+            <div className="text-[12px] font-medium text-[#888888]">Manually handled</div>
+            <div className="text-[12px] text-[#888888]/80 mt-0.5">{policy.renewal_manual_override}</div>
           </div>
           <button
             onClick={handleClearManual}
             disabled={isPending}
-            className="text-[11px] text-amber-500 hover:text-amber-300 transition-colors shrink-0 disabled:opacity-50"
+            className="text-[11px] text-[#888888] hover:text-[#888888] transition-colors shrink-0 disabled:opacity-50"
           >
             Clear
           </button>
@@ -131,13 +131,13 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
 
       {/* Paused notice */}
       {policy.renewal_paused && !policy.renewal_manual_override && (
-        <div className="flex items-start gap-3 rounded-lg bg-[#ffffff06] border border-[#2a2a35] px-4 py-3">
-          <PauseCircle size={14} className="text-zinc-400 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0 text-[12px] text-zinc-400">
+        <div className="flex items-start gap-3 rounded-lg bg-[#ffffff06] border border-[#1C1C1C] px-4 py-3">
+          <PauseCircle size={14} className="text-[#555555] shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0 text-[12px] text-[#555555]">
             Automation paused
             {policy.renewal_paused_until && (
               <> until{" "}
-                <span className="text-zinc-300">
+                <span className="text-[#FAFAFA]">
                   {new Date(policy.renewal_paused_until + "T00:00:00").toLocaleDateString("en-US", {
                     month: "short", day: "numeric", year: "numeric",
                   })}
@@ -153,7 +153,7 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
           <button
             onClick={handleResume}
             disabled={isPending}
-            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#00d4aa]/10 text-[#00d4aa] hover:bg-[#00d4aa]/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#FAFAFA]/[0.06] text-[#FAFAFA] hover:bg-[#FAFAFA]/20 transition-colors disabled:opacity-50"
           >
             <PlayCircle size={13} />
             Resume Automation
@@ -162,7 +162,7 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
           <button
             onClick={() => setShowPauseForm(v => !v)}
             disabled={isPending}
-            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-zinc-400 hover:bg-[#ffffff0a] hover:text-zinc-300 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#555555] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
           >
             <PauseCircle size={13} />
             Pause Automation
@@ -173,7 +173,7 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
           <button
             onClick={() => setShowManualForm(v => !v)}
             disabled={isPending}
-            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-zinc-400 hover:bg-[#ffffff0a] hover:text-zinc-300 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#555555] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
           >
             <CheckCircle2 size={13} />
             Mark Manually Handled
@@ -184,7 +184,7 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
           <button
             onClick={handleConfirmRenewal}
             disabled={isPending}
-            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#16a34a]/10 text-[#4ade80] hover:bg-[#16a34a]/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#FAFAFA]/[0.06] text-[#FAFAFA] hover:bg-[#FAFAFA]/[0.1] transition-colors disabled:opacity-50"
           >
             <BadgeCheck size={13} />
             Confirm Renewal
@@ -194,27 +194,27 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
 
       {/* Pause form */}
       {showPauseForm && (
-        <div className="rounded-lg bg-[#0d0d12] border border-[#1e1e2a] p-4 space-y-3">
-          <div className="text-[12px] text-zinc-400">
+        <div className="rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] p-4 space-y-3">
+          <div className="text-[12px] text-[#555555]">
             Pause until a specific date, or leave blank to pause indefinitely.
           </div>
           <input
             type="date"
             value={pauseUntil}
             onChange={e => setPauseUntil(e.target.value)}
-            className="block w-full text-[13px] bg-[#111118] border border-[#2a2a35] rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-[#00d4aa]/50"
+            className="block w-full text-[13px] bg-[#111111] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[#FAFAFA] focus:outline-none focus:border-[#555555]"
           />
           <div className="flex gap-2">
             <button
               onClick={handlePause}
               disabled={isPending}
-              className="text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff0a] text-zinc-300 hover:bg-[#ffffff14] transition-colors disabled:opacity-50"
+              className="text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff0a] text-[#FAFAFA] hover:bg-[#ffffff14] transition-colors disabled:opacity-50"
             >
               {isPending ? "Pausing…" : "Confirm Pause"}
             </button>
             <button
               onClick={() => setShowPauseForm(false)}
-              className="text-[12px] px-3 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-400 transition-colors"
+              className="text-[12px] px-3 py-1.5 rounded-lg text-[#555555] hover:text-[#555555] transition-colors"
             >
               Cancel
             </button>
@@ -224,8 +224,8 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
 
       {/* Manual handled form */}
       {showManualForm && (
-        <div className="rounded-lg bg-[#0d0d12] border border-[#1e1e2a] p-4 space-y-3">
-          <div className="text-[12px] text-zinc-400">
+        <div className="rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] p-4 space-y-3">
+          <div className="text-[12px] text-[#555555]">
             Add a note about how this renewal was handled outside the system.
           </div>
           <textarea
@@ -233,19 +233,19 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
             onChange={e => setManualNote(e.target.value)}
             placeholder="e.g. Bound with new carrier, called client directly…"
             rows={2}
-            className="block w-full text-[13px] bg-[#111118] border border-[#2a2a35] rounded-lg px-3 py-2 text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-[#00d4aa]/50 resize-none"
+            className="block w-full text-[13px] bg-[#111111] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[#FAFAFA] placeholder-[#333333] focus:outline-none focus:border-[#555555] resize-none"
           />
           <div className="flex gap-2">
             <button
               onClick={handleMarkManual}
               disabled={isPending}
-              className="text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff0a] text-zinc-300 hover:bg-[#ffffff14] transition-colors disabled:opacity-50"
+              className="text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff0a] text-[#FAFAFA] hover:bg-[#ffffff14] transition-colors disabled:opacity-50"
             >
               {isPending ? "Saving…" : "Confirm"}
             </button>
             <button
               onClick={() => setShowManualForm(false)}
-              className="text-[12px] px-3 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-400 transition-colors"
+              className="text-[12px] px-3 py-1.5 rounded-lg text-[#555555] hover:text-[#555555] transition-colors"
             >
               Cancel
             </button>

@@ -16,6 +16,11 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  Zap,
+  Clock,
+  ShieldAlert,
+  OctagonX,
+  Flag,
 } from "lucide-react";
 import type { AuditLogEntry, AuditEventType } from "@/types/renewals";
 
@@ -33,22 +38,38 @@ const EVENT_ICONS: Record<AuditEventType, React.ElementType> = {
   doc_requested:            Inbox,
   doc_received:             CheckCircle2,
   note_added:               StickyNote,
+  // Agent tier system
+  signal_received:          Inbox,
+  tier_1_action:            Zap,
+  tier_2_drafted:           Clock,
+  tier_3_escalated:         ShieldAlert,
+  sequence_halted:          OctagonX,
+  flag_set:                 Flag,
 };
 
 const EVENT_COLORS: Record<AuditEventType, string> = {
-  email_sent:               "text-[#60a5fa] bg-[#3b82f6]/10",
-  sms_sent:                 "text-[#c084fc] bg-[#a855f7]/10",
-  questionnaire_sent:       "text-[#818cf8] bg-[#4f46e5]/10",
-  questionnaire_responded:  "text-[#4ade80] bg-[#16a34a]/10",
-  insurer_terms_logged:     "text-[#fbbf24] bg-[#f59e0b]/10",
-  submission_sent:          "text-[#22d3ee] bg-[#0891b2]/10",
-  recommendation_sent:      "text-[#2dd4bf] bg-[#0d9488]/10",
-  client_confirmed:         "text-[#4ade80] bg-[#16a34a]/10",
-  final_notice_sent:        "text-[#fbbf24] bg-[#d97706]/10",
-  lapse_recorded:           "text-[#f87171] bg-[#dc2626]/10",
-  doc_requested:            "text-[#818cf8] bg-[#4f46e5]/10",
-  doc_received:             "text-[#00d4aa] bg-[#00d4aa]/10",
-  note_added:               "text-zinc-400 bg-zinc-800/40",
+  // Standard events — neutral
+  email_sent:               "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  sms_sent:                 "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  questionnaire_sent:       "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  insurer_terms_logged:     "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  submission_sent:          "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  recommendation_sent:      "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  final_notice_sent:        "text-[#888888] bg-[#FAFAFA]/[0.04]",
+  doc_requested:            "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  note_added:               "text-[#333333] bg-[#FAFAFA]/[0.02]",
+  signal_received:          "text-[#333333] bg-[#FAFAFA]/[0.02]",
+  tier_2_drafted:           "text-[#888888] bg-[#FAFAFA]/[0.04]",
+  flag_set:                 "text-[#555555] bg-[#FAFAFA]/[0.04]",
+  // Positive events — brighter white
+  questionnaire_responded:  "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
+  client_confirmed:         "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
+  doc_received:             "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
+  tier_1_action:            "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
+  // Danger events — red
+  lapse_recorded:           "text-[#FF4444] bg-[#FF4444]/[0.06]",
+  tier_3_escalated:         "text-[#FF4444] bg-[#FF4444]/[0.06]",
+  sequence_halted:          "text-[#FF4444] bg-[#FF4444]/[0.06]",
 };
 
 const EVENT_LABELS: Record<AuditEventType, string> = {
@@ -65,6 +86,13 @@ const EVENT_LABELS: Record<AuditEventType, string> = {
   doc_requested:            "Document Requested",
   doc_received:             "Document Received",
   note_added:               "Note Added",
+  // Agent tier system
+  signal_received:          "Signal Received",
+  tier_1_action:            "Agent Acted Autonomously",
+  tier_2_drafted:           "Queued for Broker Review",
+  tier_3_escalated:         "Escalated to Broker",
+  sequence_halted:          "Sequence Halted",
+  flag_set:                 "Flag Updated",
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -87,11 +115,11 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5">
-        <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest mb-4">
+      <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>
           Audit Timeline
         </div>
-        <div className="text-[13px] text-[#505057] py-4 text-center">
+        <div className="text-[13px] py-4 text-center" style={{ color: "var(--text-tertiary)" }}>
           No audit events recorded yet. Events are logged automatically as the campaign progresses.
         </div>
       </div>
@@ -99,17 +127,20 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
   }
 
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 space-y-4 print:shadow-none print:border-0">
+    <div className="rounded-xl p-5 space-y-4 print:shadow-none print:border-0" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest">
+        <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>
           Audit Timeline
-          <span className="ml-2 text-[#505057] font-normal normal-case tracking-normal">
+          <span className="ml-2 font-normal normal-case tracking-normal" style={{ color: "var(--text-tertiary)" }}>
             ({entries.length} event{entries.length !== 1 ? "s" : ""})
           </span>
         </div>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-zinc-400 hover:bg-[#ffffff0a] hover:text-zinc-300 transition-colors print:hidden"
+          className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg transition-colors print:hidden"
+          style={{ background: "rgba(250,250,250,0.04)", color: "var(--text-secondary)" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(250,250,250,0.07)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(250,250,250,0.04)"; }}
         >
           <Printer size={12} />
           Download Report
@@ -118,7 +149,7 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
 
       <div className="relative">
         {/* Vertical line */}
-        <div className="absolute left-[18px] top-2 bottom-2 w-px bg-[#1e1e2a]" />
+        <div className="absolute left-[18px] top-2 bottom-2 w-px" style={{ background: "var(--border)" }} />
 
         <div className="space-y-3">
           {entries.map((entry) => {
@@ -138,21 +169,21 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
                 <div className="flex-1 min-w-0 pb-1">
                   <div className="flex items-start justify-between gap-2 flex-wrap">
                     <div>
-                      <span className="text-[13px] font-medium text-[#f5f5f7]">
+                      <span className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>
                         {EVENT_LABELS[entry.event_type]}
                       </span>
                       {entry.channel && (
-                        <span className="ml-2 text-[11px] text-[#505057]">
+                        <span className="ml-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                           via {CHANNEL_LABELS[entry.channel] ?? entry.channel}
                         </span>
                       )}
                       {entry.actor_type === "agent" && (
-                        <span className="ml-2 text-[11px] text-[#8a8b91] bg-[#ffffff08] px-1.5 py-0.5 rounded">
-                          manual
+                        <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded" style={{ color: "var(--text-secondary)", background: "rgba(250,250,250,0.04)" }}>
+                          agent
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-[#505057] tabular-nums shrink-0">
+                    <div className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--text-tertiary)" }}>
                       {new Date(entry.created_at).toLocaleString("en-AU", {
                         day: "numeric",
                         month: "short",
@@ -165,13 +196,16 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
                   </div>
 
                   {entry.recipient && (
-                    <div className="text-[12px] text-[#8a8b91] mt-0.5">→ {entry.recipient}</div>
+                    <div className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>→ {entry.recipient}</div>
                   )}
 
                   {hasContent && (
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                      className="flex items-center gap-1 mt-1 text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                      className="flex items-center gap-1 mt-1 text-[11px] transition-colors"
+                      style={{ color: "var(--text-tertiary)" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
                     >
                       {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                       {isExpanded ? "Hide" : "Show"} content
@@ -179,7 +213,7 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
                   )}
 
                   {isExpanded && entry.content_snapshot && (
-                    <pre className="mt-2 text-[11px] text-zinc-500 whitespace-pre-wrap font-mono leading-relaxed bg-[#0d0d12] border border-[#1e1e2a] rounded-lg p-3 max-h-48 overflow-y-auto">
+                    <pre className="mt-2 text-[11px] whitespace-pre-wrap font-mono leading-relaxed rounded-lg p-3 max-h-48 overflow-y-auto" style={{ background: "var(--background)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
                       {entry.content_snapshot}
                     </pre>
                   )}

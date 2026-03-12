@@ -23,7 +23,7 @@ export function BackgroundRefreshDot({ visible }: Props) {
         width: 5,
         height: 5,
         borderRadius: "50%",
-        background: "#00d4aa",
+        background: "rgba(250,250,250,0.3)",
         opacity: 0.45,
         animation: "hollis-pulse 1.2s ease-in-out infinite",
         pointerEvents: "none",

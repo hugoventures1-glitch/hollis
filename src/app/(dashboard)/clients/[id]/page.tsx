@@ -23,8 +23,8 @@ interface PageProps {
 function InfoBlock({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-1">{label}</div>
-      <div className="text-[14px] text-[#c5c5cb]">{value ?? "—"}</div>
+      <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-[14px] text-[#FAFAFA]">{value ?? "—"}</div>
     </div>
   );
 }
@@ -59,49 +59,49 @@ export default async function ClientDetailPage({ params }: PageProps) {
   const certificates = certs ?? [];
 
   const STATUS_COLORS: Record<string, string> = {
-    sent:     "text-[#00d4aa] bg-[#00d4aa]/10 border-[#00d4aa]/20",
-    draft:    "text-[#8a8b91] bg-white/[0.04] border-[#1e1e2a]",
+    sent:     "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]",
+    draft:    "text-[#555555] bg-white/[0.04] border-[#1C1C1C]",
     expired:  "text-red-400 bg-red-950/20 border-red-800/20",
-    outdated: "text-amber-400 bg-amber-950/20 border-amber-800/20",
+    outdated: "text-[#888888] bg-[#1C1C1C] border-[#1C1C1C]",
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12] text-[#f5f5f7] overflow-y-auto">
+    <div className="flex flex-col h-full bg-[#0C0C0C] text-[#FAFAFA] overflow-y-auto">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 h-[56px] border-b border-[#1e1e2a] shrink-0">
+      <div className="flex items-center gap-3 px-6 h-[56px] border-b border-[#1C1C1C] shrink-0">
         <Link
           href="/clients"
-          className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
         >
           <ArrowLeft size={13} />
           Clients
         </Link>
-        <ChevronRight size={12} className="text-[#505057]" />
-        <span className="text-[13px] text-[#f5f5f7] truncate">{client.name}</span>
+        <ChevronRight size={12} className="text-[#333333]" />
+        <span className="text-[13px] text-[#FAFAFA] truncate">{client.name}</span>
       </div>
 
       <div className="max-w-3xl mx-auto w-full px-6 py-8 space-y-8">
 
         {/* Identity card */}
-        <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
+        <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
           <div className="flex items-start gap-4 mb-6">
-            <div className="w-14 h-14 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center shrink-0">
-              <span className="text-[22px] font-bold text-[#00d4aa]">
+            <div className="w-14 h-14 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
+              <span className="text-[22px] font-bold text-[#FAFAFA]">
                 {client.name.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
-              <h1 className="text-[22px] font-bold text-[#f5f5f7] leading-tight">{client.name}</h1>
+              <h1 className="text-[22px] font-bold text-[#FAFAFA] leading-tight">{client.name}</h1>
               {client.industry && (
-                <p className="text-[14px] text-[#8a8b91] mt-0.5 capitalize">
+                <p className="text-[14px] text-[#555555] mt-0.5 capitalize">
                   {client.industry.replace(/_/g, " ")}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-5 pt-5 border-t border-[#1e1e2a]">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-5 pt-5 border-t border-[#1C1C1C]">
             <InfoBlock label="Email"   value={client.email} />
             <InfoBlock label="Phone"   value={client.phone} />
             <InfoBlock label="State"   value={client.primary_state} />
@@ -111,7 +111,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
           </div>
 
           {(client.annual_revenue || client.num_locations) && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 pt-5 mt-5 border-t border-[#1e1e2a]">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 pt-5 mt-5 border-t border-[#1C1C1C]">
               {client.annual_revenue && (
                 <InfoBlock
                   label="Annual Revenue"
@@ -128,9 +128,9 @@ export default async function ClientDetailPage({ params }: PageProps) {
           )}
 
           {client.notes && (
-            <div className="pt-5 mt-5 border-t border-[#1e1e2a]">
-              <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-2">Notes</div>
-              <p className="text-[14px] text-[#8a8b91] leading-relaxed">{client.notes}</p>
+            <div className="pt-5 mt-5 border-t border-[#1C1C1C]">
+              <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-2">Notes</div>
+              <p className="text-[14px] text-[#555555] leading-relaxed">{client.notes}</p>
             </div>
           )}
         </div>
@@ -138,21 +138,21 @@ export default async function ClientDetailPage({ params }: PageProps) {
         {/* Certificates */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-widest">
+            <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-widest">
               Certificates
             </div>
             <Link
               href="/certificates"
-              className="text-[12px] text-[#505057] hover:text-[#00d4aa] transition-colors"
+              className="text-[12px] text-[#333333] hover:text-[#FAFAFA] transition-colors"
             >
               View all →
             </Link>
           </div>
 
           {certificates.length === 0 ? (
-            <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-8 text-center">
-              <FileText size={20} className="text-[#3a3a42] mx-auto mb-2" />
-              <p className="text-[13px] text-[#505057]">No certificates found for this client</p>
+            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-8 text-center">
+              <FileText size={20} className="text-[#333333] mx-auto mb-2" />
+              <p className="text-[13px] text-[#333333]">No certificates found for this client</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -160,13 +160,13 @@ export default async function ClientDetailPage({ params }: PageProps) {
                 <Link
                   key={cert.id}
                   href={`/certificates/${cert.id}`}
-                  className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-[#111118] border border-[#1e1e2a] hover:border-[#2e2e3a] transition-colors group"
+                  className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-[#111111] border border-[#1C1C1C] hover:border-[#1C1C1C] transition-colors group"
                 >
                   <div>
-                    <div className="text-[13px] font-medium text-[#f5f5f7]">
+                    <div className="text-[13px] font-medium text-[#FAFAFA]">
                       {cert.certificate_number}
                     </div>
-                    <div className="text-[12px] text-[#505057] mt-0.5">
+                    <div className="text-[12px] text-[#333333] mt-0.5">
                       Holder: {cert.holder_name ?? "—"}
                       {cert.expiration_date && (
                         <> · Exp {cert.expiration_date}</>
@@ -183,7 +183,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                     </span>
                     <ArrowLeft
                       size={13}
-                      className="text-[#3a3a42] opacity-0 group-hover:opacity-100 transition-opacity rotate-180"
+                      className="text-[#333333] opacity-0 group-hover:opacity-100 transition-opacity rotate-180"
                     />
                   </div>
                 </Link>
@@ -194,7 +194,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
         {/* Communication History */}
         <div>
-          <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-4">
+          <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-4">
             Communication History
           </div>
           <CommunicationTimeline clientId={client.id} />

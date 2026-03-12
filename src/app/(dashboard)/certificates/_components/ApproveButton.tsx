@@ -44,7 +44,7 @@ export function ApproveButton({ requestId }: { requestId: string }) {
     <button
       onClick={handleApprove}
       disabled={loading}
-      className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(0,212,170,0.25)]"
+      className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(0,212,170,0.25)]"
     >
       {loading ? (
         <Loader2 size={13} className="animate-spin" />

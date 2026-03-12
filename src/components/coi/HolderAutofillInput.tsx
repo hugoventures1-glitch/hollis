@@ -136,39 +136,39 @@ export function HolderAutofillInput({
           onFocus={handleInputFocus}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3 py-2 pr-8 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 placeholder-[#505057]"
+          className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 pr-8 text-[13px] text-[#f5f5f7] outline-none focus:border-[#555555] placeholder-[#333333]"
         />
         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
           {loading ? (
-            <div className="w-3.5 h-3.5 border border-[#505057] border-t-[#00d4aa] rounded-full animate-spin" />
+            <div className="w-3.5 h-3.5 border border-[#333333] border-t-[#FAFAFA] rounded-full animate-spin" />
           ) : selectedId ? (
-            <Check size={13} className="text-[#00d4aa]" />
+            <Check size={13} className="text-[#FAFAFA]" />
           ) : (
-            <Search size={13} className="text-[#505057]" />
+            <Search size={13} className="text-[#333333]" />
           )}
         </div>
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#111118] border border-[#2e2e3a] rounded-lg overflow-hidden shadow-xl">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#111118] border border-[#1C1C1C] rounded-lg overflow-hidden shadow-xl">
           {results.map((holder) => (
             <button
               key={holder.id}
               type="button"
               onClick={() => handleSelect(holder)}
-              className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[#1a1a24] transition-colors border-b border-[#1e1e2a] last:border-0"
+              className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-[#111111] transition-colors border-b border-[#1e1e2a] last:border-0"
             >
               <div className="min-w-0">
                 <div className="text-[13px] font-medium text-[#f5f5f7] truncate">
                   {holder.name}
                 </div>
                 {(holder.city || holder.state) && (
-                  <div className="text-[11px] text-[#505057] mt-0.5 truncate">
+                  <div className="text-[11px] text-[#333333] mt-0.5 truncate">
                     {formatShortAddress(holder)}
                   </div>
                 )}
               </div>
-              <span className="shrink-0 text-[10px] font-medium text-[#505057] bg-[#1e1e2a] border border-[#2e2e3a] px-2 py-0.5 rounded">
+              <span className="shrink-0 text-[10px] font-medium text-[#333333] bg-[#1e1e2a] border border-[#1C1C1C] px-2 py-0.5 rounded">
                 {holder.usage_count}×
               </span>
             </button>

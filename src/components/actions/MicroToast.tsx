@@ -27,12 +27,12 @@ export function useToast(): ToastContextValue {
   return ctx;
 }
 
-// ── Left border accent colours ────────────────────────────────────────────────
+// ── Text colour per type ──────────────────────────────────────────────────────
 
-const LEFT_BORDER: Record<ToastType, string> = {
-  success: "#00d4aa",
-  error: "#ef4444",
-  info: "#52525b",
+const TEXT_COLOR: Record<ToastType, string> = {
+  success: "#FAFAFA",
+  error:   "#FF4444",
+  info:    "#FAFAFA",
 };
 
 // ── Single toast UI ───────────────────────────────────────────────────────────
@@ -48,20 +48,19 @@ export function ToastCard({ item, onDismiss }: ToastCardProps) {
       style={{
         display: "flex",
         alignItems: "flex-start",
-        background: "#1a1a24",
-        border: "1px solid #2a2a35",
-        borderLeft: `3px solid ${LEFT_BORDER[item.type]}`,
-        borderRadius: 8,
-        padding: "12px 16px",
-        fontSize: 14,
-        color: "#e4e4e7",
+        background: "#111111",
+        border: "1px solid #1C1C1C",
+        borderRadius: 6,
+        padding: "10px 16px",
+        fontSize: 13,
+        color: TEXT_COLOR[item.type],
         lineHeight: "1.5",
         maxWidth: 320,
         boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
         pointerEvents: "auto",
         cursor: "pointer",
         opacity: item.visible ? 1 : 0,
-        transform: item.visible ? "translateX(0)" : "translateX(20px)",
+        transform: item.visible ? "translateX(0)" : "translateX(16px)",
         transition: "opacity 150ms ease-out, transform 150ms ease-out",
       }}
       onClick={() => onDismiss(item.id)}

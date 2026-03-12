@@ -90,19 +90,19 @@ function PolicyTableRow({
   return (
     <div
       onClick={() => router.push(`/renewals/${policy.id}`)}
-      className="grid grid-cols-12 items-center px-6 py-[10px] border-b border-[#1e1e2a]/60 hover:bg-white/[0.015] group transition-colors cursor-pointer"
+      className="grid grid-cols-12 items-center px-6 py-[10px] border-b border-[#1C1C1C]/60 hover:bg-white/[0.015] group transition-colors cursor-pointer"
     >
       {/* ID */}
       <div className="col-span-1 flex items-start gap-2">
         <CheckCircle2
           size={14}
-          className="opacity-0 group-hover:opacity-100 text-zinc-600 transition-opacity shrink-0 mt-0.5"
+          className="opacity-0 group-hover:opacity-100 text-[#333333] transition-opacity shrink-0 mt-0.5"
         />
         <div className="flex flex-col leading-tight">
-          <span className="text-[11px] font-mono text-zinc-700 uppercase">
+          <span className="text-[11px] font-mono text-[#333333] uppercase">
             {prefix}-
           </span>
-          <span className="text-[12px] font-mono text-zinc-500 uppercase">
+          <span className="text-[12px] font-mono text-[#555555] uppercase">
             {num}
           </span>
         </div>
@@ -113,7 +113,7 @@ function PolicyTableRow({
         <span className="text-[15px] font-medium text-white shrink-0 truncate">
           {policy.policy_name ?? policy.carrier ?? "Policy"}
         </span>
-        <span className="text-[14px] text-zinc-400 truncate">
+        <span className="text-[14px] text-[#555555] truncate">
           {policy.client_name}
         </span>
       </div>
@@ -127,29 +127,29 @@ function PolicyTableRow({
       <div className="col-span-1 flex items-center justify-center">
         <div
           className={`w-2 h-2 rounded-full ${
-            priority === "High" ? "bg-[#ff4d4d]" : "bg-[#2a2a35]"
+            priority === "High" ? "bg-[#ff4d4d]" : "bg-[#1C1C1C]"
           }`}
         />
       </div>
 
       {/* Date */}
-      <div className="col-span-1 text-[14px] text-zinc-600 font-medium text-right">
+      <div className="col-span-1 text-[14px] text-[#333333] font-medium text-right">
         {formatDate(policy.expiration_date)}
       </div>
 
       {/* Send action (replaces MoreHorizontal) */}
       <div className="col-span-1 flex justify-end">
         {sent ? (
-          <span className="text-[11px] text-[#00d4aa] font-medium">Sent</span>
+          <span className="text-[11px] text-[#FAFAFA] font-medium">Sent</span>
         ) : loading ? (
           <Loader2
             size={14}
-            className="text-zinc-500 animate-spin"
+            className="text-[#555555] animate-spin"
           />
         ) : (
           <button
             onClick={handleSend}
-            className="text-[12px] text-zinc-600 hover:text-[#00d4aa] transition-colors opacity-0 group-hover:opacity-100 font-medium whitespace-nowrap"
+            className="text-[12px] text-[#333333] hover:text-[#FAFAFA] transition-colors opacity-0 group-hover:opacity-100 font-medium whitespace-nowrap"
           >
             → Send
           </button>

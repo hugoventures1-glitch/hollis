@@ -111,8 +111,8 @@ const HOLLIS_FIELD_LABELS: Record<string, string> = {
 };
 
 const CONFIDENCE_STYLES = {
-  high: { label: "High confidence", className: "text-emerald-400 bg-emerald-900/20 border-emerald-700/30" },
-  medium: { label: "Medium confidence", className: "text-amber-400 bg-amber-900/20 border-amber-700/30" },
+  high: { label: "High confidence", className: "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]" },
+  medium: { label: "Medium confidence", className: "text-[#888888] bg-[#1C1C1C] border-[#1C1C1C]" },
   low: { label: "Low confidence", className: "text-red-400 bg-red-900/20 border-red-700/30" },
 };
 
@@ -415,17 +415,17 @@ function SummaryCard({
   accent?: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-5 flex flex-col gap-1.5">
-      <span className="text-[11px] font-bold text-[#505057] uppercase tracking-[0.1em]">
+    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-5 flex flex-col gap-1.5">
+      <span className="text-[11px] font-bold text-[#333333] uppercase tracking-[0.1em]">
         {label}
       </span>
       <span
-        className={`text-[36px] font-bold leading-none tracking-tight ${accent ?? "text-[#f5f5f7]"}`}
+        className={`text-[36px] font-bold leading-none tracking-tight ${accent ?? "text-[#FAFAFA]"}`}
       >
         {value}
       </span>
       {sub && (
-        <span className="text-[12px] text-[#505057] font-medium">{sub}</span>
+        <span className="text-[12px] text-[#333333] font-medium">{sub}</span>
       )}
     </div>
   );
@@ -441,25 +441,25 @@ function MappingRow({
   sample: string;
 }) {
   return (
-    <tr className="border-b border-[#1e1e2a]/50 last:border-b-0">
+    <tr className="border-b border-[#1C1C1C]/50 last:border-b-0">
       <td className="px-5 py-3 w-[200px]">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center shrink-0">
-            <Check size={9} className="text-emerald-400" strokeWidth={3} />
+          <div className="w-4 h-4 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
+            <Check size={9} className="text-[#FAFAFA]" strokeWidth={3} />
           </div>
-          <span className="text-[13px] text-[#f5f5f7] font-medium">
+          <span className="text-[13px] text-[#FAFAFA] font-medium">
             {HOLLIS_FIELD_LABELS[field] ?? field}
           </span>
         </div>
       </td>
       <td className="px-5 py-3">
-        <span className="text-[12px] font-mono text-[#8a8b91] bg-[#1a1a24] border border-[#2e2e3a] px-2 py-0.5 rounded">
+        <span className="text-[12px] font-mono text-[#555555] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
           {header}
         </span>
       </td>
       <td className="px-5 py-3">
-        <span className="text-[13px] text-[#c5c5cb] truncate max-w-[220px] block">
-          {sample || <span className="text-[#3a3a42]">—</span>}
+        <span className="text-[13px] text-[#FAFAFA] truncate max-w-[220px] block">
+          {sample || <span className="text-[#333333]">—</span>}
         </span>
       </td>
     </tr>
@@ -671,18 +671,18 @@ export default function FullBookImportPage() {
   // ── Render ────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12] text-[#f5f5f7] antialiased">
+    <div className="flex flex-col h-full bg-[#0C0C0C] text-[#FAFAFA] antialiased">
 
       {/* Header */}
-      <header className="h-[56px] shrink-0 border-b border-[#1e1e2a] flex items-center px-10 gap-3">
+      <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center px-10 gap-3">
         <div className="flex items-center gap-2 text-[13px]">
-          <span className="text-[#505057]">Import</span>
-          <span className="text-[#2a2a35]">/</span>
-          <span className="text-[#f5f5f7] font-medium">Full Book Import</span>
+          <span className="text-[#333333]">Import</span>
+          <span className="text-[#1C1C1C]">/</span>
+          <span className="text-[#FAFAFA] font-medium">Full Book Import</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Zap size={13} className="text-[#00d4aa]" />
-          <span className="text-[12px] text-[#505057] font-medium">AI-Powered</span>
+          <Zap size={13} className="text-[#FAFAFA]" />
+          <span className="text-[12px] text-[#333333] font-medium">AI-Powered</span>
         </div>
       </header>
 
@@ -693,10 +693,10 @@ export default function FullBookImportPage() {
 
             {/* Headline */}
             <div className="text-center mb-10">
-              <h1 className="text-[28px] font-bold text-[#f5f5f7] tracking-tight mb-2">
+              <h1 className="text-[28px] font-bold text-[#FAFAFA] tracking-tight mb-2">
                 Drop your AMS export
               </h1>
-              <p className="text-[15px] text-[#505057]">
+              <p className="text-[15px] text-[#333333]">
                 Hollis reads any WinBEAT, Sunrise, or Applied Epic export and maps every field automatically.
               </p>
             </div>
@@ -709,32 +709,32 @@ export default function FullBookImportPage() {
               onClick={() => fileInputRef.current?.click()}
               className={`relative flex flex-col items-center justify-center min-h-[280px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 dragging
-                  ? "border-[#00d4aa] bg-[#00d4aa]/[0.04] shadow-[0_0_60px_rgba(0,212,170,0.08)]"
-                  : "border-[#2e2e3a] bg-[#111118] hover:border-[#3e3e4a] hover:bg-[#111820]"
+                  ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04] shadow-[0_0_60px_rgba(0,212,170,0.08)]"
+                  : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#111820]"
               }`}
             >
               <div
                 className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-colors ${
                   dragging
-                    ? "bg-[#00d4aa]/15 border border-[#00d4aa]/30"
-                    : "bg-[#1a1a24] border border-[#2e2e3a]"
+                    ? "bg-[#FAFAFA]/[0.08] border border-[#1C1C1C]"
+                    : "bg-[#1a1a24] border border-[#1C1C1C]"
                 }`}
               >
                 <Upload
                   size={26}
-                  className={`transition-colors ${dragging ? "text-[#00d4aa]" : "text-[#505057]"}`}
+                  className={`transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#333333]"}`}
                 />
               </div>
 
-              <p className={`text-[17px] font-semibold mb-1 transition-colors ${dragging ? "text-[#00d4aa]" : "text-[#f5f5f7]"}`}>
+              <p className={`text-[17px] font-semibold mb-1 transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#FAFAFA]"}`}>
                 {dragging ? "Release to analyse" : "Drop file here"}
               </p>
-              <p className="text-[13px] text-[#505057] mb-6">
+              <p className="text-[13px] text-[#333333] mb-6">
                 Excel (.xlsx, .xls) or CSV · max 10 MB
               </p>
 
               <div
-                className="h-9 px-5 rounded-lg border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors font-medium"
+                className="h-9 px-5 rounded-lg border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors font-medium"
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
               >
                 Browse files
@@ -765,7 +765,7 @@ export default function FullBookImportPage() {
               {["WinBEAT", "Sunrise", "Applied Epic", "Insight", "Any CSV"].map((s) => (
                 <span
                   key={s}
-                  className="text-[11px] text-[#3a3a42] font-medium px-2 py-0.5 rounded border border-[#1e1e2a]"
+                  className="text-[11px] text-[#333333] font-medium px-2 py-0.5 rounded border border-[#1C1C1C]"
                 >
                   {s}
                 </span>
@@ -782,17 +782,17 @@ export default function FullBookImportPage() {
 
             {/* Pulsing ring */}
             <div className="relative w-20 h-20 mx-auto mb-8">
-              <div className="absolute inset-0 rounded-full border-2 border-[#00d4aa]/20 animate-ping" />
-              <div className="absolute inset-0 rounded-full border-2 border-[#00d4aa]/10 animate-ping [animation-delay:0.5s]" />
-              <div className="w-20 h-20 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center relative">
-                <Zap size={26} className="text-[#00d4aa]" />
+              <div className="absolute inset-0 rounded-full border-2 border-[#1C1C1C] animate-ping" />
+              <div className="absolute inset-0 rounded-full border-2 border-[#FAFAFA]/10 animate-ping [animation-delay:0.5s]" />
+              <div className="w-20 h-20 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center relative">
+                <Zap size={26} className="text-[#FAFAFA]" />
               </div>
             </div>
 
-            <h2 className="text-[20px] font-bold text-[#f5f5f7] mb-2">
+            <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
               {analysingPhase <= 1 ? "Reading your file…" : analysingPhase === 2 ? "Analysing format…" : "Building mapping…"}
             </h2>
-            <p className="text-[13px] text-[#505057] mb-10">
+            <p className="text-[13px] text-[#333333] mb-10">
               {parsedFile?.name ?? "Processing"}
             </p>
 
@@ -806,19 +806,19 @@ export default function FullBookImportPage() {
                 <div key={phase} className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
                     analysingPhase > phase
-                      ? "bg-[#00d4aa]/20 border border-[#00d4aa]/40"
+                      ? "bg-[#FAFAFA]/20 border border-[#555555]"
                       : analysingPhase === phase
-                      ? "border border-[#00d4aa]/30 bg-transparent"
-                      : "border border-[#2e2e3a] bg-transparent"
+                      ? "border border-[#1C1C1C] bg-transparent"
+                      : "border border-[#1C1C1C] bg-transparent"
                   }`}>
                     {analysingPhase > phase ? (
-                      <Check size={10} className="text-[#00d4aa]" strokeWidth={3} />
+                      <Check size={10} className="text-[#FAFAFA]" strokeWidth={3} />
                     ) : analysingPhase === phase ? (
-                      <Loader2 size={11} className="text-[#00d4aa] animate-spin" />
+                      <Loader2 size={11} className="text-[#FAFAFA] animate-spin" />
                     ) : null}
                   </div>
                   <span className={`text-[13px] transition-colors ${
-                    analysingPhase >= phase ? "text-[#c5c5cb]" : "text-[#3a3a42]"
+                    analysingPhase >= phase ? "text-[#FAFAFA]" : "text-[#333333]"
                   }`}>
                     {label}
                   </span>
@@ -837,31 +837,31 @@ export default function FullBookImportPage() {
             {/* Headline */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
-                <FileSpreadsheet size={18} className="text-[#00d4aa]" />
-                <h1 className="text-[22px] font-bold text-[#f5f5f7] tracking-tight">
+                <FileSpreadsheet size={18} className="text-[#FAFAFA]" />
+                <h1 className="text-[22px] font-bold text-[#FAFAFA] tracking-tight">
                   Hollis detected{" "}
-                  <span className="text-[#00d4aa]">
+                  <span className="text-[#FAFAFA]">
                     {aiAnalysis.summary.clients_detected} clients
                   </span>{" "}
                   and{" "}
-                  <span className="text-[#00d4aa]">
+                  <span className="text-[#FAFAFA]">
                     {aiAnalysis.summary.policies_detected} policies
                   </span>{" "}
                   in your {aiAnalysis.detected_system} export.
                 </h1>
               </div>
-              <p className="text-[14px] text-[#505057]">
+              <p className="text-[14px] text-[#333333]">
                 Review the mapping below, resolve any flagged fields, then confirm to import.
               </p>
             </div>
 
             {/* Low confidence warning */}
             {aiAnalysis.confidence === "low" && (
-              <div className="flex items-start gap-3 rounded-xl bg-amber-950/30 border border-amber-700/40 px-5 py-4 mb-6">
-                <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 rounded-xl bg-[#1C1C1C] border border-[#1C1C1C] px-5 py-4 mb-6">
+                <AlertTriangle size={16} className="text-[#888888] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-[13px] font-semibold text-amber-300 mb-0.5">Low confidence mapping</p>
-                  <p className="text-[13px] text-amber-400/80">
+                  <p className="text-[13px] font-semibold text-[#888888] mb-0.5">Low confidence mapping</p>
+                  <p className="text-[13px] text-[#888888]/80">
                     The field mapping is uncertain. Review carefully before importing.
                   </p>
                 </div>
@@ -885,19 +885,19 @@ export default function FullBookImportPage() {
                 label="Clients"
                 value={aiAnalysis.summary.clients_detected}
                 sub="unique clients"
-                accent="text-[#00d4aa]"
+                accent="text-[#FAFAFA]"
               />
               <SummaryCard
                 label="Policies"
                 value={aiAnalysis.summary.policies_detected}
                 sub="total policies"
-                accent="text-[#f5f5f7]"
+                accent="text-[#FAFAFA]"
               />
               <SummaryCard
                 label="Due in 90 days"
                 value={aiAnalysis.summary.renewals_in_90_days}
                 sub="upcoming renewals"
-                accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#3a3a42]"}
+                accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#333333]"}
               />
               <SummaryCard
                 label="At Risk"
@@ -906,14 +906,14 @@ export default function FullBookImportPage() {
                 accent={
                   (aiAnalysis.summary.overdue_renewals ?? 0) > 0
                     ? "text-red-400"
-                    : "text-[#3a3a42]"
+                    : "text-[#333333]"
                 }
               />
-              <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-5 flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-[#505057] uppercase tracking-[0.1em]">
+              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-5 flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold text-[#333333] uppercase tracking-[0.1em]">
                   Detected System
                 </span>
-                <span className="text-[20px] font-bold text-[#f5f5f7] leading-tight mt-0.5">
+                <span className="text-[20px] font-bold text-[#FAFAFA] leading-tight mt-0.5">
                   {aiAnalysis.detected_system}
                 </span>
                 <span
@@ -928,22 +928,22 @@ export default function FullBookImportPage() {
 
             {/* Field mapping table */}
             {mappedFields.length > 0 && (
-              <div className="rounded-xl border border-[#1e1e2a] bg-[#111118] overflow-hidden mb-6">
-                <div className="px-5 py-3 border-b border-[#1e1e2a] bg-[#0d0d12]">
-                  <span className="text-[12px] font-bold text-[#505057] uppercase tracking-[0.1em]">
+              <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
+                <div className="px-5 py-3 border-b border-[#1C1C1C] bg-[#0C0C0C]">
+                  <span className="text-[12px] font-bold text-[#333333] uppercase tracking-[0.1em]">
                     Field Mapping — {mappedFields.length} fields detected
                   </span>
                 </div>
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e1e2a]">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#505057] uppercase tracking-wider w-[200px]">
+                    <tr className="border-b border-[#1C1C1C]">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#333333] uppercase tracking-wider w-[200px]">
                         Hollis Field
                       </th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#333333] uppercase tracking-wider">
                         Detected From
                       </th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#333333] uppercase tracking-wider">
                         Sample Value
                       </th>
                     </tr>
@@ -964,27 +964,27 @@ export default function FullBookImportPage() {
 
             {/* Ambiguous columns */}
             {aiAnalysis.ambiguous_columns.length > 0 && (
-              <div className="rounded-xl border border-amber-700/30 bg-amber-950/10 overflow-hidden mb-6">
-                <div className="px-5 py-3 border-b border-amber-700/25 flex items-center gap-2.5">
-                  <AlertTriangle size={13} className="text-amber-400" />
-                  <span className="text-[12px] font-bold text-amber-400/80 uppercase tracking-[0.1em]">
+              <div className="rounded-xl border border-[#1C1C1C] bg-[#1C1C1C] overflow-hidden mb-6">
+                <div className="px-5 py-3 border-b border-[#1C1C1C] flex items-center gap-2.5">
+                  <AlertTriangle size={13} className="text-[#888888]" />
+                  <span className="text-[12px] font-bold text-[#888888]/80 uppercase tracking-[0.1em]">
                     {aiAnalysis.ambiguous_columns.length} field{aiAnalysis.ambiguous_columns.length !== 1 ? "s" : ""} need clarification
                   </span>
                 </div>
-                <div className="divide-y divide-amber-700/20">
+                <div className="divide-y divide-[#1C1C1C]">
                   {aiAnalysis.ambiguous_columns.map((col) => (
                     <div key={col.header} className="px-5 py-4 flex items-start gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[13px] font-mono text-[#f5f5f7] bg-[#1a1a24] border border-[#2e2e3a] px-2 py-0.5 rounded">
+                          <span className="text-[13px] font-mono text-[#FAFAFA] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
                             {col.header}
                           </span>
-                          <span className="text-[12px] text-amber-400/70">
+                          <span className="text-[12px] text-[#888888]/70">
                             is ambiguous
                           </span>
                         </div>
-                        <p className="text-[12px] text-[#505057]">
-                          AI suggests: <span className="text-amber-300">{col.recommendation}</span>
+                        <p className="text-[12px] text-[#333333]">
+                          AI suggests: <span className="text-[#888888]">{col.recommendation}</span>
                         </p>
                       </div>
                       <select
@@ -995,7 +995,7 @@ export default function FullBookImportPage() {
                             [col.header]: e.target.value,
                           }))
                         }
-                        className="bg-[#1a1a24] border border-amber-700/40 rounded-lg px-3 py-2 text-[12px] text-[#f5f5f7] outline-none focus:border-amber-500/60 shrink-0"
+                        className="bg-[#1a1a24] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555] shrink-0"
                       >
                         <option value="">— ignore this column —</option>
                         {col.possible_meanings.map((m) => (
@@ -1016,10 +1016,10 @@ export default function FullBookImportPage() {
                 {aiAnalysis.warnings.map((w, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 rounded-lg bg-amber-950/20 border border-amber-800/30 px-4 py-3"
+                    className="flex items-start gap-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3"
                   >
-                    <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[13px] text-amber-300/90">{w}</p>
+                    <AlertTriangle size={13} className="text-[#888888] shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-[#888888]/90">{w}</p>
                   </div>
                 ))}
               </div>
@@ -1027,32 +1027,32 @@ export default function FullBookImportPage() {
 
             {/* Unmapped columns — collapsible */}
             {aiAnalysis.unmapped_columns.length > 0 && (
-              <div className="rounded-xl border border-[#1e1e2a] bg-[#0d0d12] overflow-hidden mb-8">
+              <div className="rounded-xl border border-[#1C1C1C] bg-[#0C0C0C] overflow-hidden mb-8">
                 <button
                   onClick={() => setUnmappedOpen((v) => !v)}
                   className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[12px] font-bold text-[#3a3a42] uppercase tracking-[0.1em]">
+                    <span className="text-[12px] font-bold text-[#333333] uppercase tracking-[0.1em]">
                       {aiAnalysis.unmapped_columns.length} columns won&apos;t be imported
                     </span>
                   </div>
                   {unmappedOpen ? (
-                    <ChevronUp size={14} className="text-[#505057]" />
+                    <ChevronUp size={14} className="text-[#333333]" />
                   ) : (
-                    <ChevronDown size={14} className="text-[#505057]" />
+                    <ChevronDown size={14} className="text-[#333333]" />
                   )}
                 </button>
                 {unmappedOpen && (
-                  <div className="border-t border-[#1e1e2a] px-5 py-4">
-                    <p className="text-[12px] text-[#3a3a42] mb-3">
+                  <div className="border-t border-[#1C1C1C] px-5 py-4">
+                    <p className="text-[12px] text-[#333333] mb-3">
                       These columns don&apos;t match any Hollis field and will be skipped.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {aiAnalysis.unmapped_columns.map((col) => (
                         <span
                           key={col}
-                          className="text-[11px] font-mono text-[#505057] bg-[#111118] border border-[#1e1e2a] px-2 py-0.5 rounded"
+                          className="text-[11px] font-mono text-[#333333] bg-[#111111] border border-[#1C1C1C] px-2 py-0.5 rounded"
                         >
                           {col}
                         </span>
@@ -1068,7 +1068,7 @@ export default function FullBookImportPage() {
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="h-11 px-7 rounded-xl bg-[#00d4aa] text-[#0d0d12] text-[14px] font-bold hover:bg-[#00c49b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
+                className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
               >
                 {importing ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -1080,7 +1080,7 @@ export default function FullBookImportPage() {
               </button>
               <button
                 onClick={reset}
-                className="h-11 px-5 rounded-xl border border-[#2e2e3a] text-[14px] text-[#505057] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#333333] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
               >
                 Cancel
               </button>
@@ -1094,13 +1094,13 @@ export default function FullBookImportPage() {
       {step === "importing" && (
         <div className="flex-1 flex flex-col items-center justify-center px-10 py-16">
           <div className="w-full max-w-[400px] text-center">
-            <div className="w-20 h-20 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center mx-auto mb-6">
-              <Loader2 size={30} className="text-[#00d4aa] animate-spin" />
+            <div className="w-20 h-20 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mx-auto mb-6">
+              <Loader2 size={30} className="text-[#FAFAFA] animate-spin" />
             </div>
-            <h2 className="text-[20px] font-bold text-[#f5f5f7] mb-2">
+            <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
               Writing to your book…
             </h2>
-            <p className="text-[13px] text-[#505057]">
+            <p className="text-[13px] text-[#333333]">
               Matching clients, creating policies, scheduling renewals.
             </p>
           </div>
@@ -1114,12 +1114,12 @@ export default function FullBookImportPage() {
 
             {/* Icon */}
             <div className="flex justify-center mb-7">
-              <div className="w-20 h-20 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center shadow-[0_0_40px_rgba(0,212,170,0.15)]">
-                <CheckCircle2 size={32} className="text-[#00d4aa]" />
+              <div className="w-20 h-20 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shadow-[0_0_40px_rgba(0,212,170,0.15)]">
+                <CheckCircle2 size={32} className="text-[#FAFAFA]" />
               </div>
             </div>
 
-            <h1 className="text-[26px] font-bold text-[#f5f5f7] text-center tracking-tight mb-8">
+            <h1 className="text-[26px] font-bold text-[#FAFAFA] text-center tracking-tight mb-8">
               Import complete
             </h1>
 
@@ -1130,20 +1130,20 @@ export default function FullBookImportPage() {
                   label: "Clients",
                   inserted: importResult.clients.inserted,
                   dupes: importResult.clients.duplicates,
-                  color: "text-[#00d4aa]",
+                  color: "text-[#FAFAFA]",
                 },
                 {
                   label: "Policies",
                   inserted: importResult.policies.inserted,
                   dupes: importResult.policies.duplicates,
-                  color: "text-[#f5f5f7]",
+                  color: "text-[#FAFAFA]",
                 },
               ].map(({ label, inserted, dupes, color }) => (
                 <div
                   key={label}
-                  className="rounded-xl bg-[#111118] border border-[#1e1e2a] px-6 py-4 flex items-center justify-between"
+                  className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-4 flex items-center justify-between"
                 >
-                  <span className="text-[14px] font-semibold text-[#8a8b91]">
+                  <span className="text-[14px] font-semibold text-[#555555]">
                     {label}
                   </span>
                   <div className="flex items-baseline gap-4">
@@ -1151,14 +1151,14 @@ export default function FullBookImportPage() {
                       <span className={`text-[22px] font-bold tabular-nums ${color}`}>
                         {inserted}
                       </span>
-                      <span className="text-[12px] text-[#505057] ml-1.5">added</span>
+                      <span className="text-[12px] text-[#333333] ml-1.5">added</span>
                     </div>
                     {dupes > 0 && (
                       <div className="text-right">
-                        <span className="text-[16px] font-bold tabular-nums text-[#3a3a42]">
+                        <span className="text-[16px] font-bold tabular-nums text-[#333333]">
                           {dupes}
                         </span>
-                        <span className="text-[12px] text-[#3a3a42] ml-1">skipped</span>
+                        <span className="text-[12px] text-[#333333] ml-1">skipped</span>
                       </div>
                     )}
                   </div>
@@ -1168,18 +1168,18 @@ export default function FullBookImportPage() {
 
             {/* Row errors */}
             {importResult.errors.length > 0 && (
-              <div className="rounded-xl bg-[#111118] border border-[#2e2e3a] px-5 py-4 mb-6">
-                <p className="text-[12px] text-[#505057] mb-2">
+              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-5 py-4 mb-6">
+                <p className="text-[12px] text-[#333333] mb-2">
                   {importResult.errors.length} row{importResult.errors.length !== 1 ? "s" : ""} couldn&apos;t be imported and were skipped.
                 </p>
                 <ul className="space-y-1 max-h-24 overflow-y-auto">
                   {importResult.errors.slice(0, 5).map((err, i) => (
-                    <li key={i} className="text-[11px] text-[#505057] font-mono">
+                    <li key={i} className="text-[11px] text-[#333333] font-mono">
                       Row {err.row}: {err.reason}
                     </li>
                   ))}
                   {importResult.errors.length > 5 && (
-                    <li className="text-[11px] text-[#3a3a42]">
+                    <li className="text-[11px] text-[#333333]">
                       + {importResult.errors.length - 5} more
                     </li>
                   )}
@@ -1191,14 +1191,14 @@ export default function FullBookImportPage() {
             <div className="flex items-center justify-center gap-3">
               <Link
                 href="/clients"
-                className="h-11 px-7 rounded-xl bg-[#00d4aa] text-[#0d0d12] text-[14px] font-bold hover:bg-[#00c49b] transition-colors flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
+                className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
               >
                 View your book
                 <ArrowRight size={14} strokeWidth={2.5} />
               </Link>
               <button
                 onClick={reset}
-                className="h-11 px-5 rounded-xl border border-[#2e2e3a] text-[14px] text-[#505057] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#333333] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
               >
                 Import another file
               </button>

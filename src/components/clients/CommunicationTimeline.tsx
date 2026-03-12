@@ -58,7 +58,7 @@ function statusColor(status: string): string {
     status === "received" ||
     status === "delivered"
   )
-    return "text-[#00d4aa]";
+    return "text-[#FAFAFA]";
   if (status === "failed" || status === "bounced" || status === "cancelled")
     return "text-red-400";
   return "text-[#8a8b91]";
@@ -141,7 +141,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
         );
 
         const className =
-          "flex gap-4 px-5 py-3.5 rounded-xl bg-[#111118] border border-[#1e1e2a] hover:border-[#2e2e3a] transition-colors group";
+          "flex gap-4 px-5 py-3.5 rounded-xl bg-[#111118] border border-[#1e1e2a] hover:border-[#1C1C1C] transition-colors group";
 
         if (item.link) {
           return (
@@ -151,7 +151,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
               className={className}
             >
               {content}
-              <span className="text-[#3a3a42] group-hover:text-[#00d4aa] transition-colors shrink-0 self-center">
+              <span className="text-[#333333] group-hover:text-[#FAFAFA] transition-colors shrink-0 self-center">
                 →
               </span>
             </Link>

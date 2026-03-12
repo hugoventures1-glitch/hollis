@@ -32,7 +32,7 @@ export function SettingsShell({ profile, userEmail, planName }: Props) {
     <div className="flex h-full overflow-hidden bg-[#0f0f14]">
       {/* Left tab rail */}
       <nav className="w-[200px] shrink-0 border-r border-[#1e1e2a] pt-8 pb-4 flex flex-col gap-0.5 px-2">
-        <p className="text-[11px] font-semibold text-[#3a3a42] uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
+        <p className="text-[11px] font-semibold text-[#333333] uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
           return (
@@ -42,14 +42,14 @@ export function SettingsShell({ profile, userEmail, planName }: Props) {
               onClick={() => setActiveTab(id)}
               className={`w-full flex items-center gap-2.5 px-2.5 py-[9px] rounded-[4px] text-left transition-colors text-[14px] font-medium ${
                 active
-                  ? "bg-[#1a1a24] border-l-2 border-[#00d4aa] text-white pl-[9px]"
+                  ? "bg-[#111111] border-l-2 border-[#FAFAFA] text-[#0C0C0C] pl-[9px]"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03] border-l-2 border-transparent"
               }`}
             >
               <Icon
                 size={16}
                 strokeWidth={active ? 2 : 1.5}
-                className={active ? "text-[#00d4aa]" : "text-zinc-600"}
+                className={active ? "text-[#FAFAFA]" : "text-[#333333]"}
               />
               {label}
             </button>

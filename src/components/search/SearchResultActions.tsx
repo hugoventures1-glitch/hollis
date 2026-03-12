@@ -159,7 +159,7 @@ export function SearchResultActions({ result, onActionComplete }: SearchResultAc
         type="button"
         onClick={handleAction}
         disabled={loading}
-        className="text-[12px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-[12px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-[#0C0C0C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "…" : action.label}
       </button>

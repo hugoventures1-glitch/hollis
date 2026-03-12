@@ -77,7 +77,7 @@ function HighlightedText({ text }: { text: string }): React.ReactElement {
       parts.push(text.slice(lastIndex, match.index));
     }
     parts.push(
-      <span key={key++} className="text-white font-medium">
+      <span key={key++} className="text-[#0C0C0C] font-medium">
         {match[0]}
       </span>
     );
@@ -96,9 +96,9 @@ function HighlightedText({ text }: { text: string }): React.ReactElement {
 function Skeleton() {
   return (
     <div className="space-y-3.5 py-1" aria-hidden="true">
-      <div className="h-[21px] w-[72%] rounded-md bg-zinc-800 animate-pulse" />
-      <div className="h-[21px] w-[85%] rounded-md bg-zinc-800 animate-pulse" />
-      <div className="h-[21px] w-[61%] rounded-md bg-zinc-800 animate-pulse" />
+      <div className="h-[21px] w-[72%] rounded-md bg-[#1C1C1C] animate-pulse" />
+      <div className="h-[21px] w-[85%] rounded-md bg-[#1C1C1C] animate-pulse" />
+      <div className="h-[21px] w-[61%] rounded-md bg-[#1C1C1C] animate-pulse" />
     </div>
   );
 }
@@ -210,9 +210,9 @@ export function DailyBriefing() {
 
   return (
     <div className="flex items-start gap-5 px-12 pt-8 pb-6">
-      {/* Left teal stripe */}
+      {/* Left stripe */}
       <div
-        className="shrink-0 w-[2px] self-stretch rounded-full bg-[#00d4aa]/40"
+        className="shrink-0 w-[2px] self-stretch rounded-full bg-[#FAFAFA]/10"
         aria-hidden="true"
       />
 
@@ -222,7 +222,7 @@ export function DailyBriefing() {
         <div className={`flex items-center justify-between ${collapsed ? "mb-0" : "mb-4"}`}>
           <button
             onClick={toggleCollapsed}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-widest hover:text-zinc-400 transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#555555] uppercase tracking-widest hover:text-[#888888] transition-colors"
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expand today's briefing" : "Collapse briefing"}
           >
@@ -238,7 +238,7 @@ export function DailyBriefing() {
               onClick={handleRefresh}
               disabled={refreshing}
               title="Refresh briefing"
-              className="text-zinc-600 hover:text-zinc-400 transition-colors disabled:opacity-40"
+              className="text-[#333333] hover:text-[#555555] transition-colors disabled:opacity-40"
               aria-label="Refresh morning briefing"
             >
               <RefreshCw
@@ -260,14 +260,14 @@ export function DailyBriefing() {
                 key={i}
                 className="group flex items-baseline justify-between gap-6 py-[5px]"
               >
-                <p className="text-[15px] text-zinc-300 leading-[1.7] min-w-0">
+                <p className="text-[15px] text-[#FAFAFA] leading-[1.7] min-w-0">
                   <HighlightedText text={item.text} />
                 </p>
 
                 {/* "View →" fades in on row hover */}
                 <button
                   onClick={() => handleNavigate(item)}
-                  className="shrink-0 text-[13px] text-zinc-600 hover:text-[#00d4aa] opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap"
+                  className="shrink-0 text-[13px] text-[#333333] hover:text-[#FAFAFA] opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap"
                   aria-label={`View details for: ${item.text}`}
                 >
                   View →

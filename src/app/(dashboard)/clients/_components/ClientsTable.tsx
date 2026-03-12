@@ -61,16 +61,18 @@ function ClientRow({ client }: { client: Client }) {
   return (
     <div
       onClick={() => router.push(`/clients/${client.id}`)}
-      className="grid grid-cols-12 items-center px-4 py-3 rounded-lg hover:bg-white/[0.03] transition-colors group border border-transparent hover:border-[#1e1e2a] cursor-pointer"
+      className="grid grid-cols-12 items-center px-4 py-3 rounded-lg transition-colors group border border-transparent cursor-pointer"
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#161616"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
     >
       {/* Name */}
       <div className="col-span-4 flex items-center gap-3 min-w-0">
-        <div className="w-8 h-8 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/20 flex items-center justify-center shrink-0">
-          <span className="text-[12px] font-bold text-[#00d4aa]">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(250,250,250,0.06)", border: "1px solid #1C1C1C" }}>
+          <span className="text-[12px] font-bold" style={{ color: "#FAFAFA" }}>
             {client.name.charAt(0).toUpperCase()}
           </span>
         </div>
-        <span className="text-[14px] font-medium text-[#f5f5f7] truncate">
+        <span className="text-[14px] font-medium truncate" style={{ color: "#FAFAFA" }}>
           {client.name}
         </span>
       </div>
@@ -78,13 +80,13 @@ function ClientRow({ client }: { client: Client }) {
       {/* Contact */}
       <div className="col-span-3 min-w-0">
         {client.email && (
-          <div className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] truncate">
-            <Mail size={11} className="shrink-0 text-[#505057]" />
+          <div className="flex items-center gap-1.5 text-[13px] truncate" style={{ color: "#555555" }}>
+            <Mail size={11} className="shrink-0" style={{ color: "#333333" }} />
             {client.email}
           </div>
         )}
         {client.phone && (
-          <div className="flex items-center gap-1.5 text-[12px] text-[#505057] mt-0.5">
+          <div className="flex items-center gap-1.5 text-[12px] mt-0.5" style={{ color: "#333333" }}>
             <Phone size={11} className="shrink-0" />
             {client.phone}
           </div>
@@ -94,7 +96,7 @@ function ClientRow({ client }: { client: Client }) {
       {/* Type */}
       <div className="col-span-2">
         {client.business_type && (
-          <span className="text-[12px] text-[#505057] capitalize">
+          <span className="text-[12px] capitalize" style={{ color: "#333333" }}>
             {client.business_type.replace(/_/g, " ")}
           </span>
         )}
@@ -102,7 +104,7 @@ function ClientRow({ client }: { client: Client }) {
 
       {/* State */}
       <div className="col-span-1">
-        <span className="text-[12px] text-[#505057]">
+        <span className="text-[12px]" style={{ color: "#333333" }}>
           {client.primary_state ?? "—"}
         </span>
       </div>
@@ -120,7 +122,8 @@ function ClientRow({ client }: { client: Client }) {
         />
         <Link
           href={`/clients/${client.id}`}
-          className="inline-flex items-center h-7 px-2 text-zinc-600 hover:text-zinc-300 transition-colors"
+          className="inline-flex items-center h-7 px-2 transition-colors"
+          style={{ color: "#333333" }}
           title="View client"
         >
           <ArrowRight size={13} />
@@ -136,17 +139,17 @@ export function ClientsTable({ clients }: ClientsTableProps) {
   return (
     <div className="px-6 py-4">
       {/* Column headers */}
-      <div className="grid grid-cols-12 px-4 pb-2 border-b border-[#1e1e2a] mb-1">
-        <div className="col-span-4 text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+      <div className="grid grid-cols-12 px-4 pb-2 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="col-span-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
           Name
         </div>
-        <div className="col-span-3 text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+        <div className="col-span-3 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
           Contact
         </div>
-        <div className="col-span-2 text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+        <div className="col-span-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
           Type
         </div>
-        <div className="col-span-1 text-[11px] font-medium text-[#505057] uppercase tracking-wider">
+        <div className="col-span-1 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
           State
         </div>
         <div className="col-span-2" />

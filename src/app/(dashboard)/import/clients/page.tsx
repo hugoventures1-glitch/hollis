@@ -72,16 +72,16 @@ function StepIndicator({ current }: { current: Step }) {
     <div className="flex items-center gap-3">
       {STEPS.slice(0, 3).map((s, i) => (
         <div key={s} className="flex items-center gap-2">
-          {i > 0 && <div className="w-8 h-px bg-[#1e1e2a]" />}
+          {i > 0 && <div className="w-8 h-px bg-[#1C1C1C]" />}
           <div className={`flex items-center gap-1.5 text-[12px] ${
-            ci === i ? "text-[#f5f5f7]" : ci > i ? "text-[#00d4aa]" : "text-[#505057]"
+            ci === i ? "text-[#FAFAFA]" : ci > i ? "text-[#FAFAFA]" : "text-[#333333]"
           }`}>
             <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
               ci === i
-                ? "bg-[#00d4aa] border-[#00d4aa] text-[#0d0d12]"
+                ? "bg-[#FAFAFA] border-[#FAFAFA] text-[#0C0C0C]"
                 : ci > i
-                ? "bg-[#00d4aa]/20 border-[#00d4aa]/40 text-[#00d4aa]"
-                : "bg-transparent border-[#505057] text-[#505057]"
+                ? "bg-[#FAFAFA]/20 border-[#555555] text-[#FAFAFA]"
+                : "bg-transparent border-[#333333] text-[#333333]"
             }`}>
               {i + 1}
             </div>
@@ -211,14 +211,14 @@ export default function ClientImportPage() {
   const withoutEmail = mappedRows.length - withEmail;
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12]">
+    <div className="flex flex-col h-full bg-[#0C0C0C]">
       {/* Header */}
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1e1e2a] shrink-0">
-        <Link href="/import" className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">
+      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+        <Link href="/import" className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
           <ArrowLeft size={13} /> Import
         </Link>
-        <ChevronRight size={12} className="text-[#505057]" />
-        <span className="text-[13px] text-[#f5f5f7]">Client Import</span>
+        <ChevronRight size={12} className="text-[#333333]" />
+        <span className="text-[13px] text-[#FAFAFA]">Client Import</span>
         <div className="ml-auto">
           <StepIndicator current={step} />
         </div>
@@ -230,15 +230,15 @@ export default function ClientImportPage() {
         {step === "upload" && (
           <div className="max-w-lg mx-auto">
             <div className="flex items-center justify-between mb-1">
-              <h1 className="text-[22px] font-bold text-[#f5f5f7]">Import clients</h1>
+              <h1 className="text-[22px] font-bold text-[#FAFAFA]">Import clients</h1>
               <button
                 onClick={() => triggerCsvDownload("hollis-clients-template.csv", generateTemplateCsv(TEMPLATE_HEADERS, TEMPLATE_ROWS))}
-                className="flex items-center gap-1.5 text-[12px] text-[#505057] hover:text-[#8a8b91] transition-colors"
+                className="flex items-center gap-1.5 text-[12px] text-[#333333] hover:text-[#555555] transition-colors"
               >
                 <Download size={12} /> Download template
               </button>
             </div>
-            <p className="text-[14px] text-[#8a8b91] mb-8">
+            <p className="text-[14px] text-[#555555] mb-8">
               Upload a CSV with your client list. We&apos;ll detect columns automatically.
             </p>
 
@@ -248,12 +248,12 @@ export default function ClientImportPage() {
               onDrop={onDrop}
               onClick={() => fileRef.current?.click()}
               className={`relative flex flex-col items-center justify-center h-52 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-                dragging ? "border-[#00d4aa] bg-[#00d4aa]/[0.04]" : "border-[#2e2e3a] bg-[#111118] hover:border-[#3e3e4a] hover:bg-[#14141e]"
+                dragging ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04]" : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#14141e]"
               }`}
             >
-              <Upload size={28} className={dragging ? "text-[#00d4aa]" : "text-[#505057]"} />
-              <div className="text-[15px] font-medium text-[#f5f5f7] mt-3">Drop a CSV file here</div>
-              <div className="text-[13px] text-[#8a8b91] mt-1">or click to browse — max 10 MB</div>
+              <Upload size={28} className={dragging ? "text-[#FAFAFA]" : "text-[#333333]"} />
+              <div className="text-[15px] font-medium text-[#FAFAFA] mt-3">Drop a CSV file here</div>
+              <div className="text-[13px] text-[#555555] mt-1">or click to browse — max 10 MB</div>
               <input ref={fileRef} type="file" accept=".csv" className="sr-only"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
             </div>
@@ -264,18 +264,18 @@ export default function ClientImportPage() {
               </div>
             )}
 
-            <div className="mt-8 rounded-lg bg-[#111118] border border-[#1e1e2a] p-5">
-              <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest mb-3">Required</div>
+            <div className="mt-8 rounded-lg bg-[#111111] border border-[#1C1C1C] p-5">
+              <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Required</div>
               {REQUIRED.map((f) => (
-                <div key={f} className="flex items-center gap-2 text-[13px] text-[#c5c5cb] mb-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]" /> {FIELD_LABELS[f]}
+                <div key={f} className="flex items-center gap-2 text-[13px] text-[#FAFAFA] mb-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#FAFAFA]" /> {FIELD_LABELS[f]}
                 </div>
               ))}
-              <div className="text-[11px] font-semibold text-[#8a8b91] uppercase tracking-widest mt-4 mb-3">Optional</div>
+              <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mt-4 mb-3">Optional</div>
               <div className="grid grid-cols-2 gap-1">
                 {OPTIONAL.map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-[13px] text-[#505057]">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#505057]" /> {FIELD_LABELS[f]}
+                  <div key={f} className="flex items-center gap-2 text-[13px] text-[#333333]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#333333]" /> {FIELD_LABELS[f]}
                   </div>
                 ))}
               </div>
@@ -286,24 +286,24 @@ export default function ClientImportPage() {
         {/* ── Step 2: Map ── */}
         {step === "map" && (
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-[22px] font-bold text-[#f5f5f7] mb-1">Map your columns</h1>
-            <p className="text-[14px] text-[#8a8b91] mb-8">
-              We detected <strong className="text-[#f5f5f7]">{csvHeaders.length} columns</strong> and{" "}
-              <strong className="text-[#f5f5f7]">{csvRows.length} rows</strong>. Confirm the mapping below.
+            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Map your columns</h1>
+            <p className="text-[14px] text-[#555555] mb-8">
+              We detected <strong className="text-[#FAFAFA]">{csvHeaders.length} columns</strong> and{" "}
+              <strong className="text-[#FAFAFA]">{csvRows.length} rows</strong>. Confirm the mapping below.
             </p>
 
-            <div className="rounded-lg border border-[#1e1e2a] bg-[#111118] overflow-hidden mb-6">
-              <div className="grid grid-cols-2 px-5 py-2.5 border-b border-[#1e1e2a] bg-[#0d0d12]">
-                <div className="text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">CSV Column</div>
-                <div className="text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider">Maps To</div>
+            <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
+              <div className="grid grid-cols-2 px-5 py-2.5 border-b border-[#1C1C1C] bg-[#0C0C0C]">
+                <div className="text-[11px] font-medium text-[#555555] uppercase tracking-wider">CSV Column</div>
+                <div className="text-[11px] font-medium text-[#555555] uppercase tracking-wider">Maps To</div>
               </div>
               {csvHeaders.map((header) => (
-                <div key={header} className="grid grid-cols-2 px-5 py-3 border-b border-[#1e1e2a]/60 last:border-b-0 items-center">
-                  <div className="text-[13px] text-[#c5c5cb] font-mono">{header}</div>
+                <div key={header} className="grid grid-cols-2 px-5 py-3 border-b border-[#1C1C1C]/60 last:border-b-0 items-center">
+                  <div className="text-[13px] text-[#FAFAFA] font-mono">{header}</div>
                   <select
                     value={mapping[header] ?? ""}
                     onChange={(e) => setMapping((m) => ({ ...m, [header]: e.target.value as Field | "" }))}
-                    className="bg-[#1a1a24] border border-[#2e2e3a] rounded-md px-3 py-1.5 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 max-w-[200px]"
+                    className="bg-[#1a1a24] border border-[#1C1C1C] rounded-md px-3 py-1.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] max-w-[200px]"
                   >
                     <option value="">— Skip —</option>
                     {ALL_FIELDS.map((f) => (
@@ -324,9 +324,9 @@ export default function ClientImportPage() {
             )}
 
             <div className="flex items-center gap-3">
-              <button onClick={() => setStep("upload")} className="h-9 px-5 rounded-md border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">Back</button>
+              <button onClick={() => setStep("upload")} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">Back</button>
               <button onClick={handleConfirmMapping} disabled={missingRequired.length > 0}
-                className="h-9 px-5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 Preview Import
               </button>
             </div>
@@ -336,21 +336,21 @@ export default function ClientImportPage() {
         {/* ── Step 3: Preview ── */}
         {step === "preview" && (
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-[22px] font-bold text-[#f5f5f7] mb-1">Preview import</h1>
-            <p className="text-[14px] text-[#8a8b91] mb-6">
-              Ready to import <strong className="text-[#f5f5f7]">{mappedRows.length} clients</strong>.
+            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Preview import</h1>
+            <p className="text-[14px] text-[#555555] mb-6">
+              Ready to import <strong className="text-[#FAFAFA]">{mappedRows.length} clients</strong>.
             </p>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
-                { label: "Total rows", value: mappedRows.length, color: "text-[#f5f5f7]" },
-                { label: "With email", value: withEmail, color: "text-[#00d4aa]" },
-                { label: "Without email", value: withoutEmail, color: "text-amber-400" },
+                { label: "Total rows", value: mappedRows.length, color: "text-[#FAFAFA]" },
+                { label: "With email", value: withEmail, color: "text-[#FAFAFA]" },
+                { label: "Without email", value: withoutEmail, color: "text-[#888888]" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="rounded-lg bg-[#111118] border border-[#1e1e2a] px-4 py-3">
+                <div key={label} className="rounded-lg bg-[#111111] border border-[#1C1C1C] px-4 py-3">
                   <div className={`text-[22px] font-bold tabular-nums ${color}`}>{value}</div>
-                  <div className="text-[11px] text-[#505057] mt-0.5">{label}</div>
+                  <div className="text-[11px] text-[#333333] mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -363,13 +363,13 @@ export default function ClientImportPage() {
               </div>
             )}
 
-            <div className="rounded-lg border border-[#1e1e2a] bg-[#111118] overflow-hidden mb-6">
+            <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e1e2a] bg-[#0d0d12]">
+                    <tr className="border-b border-[#1C1C1C] bg-[#0C0C0C]">
                       {ALL_FIELDS.map((f) => (
-                        <th key={f} className="px-4 py-2.5 text-left text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider whitespace-nowrap">
+                        <th key={f} className="px-4 py-2.5 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider whitespace-nowrap">
                           {FIELD_LABELS[f]}{REQUIRED.includes(f) ? " *" : ""}
                         </th>
                       ))}
@@ -377,20 +377,20 @@ export default function ClientImportPage() {
                   </thead>
                   <tbody>
                     {mappedRows.slice(0, 5).map((row, i) => (
-                      <tr key={i} className="border-b border-[#1e1e2a]/60 last:border-b-0">
-                        <td className="px-4 py-2.5 text-[13px] text-[#f5f5f7] whitespace-nowrap">
+                      <tr key={i} className="border-b border-[#1C1C1C]/60 last:border-b-0">
+                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">
                           {row.name || <span className="text-red-400">Missing</span>}
                         </td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap">{row.email || <span className="text-[#505057]">—</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#c5c5cb] whitespace-nowrap font-mono">{row.phone || <span className="text-[#505057]">—</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#505057] whitespace-nowrap max-w-[150px] truncate">{row.address || "—"}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#505057] whitespace-nowrap">{row.industry || "—"}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#505057] whitespace-nowrap max-w-[120px] truncate">{row.notes || "—"}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.email || <span className="text-[#333333]">—</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap font-mono">{row.phone || <span className="text-[#333333]">—</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#333333] whitespace-nowrap max-w-[150px] truncate">{row.address || "—"}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#333333] whitespace-nowrap">{row.industry || "—"}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#333333] whitespace-nowrap max-w-[120px] truncate">{row.notes || "—"}</td>
                       </tr>
                     ))}
                     {mappedRows.length > 5 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-2.5 text-[12px] text-[#505057] text-center">
+                        <td colSpan={6} className="px-4 py-2.5 text-[12px] text-[#333333] text-center">
                           + {mappedRows.length - 5} more rows not shown
                         </td>
                       </tr>
@@ -401,9 +401,9 @@ export default function ClientImportPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button onClick={() => setStep("map")} className="h-9 px-5 rounded-md border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">Back</button>
+              <button onClick={() => setStep("map")} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">Back</button>
               <button onClick={handleImport} disabled={loading}
-                className="h-9 px-5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-60">
+                className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-60">
                 {loading ? "Importing…" : `Import ${mappedRows.length} Clients`}
               </button>
             </div>
@@ -413,20 +413,20 @@ export default function ClientImportPage() {
         {/* ── Step 4: Done ── */}
         {step === "done" && result && (
           <div className="max-w-lg mx-auto text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle size={28} className="text-[#00d4aa]" />
+            <div className="w-16 h-16 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mx-auto mb-5">
+              <CheckCircle size={28} className="text-[#FAFAFA]" />
             </div>
-            <h1 className="text-[22px] font-bold text-[#f5f5f7] mb-6">Import complete</h1>
+            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-6">Import complete</h1>
 
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[
-                { label: "Inserted", value: result.inserted, color: "text-[#00d4aa]" },
-                { label: "Duplicates skipped", value: result.duplicates, color: "text-[#8a8b91]" },
-                { label: "Errors", value: result.errors.length, color: result.errors.length > 0 ? "text-red-400" : "text-[#505057]" },
+                { label: "Inserted", value: result.inserted, color: "text-[#FAFAFA]" },
+                { label: "Duplicates skipped", value: result.duplicates, color: "text-[#555555]" },
+                { label: "Errors", value: result.errors.length, color: result.errors.length > 0 ? "text-red-400" : "text-[#333333]" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="rounded-lg bg-[#111118] border border-[#1e1e2a] px-4 py-3">
+                <div key={label} className="rounded-lg bg-[#111111] border border-[#1C1C1C] px-4 py-3">
                   <div className={`text-[22px] font-bold tabular-nums ${color}`}>{value}</div>
-                  <div className="text-[11px] text-[#505057] mt-0.5">{label}</div>
+                  <div className="text-[11px] text-[#333333] mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -456,10 +456,10 @@ export default function ClientImportPage() {
             )}
 
             <div className="flex items-center justify-center gap-3">
-              <button onClick={reset} className="h-9 px-5 rounded-md border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">
+              <button onClick={reset} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
                 Import Another
               </button>
-              <Link href="/clients" className="h-9 px-5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors flex items-center gap-1.5">
+              <Link href="/clients" className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors flex items-center gap-1.5">
                 <Users size={13} /> View Clients
               </Link>
             </div>

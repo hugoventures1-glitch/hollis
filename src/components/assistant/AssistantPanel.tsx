@@ -172,12 +172,12 @@ const TYPE_CONFIG: Record<
   import("@/lib/search-types").SearchResultType,
   { label: string; icon: React.ElementType; color: string; href: (id: string) => string }
 > = {
-  policy:       { label: "Policies",      icon: FileText,    color: "#00d4aa", href: (id) => `/renewals/${id}` },
-  certificate:  { label: "Certificates",  icon: Shield,      color: "#7c6cf8", href: (id) => `/certificates/${id}` },
-  client:       { label: "Clients",       icon: Users,       color: "#f59e0b", href: (id) => `/clients/${id}` },
-  coi_request:  { label: "COI Requests",  icon: ShieldCheck, color: "#34d399", href: ()   => `/certificates?tab=requests` },
-  doc_chase:    { label: "Doc Requests",  icon: FolderOpen,  color: "#60a5fa", href: ()   => `/documents` },
-  outbox_draft: { label: "Drafts",        icon: Inbox,       color: "#a78bfa", href: ()   => `/outbox` },
+  policy:       { label: "Policies",      icon: FileText,    color: "#555555", href: (id) => `/renewals/${id}` },
+  certificate:  { label: "Certificates",  icon: Shield,      color: "#555555", href: (id) => `/certificates/${id}` },
+  client:       { label: "Clients",       icon: Users,       color: "#555555", href: (id) => `/clients/${id}` },
+  coi_request:  { label: "COI Requests",  icon: ShieldCheck, color: "#555555", href: ()   => `/certificates?tab=requests` },
+  doc_chase:    { label: "Doc Requests",  icon: FolderOpen,  color: "#555555", href: ()   => `/documents` },
+  outbox_draft: { label: "Drafts",        icon: Inbox,       color: "#555555", href: ()   => `/outbox` },
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -330,7 +330,7 @@ function FormattedResponse({ content, compact, prominent }: { content: string; c
   const paragraphs = content.split(/\n\n+/).filter(Boolean);
   const sizeClass = compact ? "text-[13px]" : prominent ? "text-[15px]" : "text-[15px]";
   const lineClass = compact ? "leading-relaxed" : "leading-[1.65]";
-  const colorClass = prominent ? "text-white" : "text-zinc-300";
+  const colorClass = prominent ? "text-[#0C0C0C]" : "text-zinc-300";
   return (
     <div className={`${sizeClass} ${lineClass} ${colorClass} space-y-3`}>
       {paragraphs.map((p, i) => (
@@ -371,10 +371,10 @@ function MessageBubble({
           <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
             {isUser ? "You" : "Hollis"}
           </span>
-          <span className="text-[11px] text-zinc-600">{formatTime(msg.timestamp)}</span>
+          <span className="text-[11px] text-[#333333]">{formatTime(msg.timestamp)}</span>
         </div>
         {isUser ? (
-          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white max-w-[85%] leading-relaxed">
+          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-[#0C0C0C] max-w-[85%] leading-relaxed">
             {msg.content}
           </div>
         ) : (
@@ -390,7 +390,7 @@ function MessageBubble({
                       key={i}
                       href={action.href}
                       onClick={onLinkClick}
-                      className="inline-flex items-center gap-2 bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] rounded-lg px-3 py-2 text-[13px] text-zinc-200 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
                     >
                       <ArrowRight size={14} />
                       {action.label}
@@ -399,7 +399,7 @@ function MessageBubble({
                     <button
                       key={i}
                       onClick={() => onAction(action)}
-                      className="inline-flex items-center gap-2 bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] rounded-lg px-3 py-2 text-[13px] text-zinc-200 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
                     >
                       <Check size={14} />
                       {action.label}
@@ -433,7 +433,7 @@ function MessageBubble({
                 key={i}
                 href={action.href}
                 onClick={onLinkClick}
-                className="bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] hover:border-[#00d4aa]/40 rounded-md px-2.5 py-1.5 text-[12px] text-zinc-400 hover:text-[#00d4aa] transition-colors"
+                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
               >
                 {action.label}
               </Link>
@@ -441,7 +441,7 @@ function MessageBubble({
               <button
                 key={i}
                 onClick={() => onAction(action)}
-                className="bg-[#2a2a35] border border-[#3a3a45] hover:bg-[#353540] hover:border-[#00d4aa]/40 rounded-md px-2.5 py-1.5 text-[12px] text-zinc-400 hover:text-[#00d4aa] transition-colors"
+                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
               >
                 {action.label}
               </button>
@@ -693,14 +693,6 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
 
   return (
     <>
-      <style>{`
-        @keyframes hollis-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-        @keyframes hollis-float-in {
-          0% { opacity: 0; transform: scale(0.97) translateY(12px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-      `}</style>
-
       {/* ── Center mode: unified search + AI (blur overlay) ────────────────────── */}
       {viewMode === "center" && (
         <div
@@ -708,42 +700,36 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           onClick={closeAndClear}
         >
           {/* Subtle backdrop for focus */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" aria-hidden />
+          <div className="absolute inset-0 bg-black/60" aria-hidden />
 
           <div
             className="relative w-full max-w-[680px] mx-6 flex flex-col rounded-xl overflow-hidden cursor-default"
             onClick={(e) => e.stopPropagation()}
             style={{
               animation: "hollis-float-in 0.4s ease-out forwards",
-              background: "rgba(26, 26, 30, 0.95)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              border: "1px solid rgba(0,212,170,0.22)",
-              boxShadow: `
-                0 0 0 1px rgba(0,212,170,0.08),
-                0 0 40px -8px rgba(0,212,170,0.25),
-                0 0 80px -16px rgba(0,212,170,0.12),
-                0 24px 48px -12px rgba(0,0,0,0.4),
-                0 12px 24px -8px rgba(0,0,0,0.3)
-              `,
+              background: "rgba(17, 17, 17, 0.97)",
+              border: "1px solid #1C1C1C",
+              boxShadow: "0 24px 48px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
             }}
           >
             {!inChatMode ? (
               <>
                 {/* Header */}
                 <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-                  <div className="w-6 h-6 rounded-md bg-[#00d4aa]/10 flex items-center justify-center">
-                    <Sparkles size={12} className="text-[#00d4aa]/80" />
-                  </div>
-                  <span className="text-[14px] font-medium text-white">Ask Hollis</span>
+                  <span
+                    className="text-[14px] text-[#FAFAFA]"
+                    style={{ fontFamily: "var(--font-playfair)", fontWeight: 900 }}
+                  >
+                    hollis
+                  </span>
                 </div>
                 {/* Unified input: search + ask */}
                 <form onSubmit={handleUnifiedSubmit} className="flex items-center gap-3 px-5 py-4 pb-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#00d4aa]/10 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 flex items-center justify-center shrink-0">
                     {searchLoading ? (
-                      <Loader2 size={15} className="text-[#00d4aa]/80 animate-spin" />
+                      <Loader2 size={15} className="text-[#555555] animate-spin" />
                     ) : (
-                      <Search size={15} className="text-[#00d4aa]/80" />
+                      <Search size={15} className="text-[#555555]" />
                     )}
                   </div>
                   <input
@@ -772,11 +758,11 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     type="submit"
                     disabled={!input.trim()}
                     className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-opacity ${
-                      !input.trim() ? "opacity-50 cursor-default" : "opacity-100 hover:opacity-90"
+                      !input.trim() ? "opacity-30 cursor-default" : "opacity-100 hover:opacity-80"
                     }`}
-                    style={{ background: "#00d4aa" }}
+                    style={{ background: "#FAFAFA" }}
                   >
-                    <ArrowUp size={16} className="text-black" />
+                    <ArrowUp size={16} className="text-[#0C0C0C]" />
                   </button>
                 </form>
 
@@ -839,7 +825,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                                     onClick={condenseToSide}
                                     className="min-w-0 flex-1 text-left"
                                   >
-                                    <div className="text-[14px] font-medium text-zinc-300 truncate group-hover:text-white transition-colors">
+                                    <div className="text-[14px] font-medium text-zinc-300 truncate group-hover:text-[#0C0C0C] transition-colors">
                                       {getSearchTitle(result)}
                                     </div>
                                     {subtitle && (
@@ -848,7 +834,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                                       </div>
                                     )}
                                     {meta && meta !== subtitle && (
-                                      <div className="text-[11px] text-zinc-600 truncate mt-0.5">
+                                      <div className="text-[11px] text-[#333333] truncate mt-0.5">
                                         {meta}
                                       </div>
                                     )}
@@ -869,7 +855,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                       <div className="text-[14px] text-zinc-400 mb-0.5">
                         No results for &ldquo;{searchQuery.trim()}&rdquo;
                       </div>
-                      <div className="text-[12px] text-zinc-600 mb-4">
+                      <div className="text-[12px] text-[#333333] mb-4">
                         Try a broader term, or ask Hollis for help.
                       </div>
                     </div>
@@ -885,7 +871,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                             onClick={() => handleSuggestionClick(s)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-300 transition-colors text-left"
                           >
-                            <Search size={13} className="text-zinc-600 shrink-0" />
+                            <Search size={13} className="text-[#333333] shrink-0" />
                             {s}
                           </button>
                         ))}
@@ -897,12 +883,14 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
             ) : (
               <>
                 {/* Chat mode header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-[#1C1C1C]">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-[#00d4aa]/10 flex items-center justify-center">
-                      <Sparkles size={12} className="text-[#00d4aa]/80" />
-                    </div>
-                    <span className="text-[13px] font-medium text-white">Ask Hollis</span>
+                    <span
+                      className="text-[13px] text-[#FAFAFA]"
+                      style={{ fontFamily: "var(--font-playfair)", fontWeight: 900 }}
+                    >
+                      hollis
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -940,12 +928,12 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
 
                 <div
                   className="px-5 py-4 border-t border-white/5"
-                  style={{ background: "rgba(36, 36, 40, 0.6)" }}
+                  style={{ background: "rgba(17, 17, 17, 0.98)" }}
                 >
                   <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
                     Search & Assistant
                   </div>
-                  <div className="flex items-end gap-2 bg-[#0d0d12] border border-white/5 rounded-lg px-4 py-3 focus-within:border-white/10 transition-colors">
+                  <div className="flex items-end gap-2 bg-[#161616] border border-[#1C1C1C] rounded-lg px-4 py-3 focus-within:border-[#555555]/40 transition-colors">
                     <Paperclip size={16} className="text-zinc-500 shrink-0 cursor-pointer hover:text-zinc-400" />
                     <textarea
                       ref={inputRef}
@@ -960,7 +948,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     <button
                       onClick={() => sendMessage(input)}
                       disabled={!input.trim() || loading}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium bg-[#00d4aa] text-black hover:bg-[#00e6b8] transition-colors disabled:opacity-50 disabled:cursor-default disabled:hover:bg-[#00d4aa]"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium bg-[#FAFAFA] text-[#0C0C0C] hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-default disabled:hover:bg-[#FAFAFA]"
                     >
                       <span>Send</span>
                       <ArrowUp size={12} />
@@ -980,13 +968,16 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           style={{
             width: SIDE_CHAT_WIDTH,
             height: SIDE_CHAT_HEIGHT,
-            background: "rgba(26, 26, 30, 0.97)",
-            border: "1px solid rgba(0,212,170,0.15)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
+            background: "#111111",
+            border: "1px solid #1C1C1C",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
         >
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 shrink-0">
-            <span className="text-[12px] font-medium text-[#00d4aa]/80">Ask Hollis</span>
+            <span
+              className="text-[12px] text-[#FAFAFA]"
+              style={{ fontFamily: "var(--font-playfair)", fontWeight: 900 }}
+            >hollis</span>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={clearAndClose}
@@ -1020,7 +1011,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           </div>
 
           <div className="shrink-0 p-2.5 border-t border-white/5">
-            <div className="flex items-end gap-2 bg-white/[0.03] border border-white/5 focus-within:border-[#00d4aa]/20 rounded-lg px-3 py-2 transition-colors">
+            <div className="flex items-end gap-2 bg-[#161616] border border-[#1C1C1C] focus-within:border-[#555555]/40 rounded-lg px-3 py-2 transition-colors">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -1036,7 +1027,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 disabled={!input.trim() || loading}
                 className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-opacity ${
                   !input.trim() || loading ? "opacity-50 cursor-default" : ""
-                } bg-[#00d4aa]`}
+                } bg-[#FAFAFA]`}
               >
                 <ArrowUp size={12} className="text-black" />
               </button>

@@ -4,78 +4,52 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import {
-  Zap,
-  Search,
-  Send,
-  Inbox,
-  LayoutGrid,
-  RefreshCw,
-  ShieldCheck,
-  Layers,
-  Users,
-  FileText,
-  ChevronDown,
-  LogOut,
-  Upload,
-  Settings,
-} from "lucide-react";
-import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-2 mb-1 mt-6">
-      <span className="text-[12px] font-semibold text-[#3a3a42] uppercase tracking-[0.1em]">
-        {children}
-      </span>
-    </div>
-  );
-}
-
-interface NavItemProps {
+interface RailItemProps {
   href: string;
-  icon: React.ElementType;
   label: string;
-  badge?: string;
+  badge?: number;
   pathname: string;
 }
 
-function NavItem({ href, icon: Icon, label, badge, pathname }: NavItemProps) {
+function RailItem({ href, label, badge, pathname }: RailItemProps) {
   const active =
     href === "/overview"
       ? pathname === "/overview"
-      // Exact match, OR starts with href + "/"
       : href === "/certificates"
-      ? pathname === "/certificates" ||
-        pathname.startsWith("/certificates/")
+      ? pathname === "/certificates" || pathname.startsWith("/certificates/")
       : pathname === href || pathname.startsWith(href + "/");
+
   return (
     <Link
       href={href}
-      className={`w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] transition-colors group ${
-        active
-          ? "bg-[rgba(255,255,255,0.06)] text-[#f5f5f7]"
-          : "text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7]"
-      }`}
+      className="relative flex items-center justify-center w-full h-9 transition-colors"
+      style={{ color: active ? "#FAFAFA" : "#333333" }}
+      onMouseEnter={(e) => {
+        if (!active) (e.currentTarget as HTMLElement).style.color = "#555555";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) (e.currentTarget as HTMLElement).style.color = "#333333";
+      }}
     >
-      <div className="flex items-center gap-3">
-        <Icon
-          size={18}
-          strokeWidth={active ? 2 : 1.5}
-          className={
-            active
-              ? "text-[#00d4aa]"
-              : "text-[#8a8b91] group-hover:text-[#f5f5f7] transition-colors"
-          }
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          lineHeight: 1,
+        }}
+      >
+        {label}
+      </span>
+      {badge && badge > 0 && (
+        <span
+          className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full"
+          style={{ background: "#FF4444" }}
         />
-        <span className="text-[15px] font-medium leading-none tracking-tight">
-          {label}
-        </span>
-      </div>
-      {badge && (
-        <span className="text-[13px] font-medium text-[#5e5e64]">{badge}</span>
       )}
     </Link>
   );
@@ -84,11 +58,9 @@ function NavItem({ href, icon: Icon, label, badge, pathname }: NavItemProps) {
 export default function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { openPanel } = useUnifiedPanel();
   const counts = useSidebarCounts();
 
   const [agencyName, setAgencyName] = useState<string | null>(null);
-  const [planName, setPlanName] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -102,16 +74,13 @@ export default function SidebarNav() {
           .maybeSingle(),
         supabase
           .from("agencies")
-          .select("plan, name")
+          .select("name")
           .eq("user_id", user.id)
           .maybeSingle(),
       ]).then(([profileRes, agencyRes]) => {
         const name =
-          profileRes.data?.agency_name ??
-          agencyRes.data?.name ??
-          null;
+          profileRes.data?.agency_name ?? agencyRes.data?.name ?? null;
         setAgencyName(name);
-        setPlanName(agencyRes.data?.plan ?? "Free");
       });
     });
   }, []);
@@ -122,7 +91,6 @@ export default function SidebarNav() {
     router.push("/login");
   };
 
-  // Prefetch store data on hover so navigations feel instant
   const handleNavHover = () => {
     const { lastFetched, fetchAll } = useHollisStore.getState();
     if (!lastFetched || Date.now() - lastFetched > HOLLIS_STALE_MS) {
@@ -131,125 +99,62 @@ export default function SidebarNav() {
   };
 
   return (
-    <>
-      <aside
-        style={{ width: 260 }}
-        className="flex flex-col shrink-0 bg-[#0d0d12] border-r border-[#1e1e2a]"
+    <aside
+      style={{ width: 56 }}
+      className="flex flex-col shrink-0"
+      onMouseEnter={handleNavHover}
+    >
+      {/* Wordmark */}
+      <div
+        className="flex items-center justify-center h-14 shrink-0"
+        style={{ borderBottom: "1px solid #1C1C1C" }}
       >
-        {/* Logo / workspace switcher */}
-        <div className="p-4 mb-1">
-          <button className="flex items-center justify-between w-full px-2.5 py-2 rounded-md hover:bg-white/[0.05] transition-colors group">
-            <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded bg-[#00d4aa] flex items-center justify-center shadow-[0_0_12px_rgba(0,212,170,0.35)]">
-                <Zap size={13} className="text-black fill-current" />
-              </div>
-              <span className="text-[15px] font-semibold tracking-tight text-[#f5f5f7]">
-                Hollis
-              </span>
-            </div>
-            <ChevronDown size={15} className="text-[#3a3a42]" />
-          </button>
-        </div>
-
-        {/* Nav */}
-        <div className="px-4 flex-1 overflow-y-auto space-y-0.5" onMouseEnter={handleNavHover}>
-          {/* Search — opens unified AI panel, teal border indicates something special */}
-          <button
-            onClick={openPanel}
-            className="w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7] border border-[#00d4aa]/30 hover:border-[#00d4aa]/50 transition-colors group"
+        <Link href="/overview">
+          <span
+            style={{
+              fontFamily: "var(--font-playfair)",
+              fontWeight: 900,
+              fontSize: 16,
+              color: "#FAFAFA",
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+            }}
           >
-            <div className="flex items-center gap-3">
-              <Search
-                size={18}
-                strokeWidth={1.5}
-                className="text-[#8a8b91] group-hover:text-[#00d4aa] transition-colors"
-              />
-              <span className="text-[15px] font-medium leading-none tracking-tight">
-                Search
-              </span>
-            </div>
-            <span className="text-[12px] font-medium text-[#3a3a42] opacity-0 group-hover:opacity-100 transition-opacity">
-              ⌘K
-            </span>
-          </button>
+            h
+          </span>
+        </Link>
+      </div>
 
-          {/* Drafts */}
-          <Link
-            href="/outbox"
-            className={`w-full flex items-center justify-between px-2.5 py-[9px] rounded-[4px] transition-colors group ${
-              pathname.startsWith("/outbox")
-                ? "bg-[rgba(255,255,255,0.06)] text-[#f5f5f7]"
-                : "text-[#8a8b91] hover:bg-white/[0.04] hover:text-[#f5f5f7]"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Send
-                size={18}
-                strokeWidth={pathname.startsWith("/outbox") ? 2 : 1.5}
-                className={
-                  pathname.startsWith("/outbox")
-                    ? "text-[#00d4aa]"
-                    : "text-[#8a8b91] group-hover:text-[#f5f5f7] transition-colors"
-                }
-              />
-              <span className="text-[15px] font-medium leading-none tracking-tight">
-                Drafts
-              </span>
-            </div>
-            {counts.outbox > 0 && (
-              <span className="text-[11px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 border border-[#00d4aa]/20 rounded-full px-1.5 py-0.5 leading-none">
-                {counts.outbox}
-              </span>
-            )}
-          </Link>
+      {/* Nav rail */}
+      <nav className="flex-1 flex flex-col items-center py-3 gap-0.5 overflow-y-auto">
+        <RailItem href="/overview"      label="over"   pathname={pathname} />
+        <RailItem href="/activity"      label="feed"   pathname={pathname} />
+        <RailItem href="/renewals"      label="renew"  pathname={pathname} badge={counts.renewals} />
+        <RailItem href="/clients"       label="client" pathname={pathname} />
+        <RailItem href="/certificates"  label="certs"  pathname={pathname} badge={counts.coi} />
+        <RailItem href="/review"        label="review" pathname={pathname} badge={counts.review} />
+        <RailItem href="/documents"     label="docs"   pathname={pathname} badge={counts.docChase} />
+        <RailItem href="/settings"      label="set"    pathname={pathname} />
+      </nav>
 
-          <SectionHeading>Workspace</SectionHeading>
-          <NavItem href="/overview"               icon={LayoutGrid}  label="Overview"         pathname={pathname} />
-          <NavItem href="/renewals"               icon={RefreshCw}   label="Renewals"         pathname={pathname} badge={counts.renewals > 0 ? String(counts.renewals) : undefined} />
-          <NavItem href="/certificates"           icon={ShieldCheck} label="Certificates"     pathname={pathname} badge={counts.coi > 0 ? String(counts.coi) : undefined} />
-          <NavItem href="/policies"               icon={Layers}      label="Policy Audit"     pathname={pathname} />
-          <NavItem href="/import"                icon={Upload}      label="Import"           pathname={pathname} />
-
-          <SectionHeading>CRM</SectionHeading>
-          <NavItem href="/clients"   icon={Users}          label="Clients"          pathname={pathname} />
-          <NavItem href="/documents" icon={FileText}       label="Documents"       pathname={pathname} badge={counts.docChase > 0 ? String(counts.docChase) : undefined} />
-
-          <SectionHeading>Preferences</SectionHeading>
-          <NavItem href="/settings" icon={Settings} label="Settings" pathname={pathname} />
-        </div>
-
-        {/* User footer */}
-        <div className="mt-auto border-t border-[#1e1e2a] p-4">
-          <div
-            className="flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-white/[0.05] cursor-pointer transition-colors group"
-            onClick={handleSignOut}
-          >
-            <div className="w-8 h-8 rounded-full bg-[#00d4aa]/20 border border-[#00d4aa]/30 flex items-center justify-center shrink-0">
-              <div className="w-4 h-4 rounded-full bg-[#00d4aa]/60" />
-            </div>
-            <div className="flex-1 min-w-0">
-              {agencyName === null ? (
-                <div className="h-3.5 w-28 rounded bg-[#2a2a35] animate-pulse mb-1.5" />
-              ) : (
-                <div className="text-[14px] font-medium text-[#f5f5f7] truncate">
-                  {agencyName || "My Agency"}
-                </div>
-              )}
-              {planName === null ? (
-                <div className="h-3 w-16 rounded bg-[#2a2a35] animate-pulse mt-0.5" />
-              ) : (
-                <span className="inline-block mt-0.5 px-1.5 py-px text-[10px] font-bold text-[#00d4aa] uppercase tracking-[0.06em] bg-[#00d4aa]/[0.1] border border-[#00d4aa]/20 rounded-full">
-                  {planName}
-                </span>
-              )}
-            </div>
-            <LogOut
-              size={16}
-              className="text-[#5e5e64] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-            />
-          </div>
-        </div>
-      </aside>
-    </>
+      {/* Sign-out */}
+      <div
+        className="flex items-center justify-center h-14 shrink-0"
+        style={{ borderTop: "1px solid #1C1C1C" }}
+      >
+        <button
+          onClick={handleSignOut}
+          title={agencyName ?? "Sign out"}
+          className="w-6 h-6 rounded-full transition-colors"
+          style={{ background: "#1C1C1C" }}
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLElement).style.background = "#333333")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLElement).style.background = "#1C1C1C")
+          }
+        />
+      </div>
+    </aside>
   );
 }

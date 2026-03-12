@@ -23,7 +23,7 @@ function Field({
   return (
     <div>
       <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
-        {label}{required && <span className="text-[#00d4aa] ml-0.5">*</span>}
+        {label}{required && <span className="text-[#FAFAFA] ml-0.5">*</span>}
       </label>
       <input
         type={type}
@@ -31,7 +31,7 @@ function Field({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full bg-[#111118] border border-[#2e2e3a] rounded-lg px-3.5 py-2.5 text-[14px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/60 placeholder-[#505057] transition-colors"
+        className="w-full bg-[#111111] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[14px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] transition-colors"
       />
     </div>
   );
@@ -40,15 +40,15 @@ function Field({
 function MoneyInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
-      <label className="block text-[11px] font-medium text-[#505057] mb-1">{label}</label>
+      <label className="block text-[11px] font-medium text-[#333333] mb-1">{label}</label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#505057] text-[13px]">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333333] text-[13px]">$</span>
         <input
           type="text"
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder ?? ""}
-          className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3 py-2 pl-7 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40 placeholder-[#3a3a42] transition-colors"
+          className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 pl-7 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] transition-colors"
         />
       </div>
     </div>
@@ -167,7 +167,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
 
   if (loadingAgent) {
     return (
-      <div className="min-h-screen bg-[#0d0d12] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center">
         <Loader2 size={20} className="animate-spin text-[#8a8b91]" />
       </div>
     );
@@ -175,12 +175,12 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
 
   if (agentNotFound) {
     return (
-      <div className="min-h-screen bg-[#0d0d12] flex items-center justify-center text-center px-4">
+      <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center text-center px-4">
         <div>
           <div className="w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center mx-auto mb-4">
             <span className="text-red-400 text-xl">✕</span>
           </div>
-          <div className="text-[18px] font-bold text-[#f5f5f7] mb-2">Portal not found</div>
+          <div className="text-[18px] font-bold text-[#FAFAFA] mb-2">Portal not found</div>
           <div className="text-[14px] text-[#8a8b91]">This certificate request link is invalid or has expired.</div>
         </div>
       </div>
@@ -189,16 +189,16 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#0d0d12] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-[#00d4aa]/10 border border-[#00d4aa]/30 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={30} className="text-[#00d4aa]" />
+          <div className="w-16 h-16 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mx-auto mb-6">
+            <CheckCircle size={30} className="text-[#FAFAFA]" />
           </div>
-          <h1 className="text-[24px] font-bold text-[#f5f5f7] mb-3">Request submitted!</h1>
+          <h1 className="text-[24px] font-bold text-[#FAFAFA] mb-3">Request submitted!</h1>
           <p className="text-[15px] text-[#8a8b91] mb-2">
-            Your COI request has been sent to <strong className="text-[#f5f5f7]">{agencyName}</strong>.
+            Your COI request has been sent to <strong className="text-[#FAFAFA]">{agencyName}</strong>.
           </p>
-          <p className="text-[14px] text-[#505057]">
+          <p className="text-[14px] text-[#333333]">
             You&apos;ll receive a copy at <strong className="text-[#8a8b91]">{requesterEmail}</strong> once
             the certificate is approved and issued — typically within 1 business day.
           </p>
@@ -208,18 +208,18 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d12] py-12 px-4">
+    <div className="min-h-screen bg-[#0C0C0C] py-12 px-4">
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded bg-[#00d4aa] flex items-center justify-center shadow-[0_0_16px_rgba(0,212,170,0.4)]">
+            <div className="w-8 h-8 rounded bg-[#FAFAFA] flex items-center justify-center ">
               <Zap size={16} className="text-black fill-current" />
             </div>
-            <span className="text-[18px] font-bold text-[#f5f5f7]">{agencyName}</span>
+            <span className="text-[18px] font-bold text-[#FAFAFA]">{agencyName}</span>
           </div>
-          <h1 className="text-[26px] font-bold text-[#f5f5f7] mb-2">
+          <h1 className="text-[26px] font-bold text-[#FAFAFA] mb-2">
             Request a Certificate of Insurance
           </h1>
           <p className="text-[15px] text-[#8a8b91]">
@@ -230,8 +230,8 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Requester */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-4">Your Information</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1e1e2a] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-4">Your Information</div>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Your Name" value={requesterName} onChange={setRequesterName} required placeholder="Jane Smith" />
               <Field label="Your Email" value={requesterEmail} onChange={setRequesterEmail} required placeholder="jane@company.com" type="email" />
@@ -239,22 +239,22 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
           </div>
 
           {/* Insured */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-1">Insured Party</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1e1e2a] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-1">Insured Party</div>
             <p className="text-[12px] text-[#8a8b91] mb-4">The name of the business or individual who holds the policy.</p>
             <Field label="Insured Name" value={insuredName} onChange={setInsuredName} required placeholder="Acme Construction LLC" />
           </div>
 
           {/* Certificate holder */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-1">Certificate Holder</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1e1e2a] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-1">Certificate Holder</div>
             <p className="text-[12px] text-[#8a8b91] mb-4">
               The party that needs to be listed on the certificate (e.g., property owner, general contractor).
             </p>
             <div className="space-y-4">
               <div>
                 <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
-                  Holder Name<span className="text-[#00d4aa] ml-0.5">*</span>
+                  Holder Name<span className="text-[#FAFAFA] ml-0.5">*</span>
                 </label>
                 <HolderAutofillInput
                   value={holderName}
@@ -293,8 +293,8 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
           </div>
 
           {/* Coverage required */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-1">Coverage Required</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1e1e2a] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-1">Coverage Required</div>
             <p className="text-[12px] text-[#8a8b91] mb-4">Select the types of coverage you need listed.</p>
 
             <div className="grid grid-cols-2 gap-3 mb-5">
@@ -307,16 +307,16 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
                     onClick={() => toggleType(opt.value)}
                     className={`flex items-start gap-3 p-3.5 rounded-lg border text-left transition-colors ${
                       selected
-                        ? "border-[#00d4aa]/50 bg-[#00d4aa]/[0.06]"
-                        : "border-[#2e2e3a] bg-[#0d0d12] hover:border-[#3e3e4a]"
+                        ? "border-[#555555] bg-[#FAFAFA]/[0.06]"
+                        : "border-[#1C1C1C] bg-[#0C0C0C] hover:border-[#3e3e4a]"
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-[#00d4aa] border-[#00d4aa]" : "border-[#3a3a42]"}`}>
+                    <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-[#FAFAFA] border-[#FAFAFA]" : "border-[#333333]"}`}>
                       {selected && <CheckCircle size={10} className="text-black" />}
                     </div>
                     <div>
-                      <div className={`text-[12px] font-semibold ${selected ? "text-[#00d4aa]" : "text-[#f5f5f7]"}`}>{opt.label}</div>
-                      <div className="text-[11px] text-[#505057] mt-0.5">{opt.desc}</div>
+                      <div className={`text-[12px] font-semibold ${selected ? "text-[#FAFAFA]" : "text-[#FAFAFA]"}`}>{opt.label}</div>
+                      <div className="text-[11px] text-[#333333] mt-0.5">{opt.desc}</div>
                     </div>
                   </button>
                 );
@@ -346,31 +346,31 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
           </div>
 
           {/* Additional info */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-4">Additional Details</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1e1e2a] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-4">Additional Details</div>
             <div className="space-y-4">
               <div>
                 <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
-                  Additional Insured Language <span className="text-[#505057] font-normal">(if required)</span>
+                  Additional Insured Language <span className="text-[#333333] font-normal">(if required)</span>
                 </label>
                 <textarea
                   value={additionalInsured}
                   onChange={e => setAdditionalInsured(e.target.value)}
                   rows={2}
                   placeholder="e.g. ABC Property Management is included as additional insured per written contract…"
-                  className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3.5 py-2.5 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/60 placeholder-[#505057] resize-none"
+                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] resize-none"
                 />
               </div>
               <div>
                 <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
-                  Project Description <span className="text-[#505057] font-normal">(optional)</span>
+                  Project Description <span className="text-[#333333] font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={projectDescription}
                   onChange={e => setProjectDescription(e.target.value)}
                   rows={2}
                   placeholder="Brief description of the project or reason for the COI request…"
-                  className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3.5 py-2.5 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/60 placeholder-[#505057] resize-none"
+                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] resize-none"
                 />
               </div>
             </div>
@@ -385,13 +385,13 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
           <button
             type="submit"
             disabled={submitting || !requesterName || !requesterEmail || !insuredName || !holderName}
-            className="w-full h-12 rounded-xl bg-[#00d4aa] text-[#0d0d12] text-[15px] font-bold hover:bg-[#00c49b] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(0,212,170,0.3)]"
+            className="w-full h-12 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[15px] font-bold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 "
           >
             {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
             {submitting ? "Submitting…" : "Submit COI Request"}
           </button>
 
-          <p className="text-center text-[11px] text-[#505057]">
+          <p className="text-center text-[11px] text-[#333333]">
             Your request will be reviewed by {agencyName}. You&apos;ll receive the certificate at your email once approved.
           </p>
         </form>

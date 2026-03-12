@@ -285,7 +285,7 @@ export const FLAG_TYPE_LABELS: Record<FlagType, string> = {
 };
 
 export const VERDICT_STYLES: Record<SummaryVerdict, { bg: string; text: string; label: string }> = {
-  all_clear:       { bg: "bg-[#00d4aa]/[0.06] border border-[#00d4aa]/25", text: "text-[#00d4aa]", label: "All Clear" },
+  all_clear:       { bg: "bg-[#FAFAFA]/[0.06] border border-[#1C1C1C]", text: "text-[#FAFAFA]", label: "All Clear" },
   issues_found:    { bg: "bg-amber-950/30 border border-amber-800/40",      text: "text-amber-400",  label: "Issues Found" },
   critical_issues: { bg: "bg-red-950/30 border border-red-800/40",          text: "text-red-400",    label: "Critical Issues" },
 };
@@ -293,7 +293,7 @@ export const VERDICT_STYLES: Record<SummaryVerdict, { bg: string; text: string; 
 export const EXTRACTION_STATUS_STYLES: Record<ExtractionStatus, string> = {
   pending:    "bg-[#ffffff08] text-[#8a8b91] border border-[#ffffff10]",
   processing: "bg-blue-900/20 text-blue-400 border border-blue-800/30",
-  complete:   "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/25",
+  complete:   "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
   failed:     "bg-red-900/30 text-red-400 border border-red-700/30",
 };
 

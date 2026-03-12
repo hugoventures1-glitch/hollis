@@ -31,17 +31,17 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider mb-1.5">
-        {label}{required && <span className="text-[#00d4aa] ml-0.5">*</span>}
+      <label className="block text-[11px] font-medium text-[#555555] uppercase tracking-wider mb-1.5">
+        {label}{required && <span className="text-[#FAFAFA] ml-0.5">*</span>}
       </label>
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3 py-2 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 placeholder-[#505057]"
+        className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333]"
       />
-      {hint && <p className="text-[10px] text-[#505057] mt-1">{hint}</p>}
+      {hint && <p className="text-[10px] text-[#333333] mt-1">{hint}</p>}
     </div>
   );
 }
@@ -49,15 +49,15 @@ function Field({
 function MoneyField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">{label}</label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#505057] text-[12px]">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333333] text-[12px]">$</span>
         <input
           type="text"
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder ?? "0"}
-          className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 pl-6 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40 placeholder-[#3a3a42]"
+          className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 pl-6 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333]"
         />
       </div>
     </div>
@@ -69,9 +69,9 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`flex items-center gap-2 text-[12px] font-medium transition-colors ${checked ? "text-[#00d4aa]" : "text-[#8a8b91] hover:text-[#f5f5f7]"}`}
+      className={`flex items-center gap-2 text-[12px] font-medium transition-colors ${checked ? "text-[#FAFAFA]" : "text-[#555555] hover:text-[#FAFAFA]"}`}
     >
-      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${checked ? "bg-[#00d4aa] border-[#00d4aa]" : "border-[#3a3a42]"}`}>
+      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${checked ? "bg-[#FAFAFA] border-[#FAFAFA]" : "border-[#333333]"}`}>
         {checked && <CheckCircle size={10} className="text-black" />}
       </div>
       {label}
@@ -81,8 +81,8 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 
 function SectionHeader({ title, enabled, onToggle }: { title: string; enabled: boolean; onToggle: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-[#1e1e2a]">
-      <span className="text-[14px] font-semibold text-[#f5f5f7]">{title}</span>
+    <div className="flex items-center justify-between py-3 border-b border-[#1C1C1C]">
+      <span className="text-[14px] font-semibold text-[#FAFAFA]">{title}</span>
       <Toggle label={enabled ? "Included" : "Not included"} checked={enabled} onChange={onToggle} />
     </div>
   );
@@ -322,8 +322,8 @@ export default function NewCOIPage() {
 
   if (loadingRequest) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#0d0d12]">
-        <Loader2 size={20} className="animate-spin text-[#8a8b91]" />
+      <div className="flex items-center justify-center h-full bg-[#0C0C0C]">
+        <Loader2 size={20} className="animate-spin text-[#555555]" />
       </div>
     );
   }
@@ -333,13 +333,13 @@ export default function NewCOIPage() {
     const check = result.coverage_check;
     const cert = result.certificate;
     return (
-      <div className="flex flex-col h-full bg-[#0d0d12]">
-        <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1e1e2a] shrink-0">
-          <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">
+      <div className="flex flex-col h-full bg-[#0C0C0C]">
+        <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+          <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
             <ArrowLeft size={13} /> Certificates
           </Link>
-          <ChevronRight size={12} className="text-[#505057]" />
-          <span className="text-[13px] text-[#f5f5f7]">COI Generated</span>
+          <ChevronRight size={12} className="text-[#333333]" />
+          <span className="text-[13px] text-[#FAFAFA]">COI Generated</span>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -349,20 +349,20 @@ export default function NewCOIPage() {
             <div className={`flex items-start gap-4 rounded-xl p-5 border mb-6 ${
               check && !check.passed
                 ? "bg-red-950/30 border-red-800/40"
-                : "bg-[#00d4aa]/[0.06] border-[#00d4aa]/25"
+                : "bg-[#FAFAFA]/[0.06] border-[#1C1C1C]"
             }`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                check && !check.passed ? "bg-red-900/40" : "bg-[#00d4aa]/15"
+                check && !check.passed ? "bg-red-900/40" : "bg-[#FAFAFA]/[0.08]"
               }`}>
                 {check && !check.passed
                   ? <AlertTriangle size={20} className="text-red-400" />
-                  : <CheckCircle size={20} className="text-[#00d4aa]" />}
+                  : <CheckCircle size={20} className="text-[#FAFAFA]" />}
               </div>
               <div>
-                <div className="text-[16px] font-bold text-[#f5f5f7] mb-1">
+                <div className="text-[16px] font-bold text-[#FAFAFA] mb-1">
                   {check && !check.passed ? "Coverage gaps detected" : "Coverage verified ✓"}
                 </div>
-                <div className="text-[13px] text-[#8a8b91]">
+                <div className="text-[13px] text-[#555555]">
                   {check?.notes ?? "Certificate generated successfully."}
                 </div>
                 {check && check.gaps.length > 0 && (
@@ -376,29 +376,29 @@ export default function NewCOIPage() {
             </div>
 
             {/* Cert summary */}
-            <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5 mb-6">
+            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="font-mono text-[11px] text-[#505057]">{cert.certificate_number}</div>
-                  <div className="text-[16px] font-bold text-[#f5f5f7] mt-0.5">{cert.insured_name}</div>
+                  <div className="font-mono text-[11px] text-[#333333]">{cert.certificate_number}</div>
+                  <div className="text-[16px] font-bold text-[#FAFAFA] mt-0.5">{cert.insured_name}</div>
                 </div>
                 <a
                   href={`/api/coi/${cert.id}/pdf`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#2e2e3a] text-[12px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+                  className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
                 >
                   <ExternalLink size={12} /> Preview PDF
                 </a>
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1e1e2a]">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1C1C1C]">
                 <div>
-                  <div className="text-[11px] text-[#505057] uppercase tracking-wider mb-0.5">Certificate Holder</div>
-                  <div className="text-[13px] text-[#c5c5cb]">{cert.holder_name}</div>
+                  <div className="text-[11px] text-[#333333] uppercase tracking-wider mb-0.5">Certificate Holder</div>
+                  <div className="text-[13px] text-[#FAFAFA]">{cert.holder_name}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-[#505057] uppercase tracking-wider mb-0.5">Expires</div>
-                  <div className="text-[13px] text-[#c5c5cb]">
+                  <div className="text-[11px] text-[#333333] uppercase tracking-wider mb-0.5">Expires</div>
+                  <div className="text-[13px] text-[#FAFAFA]">
                     {cert.expiration_date
                       ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                       : "—"}
@@ -409,31 +409,31 @@ export default function NewCOIPage() {
 
             {/* Send */}
             {sent ? (
-              <div className="flex items-center gap-2 text-[#00d4aa] text-[14px] font-medium">
+              <div className="flex items-center gap-2 text-[#FAFAFA] text-[14px] font-medium">
                 <CheckCircle size={16} /> Sent! Redirecting…
               </div>
             ) : (
-              <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-5">
-                <div className="text-[13px] font-semibold text-[#f5f5f7] mb-3">Send to certificate holder</div>
+              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
+                <div className="text-[13px] font-semibold text-[#FAFAFA] mb-3">Send to certificate holder</div>
                 <div className="flex gap-3">
                   <input
                     type="email"
                     value={sendEmail}
                     onChange={e => setSendEmail(e.target.value)}
                     placeholder="holder@company.com"
-                    className="flex-1 bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3 py-2 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 placeholder-[#505057]"
+                    className="flex-1 bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333]"
                   />
                   <button
                     onClick={handleSend}
                     disabled={sending || !sendEmail}
-                    className="h-10 px-5 flex items-center gap-2 rounded-lg bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-50"
+                    className="h-10 px-5 flex items-center gap-2 rounded-lg bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50"
                   >
                     {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {sending ? "Sending…" : "Send COI"}
                   </button>
                 </div>
                 {check && !check.passed && (
-                  <p className="mt-2 text-[11px] text-amber-400">
+                  <p className="mt-2 text-[11px] text-[#888888]">
                     ⚠ Coverage gaps exist. You can still send — make sure the insured is aware.
                   </p>
                 )}
@@ -441,10 +441,10 @@ export default function NewCOIPage() {
             )}
 
             <div className="flex items-center gap-3 mt-5">
-              <Link href="/certificates" className="text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">
+              <Link href="/certificates" className="text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
                 ← Back to Certificates
               </Link>
-              <Link href={`/certificates/${cert.id}`} className="text-[13px] text-[#00d4aa] hover:underline">
+              <Link href={`/certificates/${cert.id}`} className="text-[13px] text-[#FAFAFA] hover:underline">
                 View full detail →
               </Link>
             </div>
@@ -456,13 +456,13 @@ export default function NewCOIPage() {
 
   // ── Generate form ──────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full bg-[#0d0d12]">
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1e1e2a] shrink-0">
-        <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">
+    <div className="flex flex-col h-full bg-[#0C0C0C]">
+      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+        <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
           <ArrowLeft size={13} /> Certificates
         </Link>
-        <ChevronRight size={12} className="text-[#505057]" />
-        <span className="text-[13px] text-[#f5f5f7]">
+        <ChevronRight size={12} className="text-[#333333]" />
+        <span className="text-[13px] text-[#FAFAFA]">
           {sourceRequest ? `Generate COI — ${sourceRequest.insured_name}` : "New Certificate of Insurance"}
         </span>
       </div>
@@ -472,12 +472,12 @@ export default function NewCOIPage() {
 
           {/* Source request banner */}
           {sourceRequest && (
-            <div className="flex items-start gap-3 rounded-lg bg-[#111118] border border-[#1e1e2a] p-4">
+            <div className="flex items-start gap-3 rounded-lg bg-[#111111] border border-[#1C1C1C] p-4">
               <div className="flex-1">
-                <div className="text-[12px] font-semibold text-[#8a8b91] uppercase tracking-wider mb-1">Generating from request</div>
-                <div className="text-[13px] text-[#c5c5cb]">
-                  <strong className="text-[#f5f5f7]">{sourceRequest.requester_name}</strong> ({sourceRequest.requester_email}) requested a COI
-                  for <strong className="text-[#f5f5f7]">{sourceRequest.insured_name}</strong> — holder is <strong className="text-[#f5f5f7]">{sourceRequest.holder_name}</strong>.
+                <div className="text-[12px] font-semibold text-[#555555] uppercase tracking-wider mb-1">Generating from request</div>
+                <div className="text-[13px] text-[#FAFAFA]">
+                  <strong className="text-[#FAFAFA]">{sourceRequest.requester_name}</strong> ({sourceRequest.requester_email}) requested a COI
+                  for <strong className="text-[#FAFAFA]">{sourceRequest.insured_name}</strong> — holder is <strong className="text-[#FAFAFA]">{sourceRequest.holder_name}</strong>.
                 </div>
               </div>
             </div>
@@ -490,8 +490,8 @@ export default function NewCOIPage() {
           )}
 
           {/* Insured + Producer */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-4">Insured & Producer</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-4">Insured & Producer</div>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Insured Name" value={insuredName} onChange={setInsuredName} required placeholder="Acme Corp" />
               <Field label="Insured Address" value={insuredAddress} onChange={setInsuredAddress} placeholder="123 Main St, City, ST 00000" />
@@ -503,12 +503,12 @@ export default function NewCOIPage() {
           </div>
 
           {/* Certificate holder */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-4">Certificate Holder</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-4">Certificate Holder</div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider mb-1.5">
-                  Holder Name<span className="text-[#00d4aa] ml-0.5">*</span>
+                <label className="block text-[11px] font-medium text-[#555555] uppercase tracking-wider mb-1.5">
+                  Holder Name<span className="text-[#FAFAFA] ml-0.5">*</span>
                 </label>
                 <HolderAutofillInput
                   value={holderName}
@@ -528,7 +528,7 @@ export default function NewCOIPage() {
               <Field label="ZIP" value={holderZip} onChange={setHolderZip} placeholder="00000" />
             </div>
             <div className="mt-4">
-              <label className="block text-[11px] font-medium text-[#8a8b91] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-medium text-[#555555] uppercase tracking-wider mb-1.5">
                 Additional Insured Language
               </label>
               <textarea
@@ -536,13 +536,13 @@ export default function NewCOIPage() {
                 onChange={e => setAdditionalInsured(e.target.value)}
                 placeholder="e.g. ABC Contractors LLC is included as additional insured per the terms of written contract…"
                 rows={2}
-                className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3 py-2 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 placeholder-[#505057] resize-none"
+                className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] resize-none"
               />
             </div>
           </div>
 
           {/* Coverage: GL */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
             <SectionHeader title="General Liability" enabled={gl.enabled} onToggle={v => setGl(p => ({ ...p, enabled: v }))} />
             {gl.enabled && (
               <div className="pt-4 space-y-3">
@@ -560,20 +560,20 @@ export default function NewCOIPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3 pt-1">
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Policy Number</label>
-                    <input type="text" value={gl.policy_number} onChange={e => setGl(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40 placeholder-[#3a3a42]" placeholder="GL-123456" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Policy Number</label>
+                    <input type="text" value={gl.policy_number} onChange={e => setGl(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333]" placeholder="GL-123456" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Effective</label>
-                    <input type="date" value={gl.effective} onChange={e => setGl(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Effective</label>
+                    <input type="date" value={gl.effective} onChange={e => setGl(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Expiration</label>
-                    <input type="date" value={gl.expiration} onChange={e => setGl(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Expiration</label>
+                    <input type="date" value={gl.expiration} onChange={e => setGl(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div className="col-span-3">
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Insurer Name</label>
-                    <input type="text" value={gl.insurer} onChange={e => setGl(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="Hartford Fire Insurance Co" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Insurer Name</label>
+                    <input type="text" value={gl.insurer} onChange={e => setGl(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="Hartford Fire Insurance Co" />
                   </div>
                 </div>
               </div>
@@ -581,7 +581,7 @@ export default function NewCOIPage() {
           </div>
 
           {/* Coverage: Auto */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
             <SectionHeader title="Automobile Liability" enabled={auto.enabled} onToggle={v => setAuto(p => ({ ...p, enabled: v }))} />
             {auto.enabled && (
               <div className="pt-4 space-y-3">
@@ -597,20 +597,20 @@ export default function NewCOIPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Policy Number</label>
-                    <input type="text" value={auto.policy_number} onChange={e => setAuto(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="AU-123456" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Policy Number</label>
+                    <input type="text" value={auto.policy_number} onChange={e => setAuto(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="AU-123456" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Effective</label>
-                    <input type="date" value={auto.effective} onChange={e => setAuto(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Effective</label>
+                    <input type="date" value={auto.effective} onChange={e => setAuto(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Expiration</label>
-                    <input type="date" value={auto.expiration} onChange={e => setAuto(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Expiration</label>
+                    <input type="date" value={auto.expiration} onChange={e => setAuto(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div className="col-span-3">
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Insurer Name</label>
-                    <input type="text" value={auto.insurer} onChange={e => setAuto(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="State Auto Insurance Co" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Insurer Name</label>
+                    <input type="text" value={auto.insurer} onChange={e => setAuto(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="State Auto Insurance Co" />
                   </div>
                 </div>
               </div>
@@ -618,7 +618,7 @@ export default function NewCOIPage() {
           </div>
 
           {/* Coverage: Umbrella */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
             <SectionHeader title="Umbrella / Excess Liability" enabled={umbrella.enabled} onToggle={v => setUmbrella(p => ({ ...p, enabled: v }))} />
             {umbrella.enabled && (
               <div className="pt-4 space-y-3">
@@ -633,20 +633,20 @@ export default function NewCOIPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Policy Number</label>
-                    <input type="text" value={umbrella.policy_number} onChange={e => setUmbrella(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="UMB-123456" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Policy Number</label>
+                    <input type="text" value={umbrella.policy_number} onChange={e => setUmbrella(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="UMB-123456" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Effective</label>
-                    <input type="date" value={umbrella.effective} onChange={e => setUmbrella(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Effective</label>
+                    <input type="date" value={umbrella.effective} onChange={e => setUmbrella(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Expiration</label>
-                    <input type="date" value={umbrella.expiration} onChange={e => setUmbrella(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Expiration</label>
+                    <input type="date" value={umbrella.expiration} onChange={e => setUmbrella(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div className="col-span-3">
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Insurer Name</label>
-                    <input type="text" value={umbrella.insurer} onChange={e => setUmbrella(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="Chubb Insurance Co" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Insurer Name</label>
+                    <input type="text" value={umbrella.insurer} onChange={e => setUmbrella(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="Chubb Insurance Co" />
                   </div>
                 </div>
               </div>
@@ -654,7 +654,7 @@ export default function NewCOIPage() {
           </div>
 
           {/* Coverage: WC */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
             <SectionHeader title="Workers Compensation & Employers Liability" enabled={wc.enabled} onToggle={v => setWc(p => ({ ...p, enabled: v }))} />
             {wc.enabled && (
               <div className="pt-4 space-y-3">
@@ -665,20 +665,20 @@ export default function NewCOIPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Policy Number</label>
-                    <input type="text" value={wc.policy_number} onChange={e => setWc(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="WC-123456" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Policy Number</label>
+                    <input type="text" value={wc.policy_number} onChange={e => setWc(p => ({ ...p, policy_number: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="WC-123456" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Effective</label>
-                    <input type="date" value={wc.effective} onChange={e => setWc(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Effective</label>
+                    <input type="date" value={wc.effective} onChange={e => setWc(p => ({ ...p, effective: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Expiration</label>
-                    <input type="date" value={wc.expiration} onChange={e => setWc(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Expiration</label>
+                    <input type="date" value={wc.expiration} onChange={e => setWc(p => ({ ...p, expiration: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" />
                   </div>
                   <div className="col-span-3">
-                    <label className="block text-[10px] font-medium text-[#505057] uppercase tracking-wider mb-1">Insurer Name</label>
-                    <input type="text" value={wc.insurer} onChange={e => setWc(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111118] border border-[#2e2e3a] rounded px-3 py-1.5 text-[12px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/40" placeholder="Travelers Casualty Insurance" />
+                    <label className="block text-[10px] font-medium text-[#333333] uppercase tracking-wider mb-1">Insurer Name</label>
+                    <input type="text" value={wc.insurer} onChange={e => setWc(p => ({ ...p, insurer: e.target.value }))} className="w-full bg-[#111111] border border-[#1C1C1C] rounded px-3 py-1.5 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555]" placeholder="Travelers Casualty Insurance" />
                   </div>
                 </div>
               </div>
@@ -686,14 +686,14 @@ export default function NewCOIPage() {
           </div>
 
           {/* Description + submit */}
-          <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6">
-            <div className="text-[13px] font-semibold text-[#f5f5f7] mb-4">Description of Operations</div>
+          <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
+            <div className="text-[13px] font-semibold text-[#FAFAFA] mb-4">Description of Operations</div>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={3}
               placeholder="Describe the project, location, or any special conditions…"
-              className="w-full bg-[#0d0d12] border border-[#2e2e3a] rounded-lg px-3 py-2.5 text-[13px] text-[#f5f5f7] outline-none focus:border-[#00d4aa]/50 placeholder-[#505057] resize-none"
+              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] resize-none"
             />
           </div>
 
@@ -702,12 +702,12 @@ export default function NewCOIPage() {
             <button
               onClick={handleGenerate}
               disabled={generating || !insuredName.trim() || !holderName.trim()}
-              className="h-10 px-6 flex items-center gap-2 rounded-lg bg-[#00d4aa] text-[#0d0d12] text-[14px] font-semibold hover:bg-[#00c49b] transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(0,212,170,0.3)]"
+              className="h-10 px-6 flex items-center gap-2 rounded-lg bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 shadow-[0_0_20px_rgba(0,212,170,0.3)]"
             >
               {generating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
               {generating ? "Checking coverage…" : "Generate COI"}
             </button>
-            <Link href="/certificates" className="text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors">
+            <Link href="/certificates" className="text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
               Cancel
             </Link>
           </div>

@@ -50,7 +50,7 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
     return (
       <button
         onClick={handleOpen}
-        className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] transition-colors"
+        className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
       >
         <Send size={12} /> Send
       </button>
@@ -66,19 +66,19 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
         onChange={(e) => setEmail(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
         placeholder="recipient@email.com"
-        className="h-8 px-3 rounded-md bg-[#111118] border border-[#2e2e3a] text-[13px] text-[#f5f5f7] placeholder-[#505057] focus:outline-none focus:border-[#00d4aa]/50 w-52"
+        className="h-8 px-3 rounded-md bg-[#111111] border border-[#1C1C1C] text-[13px] text-[#FAFAFA] placeholder-[#333333] focus:outline-none focus:border-[#555555] w-52"
       />
       <button
         onClick={handleSend}
         disabled={sending || !email.trim()}
-        className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-[#00d4aa] text-[#0d0d12] text-[13px] font-semibold hover:bg-[#00c49b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         {sending ? "Sending…" : "Send"}
       </button>
       <button
         onClick={() => setShowForm(false)}
-        className="h-8 px-3 rounded-md border border-[#2e2e3a] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+        className="h-8 px-3 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
       >
         Cancel
       </button>
