@@ -21,21 +21,23 @@ function timeAgo(iso: string): string {
 const EVENT_LABELS: Partial<Record<AuditEventType, string>> = {
   email_sent:              "Email sent",
   sms_sent:                "SMS sent",
-  stage_advanced:          "Stage advanced",
   questionnaire_sent:      "Questionnaire sent",
   questionnaire_responded: "Questionnaire received",
-  renewal_confirmed:       "Renewal confirmed",
+  insurer_terms_logged:    "Insurer terms logged",
+  submission_sent:         "Submission sent",
+  recommendation_sent:     "Recommendation sent",
+  client_confirmed:        "Renewal confirmed",
+  final_notice_sent:       "Final notice sent",
   lapse_recorded:          "Lapse recorded",
   doc_requested:           "Document requested",
   doc_received:            "Document received",
-  client_confirmed:        "Client confirmed",
+  note_added:              "Note added",
+  signal_received:         "Signal received",
   tier_1_action:           "Automated action",
   tier_2_drafted:          "Draft prepared",
   tier_3_escalated:        "Escalated",
   sequence_halted:         "Sequence paused",
-  signal_received:         "Signal received",
   flag_set:                "Flag set",
-  note_added:              "Note added",
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -72,12 +74,12 @@ export default async function ActivityPage() {
       .eq("user_id", user.id)
       .gte("sent_at", thirtyDaysAgo),
 
-    // Renewals that progressed (stage_advanced) in last 7 days
+    // Renewals confirmed in last 7 days
     supabase
       .from("renewal_audit_log")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .eq("event_type", "stage_advanced")
+      .eq("event_type", "client_confirmed")
       .gte("created_at", sevenDaysAgo),
 
     // Questionnaire stats: sent vs responded
@@ -123,7 +125,7 @@ export default async function ActivityPage() {
                 sub="last 30 days"
               />
               <StatCard
-                label="Progressed"
+                label="Confirmed"
                 value={progressedCount.toString()}
                 sub="last 7 days"
               />
