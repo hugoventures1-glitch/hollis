@@ -1,15 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import type { HealthLabel } from "@/types/renewals";
 import {
-  Plus,
-  CheckCircle2,
+  Search,
+  BarChart2,
+  Clock,
+  FileText,
+  Shield,
+  AlertTriangle,
+  ClipboardCheck,
+  Activity,
   ArrowRight,
+  CalendarDays,
 } from "lucide-react";
 import { ImportBanner } from "./_components/ImportBanner";
-import { DailyBriefing } from "@/components/briefing/DailyBriefing";
-import { PriorityRenewalsTable } from "./_components/PriorityRenewalsTable";
+import { FeedInput } from "./_components/FeedInput";
 
 export const dynamic = "force-dynamic";
 
@@ -22,50 +27,128 @@ function formatBookValue(n: number): string {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 2) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days}d ago`;
-}
-
 function addDays(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
   return d.toISOString().split("T")[0];
 }
 
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr + "T00:00:00");
-  return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
+// ── SVG mini bar chart (Book Value card) ─────────────────────────────────────
+
+function MiniBarChart() {
+  const bars = [
+    0.30, 0.55, 0.40, 0.70, 0.48, 0.82, 0.44, 0.76,
+    0.53, 0.88, 0.65, 0.42, 0.92, 0.75,
+  ];
+  return (
+    <svg viewBox="0 0 140 38" width="100%" height="38" preserveAspectRatio="none">
+      {bars.map((h, i) => (
+        <rect
+          key={i}
+          x={i * 10 + 1}
+          y={(1 - h) * 38}
+          width={7}
+          height={h * 38}
+          rx={1.5}
+          fill={
+            i === bars.length - 1
+              ? "rgba(250,250,250,0.80)"
+              : i >= bars.length - 3
+              ? "rgba(250,250,250,0.38)"
+              : "rgba(250,250,250,0.16)"
+          }
+        />
+      ))}
+    </svg>
+  );
+}
+
+// ── SVG sparkline (Activity card) ────────────────────────────────────────────
+
+function Sparkline() {
+  const pts = [3, 7, 5, 12, 8, 18, 14, 10, 22, 16, 20, 15];
+  const max = Math.max(...pts);
+  const W = 100, H = 34;
+  const points = pts
+    .map((p, i) => `${(i / (pts.length - 1)) * W},${H - (p / max) * H}`)
+    .join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
+      <polyline
+        points={points}
+        fill="none"
+        stroke="rgba(250,250,250,0.40)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// ── Card primitives ───────────────────────────────────────────────────────────
+
+function Card({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-xl p-5 flex flex-col ${className}`}
+      style={{ background: "#111111", border: "1px solid #1E1E1E", minHeight: 172 }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CardHead({
+  icon,
+  label,
+  badge,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  badge?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <span
+          className="text-[11px] font-medium uppercase tracking-[0.08em]"
+          style={{ color: "#666666" }}
+        >
+          {label}
+        </span>
+      </div>
+      {badge && (
+        <span className="text-[11px]" style={{ color: "#555555" }}>
+          {badge}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SeeLink({ label, href }: { label: string; href: string }) {
+  return (
+    <div className="mt-auto pt-4">
+      <Link
+        href={href}
+        className="text-[12px] flex items-center gap-1 w-fit transition-opacity hover:opacity-60"
+        style={{ color: "#555555" }}
+      >
+        {label} <ArrowRight size={10} />
+      </Link>
+    </div>
+  );
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-
-interface PolicyRow {
-  id: string;
-  policy_name?: string | null;
-  client_name: string;
-  carrier?: string | null;
-  expiration_date: string;
-  campaign_stage?: string | null;
-  health_label?: HealthLabel | null;
-  health_score?: number | null;
-}
-
-interface LogRow {
-  id: string;
-  channel: string;
-  sent_at: string;
-  policies: { client_name: string }[] | { client_name: string } | null;
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -74,312 +157,482 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Time-based greeting (UTC — close enough for most users)
+  const hour = new Date().getUTCHours();
+  const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+
   const today = new Date().toISOString().split("T")[0];
   const in60 = addDays(60);
 
-  const [activePoliciesRes, upcomingCountRes, stalledCountRes, workflowsRes, logsRes] =
-    await Promise.all([
-      // All active policies — for count + premium sum
-      supabase
-        .from("policies")
-        .select("premium")
-        .eq("user_id", user.id)
-        .eq("status", "active"),
+  const [
+    activePoliciesRes,
+    upcomingCountRes,
+    stalledCountRes,
+    logsRes,
+    profileRes,
+    coiRes,
+    reviewRes,
+  ] = await Promise.all([
+    // All active policies — for count + premium sum
+    supabase
+      .from("policies")
+      .select("premium")
+      .eq("user_id", user.id)
+      .eq("status", "active"),
 
-      // Count expiring within 60 days
-      supabase
-        .from("policies")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .gte("expiration_date", today)
-        .lte("expiration_date", in60),
+    // Count expiring within 60 days
+    supabase
+      .from("policies")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .gte("expiration_date", today)
+      .lte("expiration_date", in60),
 
-      // Count stalled policies (health_label = 'stalled')
-      supabase
-        .from("policies")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .eq("health_label", "stalled"),
+    // Count stalled
+    supabase
+      .from("policies")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .eq("health_label", "stalled"),
 
-      // Most urgent 10 for workflows table — include health fields
-      supabase
-        .from("policies")
-        .select("id, policy_name, client_name, carrier, expiration_date, campaign_stage, health_label, health_score")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .gte("expiration_date", today)
-        .order("expiration_date")
-        .limit(10),
+    // Recent send logs — for activity level
+    supabase
+      .from("send_logs")
+      .select("id, sent_at")
+      .eq("user_id", user.id)
+      .order("sent_at", { ascending: false })
+      .limit(30),
 
-      // Recent activity from send_logs
-      supabase
-        .from("send_logs")
-        .select("id, channel, sent_at, policies(client_name)")
-        .eq("user_id", user.id)
-        .order("sent_at", { ascending: false })
-        .limit(6),
-    ]);
+    // User profile — for first name
+    supabase
+      .from("agent_profiles")
+      .select("first_name, last_name")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+
+    // Pending COI / certificate requests
+    supabase
+      .from("coi_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("status", ["pending", "ready_for_approval", "needs_review"]),
+
+    // Pending items in agent approval queue
+    supabase
+      .from("approval_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "pending"),
+  ]);
 
   const activePolicies = activePoliciesRes.data ?? [];
-  const activeCount = activePolicies.length;
-  const bookValue = activePolicies.reduce(
-    (sum, p) => sum + (Number(p.premium) || 0),
-    0
-  );
-  const upcomingCount = upcomingCountRes.count ?? 0;
-  const stalledCount = stalledCountRes.count ?? 0;
-  const urgentPolicies = (workflowsRes.data ?? []) as PolicyRow[];
-  const recentLogs = (logsRes.data ?? []) as LogRow[];
+  const activeCount    = activePolicies.length;
+  const bookValue      = activePolicies.reduce((s, p) => s + (Number(p.premium) || 0), 0);
+  const upcomingCount  = upcomingCountRes.count ?? 0;
+  const stalledCount   = stalledCountRes.count  ?? 0;
+  const recentLogs     = logsRes.data            ?? [];
+  const firstName      = profileRes.data?.first_name ?? null;
+  const lastName       = profileRes.data?.last_name  ?? null;
+  const coiCount       = coiRes.count    ?? 0;
+  const reviewCount    = reviewRes.count ?? 0;
 
-  const topInsight = urgentPolicies[0] ?? null;
-  const topDays = topInsight ? daysUntil(topInsight.expiration_date) : null;
+  // Header avatar initials
+  const initials =
+    [firstName?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() || "H";
 
-  const CHANNEL_LABEL: Record<string, string> = {
-    email: "Renewal Email Sent",
-    sms: "SMS Reminder Sent",
-  };
+  // Summary card text
+  const summaryParts: string[] = [];
+  if (bookValue > 0)     summaryParts.push(`Book value ${formatBookValue(bookValue)}`);
+  if (activeCount > 0)   summaryParts.push(`${activeCount} active policies`);
+  if (upcomingCount > 0) summaryParts.push(`${upcomingCount} renewing in 60 days`);
+  const summaryText   = summaryParts.length ? summaryParts.join(", ") + "." : "No data yet.";
+  const summaryStatus =
+    stalledCount > 0
+      ? `${stalledCount} stalled ${stalledCount === 1 ? "policy" : "policies"} need attention.`
+      : upcomingCount > 0
+      ? "Keep an eye on upcoming renewals."
+      : "Things are looking good.";
+
+  const activityLevel =
+    recentLogs.length > 15 ? "high" : recentLogs.length > 6 ? "steady" : "light";
 
   return (
-    <div className="flex flex-col h-full antialiased" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
+    <div
+      className="flex flex-col h-full antialiased overflow-y-auto"
+      style={{ background: "#0C0C0C", color: "#FAFAFA" }}
+    >
 
-      {/* ── Top header ── */}
-      <header className="h-[56px] shrink-0 flex items-center justify-between px-6" style={{ borderBottom: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-2.5 text-sm font-medium tracking-tight">
-          <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>Overview</span>
+      {/* ── Top bar ── */}
+      <header
+        className="h-14 shrink-0 flex items-center justify-between px-6"
+        style={{ borderBottom: "1px solid #181818" }}
+      >
+        <div className="flex items-center gap-2 text-[13px]" style={{ color: "#555555" }}>
+          <Search size={14} />
+          Find anything
         </div>
-        <div className="flex items-center gap-2.5">
-          <Link
-            href="/renewals/upload"
-            className="h-8 px-4 rounded-[6px] text-[13px] font-medium flex items-center gap-2 transition-colors hover:opacity-80"
-            style={{ background: "#FAFAFA", color: "#0C0C0C" }}
-          >
-            <Plus size={13} />
-            Import Policies
-          </Link>
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold select-none"
+          style={{ background: "#1C1C1C", color: "#888888" }}
+        >
+          {initials}
         </div>
       </header>
 
-      {/* ── Daily briefing (client component, AI-generated) ── */}
-      <DailyBriefing />
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 px-8 pt-8">
 
-      {/* ── Post-import banner (client component, localStorage-driven) ── */}
-      <ImportBanner />
+        {/* Greeting + controls */}
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h1 className="text-[26px] leading-tight tracking-tight">
+              <span style={{ fontWeight: 300 }}>{greeting} </span>
+              <span style={{ fontWeight: 600 }}>{firstName ?? "there"}</span>
+            </h1>
+            <p className="mt-1 text-[13px]" style={{ color: "#666666" }}>
+              here&apos;s a quick look at how things are going.
+            </p>
+          </div>
 
-      {/* ── Stats bar ── */}
-      <div className="shrink-0 px-12 py-11" style={{ borderBottom: "1px solid #1C1C1C" }}>
-        <div className="flex">
-          {(
-            [
-              {
-                label: "Book Value",
-                value: formatBookValue(bookValue),
-                sub: bookValue > 0 ? "total premium" : null,
-                href: "/renewals",
-              },
-              {
-                label: "Active Policies",
-                value: activeCount.toLocaleString(),
-                sub: null,
-                href: "/renewals",
-              },
-              {
-                label: "Upcoming Renewals",
-                value: upcomingCount.toString(),
-                danger: upcomingCount > 0,
-                sub: "next 60 days",
-                href: "/renewals?filter=upcoming",
-              },
-              {
-                label: "Stalled Renewals",
-                value: stalledCount.toString(),
-                warning: stalledCount > 0,
-                dim: stalledCount === 0,
-                sub: stalledCount > 0 ? "need attention" : null,
-                href: stalledCount > 0 ? "/renewals?filter=stalled" : undefined,
-              },
-            ] as Array<{
-              label: string;
-              value: string;
-              sub?: string | null;
-              danger?: boolean;
-              warning?: boolean;
-              dim?: boolean;
-              href?: string;
-            }>
-          ).map((stat, i, arr) => {
-            const valueColor = stat.danger
-              ? "#FF4444"
-              : stat.warning
-              ? "#888888"
-              : stat.dim
-              ? "#333333"
-              : "#FAFAFA";
-
-            const inner = (
-              <>
-                <span className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#555555" }}>
-                  {stat.label}
-                </span>
-                <div className="flex items-baseline gap-3">
-                  <span
-                    className="text-5xl tracking-tight leading-none"
-                    style={{
-                      fontFamily: "var(--font-playfair)",
-                      fontWeight: 700,
-                      color: valueColor,
-                    }}
-                  >
-                    {stat.value}
-                  </span>
-                  {stat.sub && (
-                    <span className="text-[12px]" style={{ color: "#333333" }}>
-                      {stat.sub}
-                    </span>
-                  )}
-                </div>
-              </>
-            );
-
-            const wrapperClass = [
-              "flex flex-col gap-2.5",
-              stat.href ? "cursor-pointer" : "",
-              i !== 0 ? "pl-12" : "",
-              i !== arr.length - 1 ? "pr-12" : "",
-            ].join(" ");
-
-            const wrapperStyle = i !== 0 ? { borderLeft: "1px solid #1C1C1C" } : {};
-
-            return stat.href ? (
-              <Link
-                key={stat.label}
-                href={stat.href}
-                className={`${wrapperClass} hover:opacity-80 transition-opacity`}
-                style={wrapperStyle}
+          {/* Controls row */}
+          <div className="flex items-center gap-2 mt-1">
+            {/* Grid / List toggle */}
+            <div
+              className="flex items-center h-8 rounded-lg overflow-hidden"
+              style={{ border: "1px solid #222222", background: "#111111" }}
+            >
+              <button
+                className="w-8 h-full flex items-center justify-center"
+                style={{ color: "#FAFAFA", background: "#1C1C1C" }}
+                aria-label="Grid view"
               >
-                {inner}
+                <svg viewBox="0 0 14 14" width="13" height="13" fill="currentColor">
+                  <rect x="0" y="0" width="6" height="6" rx="1.2" />
+                  <rect x="8" y="0" width="6" height="6" rx="1.2" />
+                  <rect x="0" y="8" width="6" height="6" rx="1.2" />
+                  <rect x="8" y="8" width="6" height="6" rx="1.2" />
+                </svg>
+              </button>
+              <button
+                className="w-8 h-full flex items-center justify-center"
+                style={{ color: "#3A3A3A" }}
+                aria-label="List view"
+              >
+                <svg
+                  viewBox="0 0 14 12"
+                  width="13"
+                  height="12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                >
+                  <line x1="0" y1="2"  x2="14" y2="2"  />
+                  <line x1="0" y1="6"  x2="14" y2="6"  />
+                  <line x1="0" y1="10" x2="14" y2="10" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Time filter */}
+            <button
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium"
+              style={{ background: "#111111", border: "1px solid #222222", color: "#888888" }}
+            >
+              <svg
+                viewBox="0 0 12 12"
+                width="11"
+                height="11"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <rect x="1" y="1" width="10" height="10" rx="2" />
+                <line x1="1" y1="4.5" x2="11" y2="4.5" />
+                <line x1="4" y1="1"   x2="4"  y2="4.5" />
+                <line x1="8" y1="1"   x2="8"  y2="4.5" />
+              </svg>
+              60 days
+              <svg
+                viewBox="0 0 10 6"
+                width="9"
+                height="6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
+                <polyline points="1,1 5,5 9,1" />
+              </svg>
+            </button>
+
+            {/* Overview / Metrics tabs */}
+            <div
+              className="flex items-center h-8 rounded-lg overflow-hidden"
+              style={{ border: "1px solid #222222", background: "#111111" }}
+            >
+              <Link
+                href="/overview"
+                className="px-3 h-full flex items-center text-[12px] font-medium"
+                style={{ color: "#FAFAFA", background: "#1C1C1C" }}
+              >
+                Overview
               </Link>
-            ) : (
-              <div key={stat.label} className={wrapperClass} style={wrapperStyle}>
-                {inner}
-              </div>
-            );
-          })}
+              <Link
+                href="/activity"
+                className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#888888]"
+                style={{ color: "#444444" }}
+              >
+                Metrics
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* ── Two-column content ── */}
-      <div className="flex-1 flex overflow-hidden">
+        {/* Import banner (client component — localStorage-driven) */}
+        <ImportBanner />
 
-        {/* Priority Workflows */}
-        <div className="flex-1 overflow-y-auto min-w-0">
-          <div className="px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-4">
-              <span className="text-[13px] font-medium uppercase tracking-[0.06em]" style={{ color: "#555555" }}>
-                Active Renewals
-              </span>
-              {urgentPolicies.length > 0 && (
-                <span className="text-[12px]" style={{ color: "#333333" }}>
-                  {urgentPolicies.length}
+        {/* ── 4 × 2 card grid ── */}
+        <div className="grid grid-cols-4 gap-3 mt-7">
+
+          {/* ─── Row 1 ─────────────────────────────────────── */}
+
+          {/* Card 1 — Weekly Summary */}
+          <Card>
+            <CardHead
+              icon={<CalendarDays size={12} style={{ color: "#555555" }} />}
+              label="Weekly Summary"
+              badge="Just now"
+            />
+            <div className="flex-1">
+              <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
+                {summaryText}{" "}
+                <span style={{ color: stalledCount > 0 ? "#FAFAFA" : "#888888" }}>
+                  {summaryStatus}
                 </span>
+              </p>
+            </div>
+            <div className="mt-auto pt-4 flex items-center justify-between">
+              <Link
+                href="/activity"
+                className="text-[12px] flex items-center gap-1 transition-opacity hover:opacity-60"
+                style={{ color: "#555555" }}
+              >
+                Go to activity <ArrowRight size={10} />
+              </Link>
+              {stalledCount > 0 && (
+                <Link
+                  href="/renewals?filter=stalled"
+                  className="text-[12px] transition-opacity hover:opacity-60"
+                  style={{ color: "#555555" }}
+                >
+                  Dismiss
+                </Link>
               )}
             </div>
-            <Link
-              href="/renewals"
-              className="text-[12px] flex items-center gap-1 transition-colors"
-              style={{ color: "#333333" }}
-            >
-              View all <ArrowRight size={11} />
-            </Link>
-          </div>
+          </Card>
 
-          <div className="pb-20">
-            {urgentPolicies.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-                <CheckCircle2 size={28} className="mb-3 opacity-20" style={{ color: "#FAFAFA" }} />
-                <p className="text-[13px]" style={{ color: "#333333" }}>No urgent renewals right now</p>
+          {/* Card 2 — Book Value */}
+          <Card>
+            <CardHead
+              icon={<BarChart2 size={12} style={{ color: "#555555" }} />}
+              label="Book Value"
+            />
+            <div className="flex-1 flex flex-col justify-between">
+              <p className="text-[12px] leading-[1.6]" style={{ color: "#777777" }}>
+                Total premium across your book is{" "}
+                <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                  {formatBookValue(bookValue)}
+                </span>
+              </p>
+              <div className="mt-3">
+                <MiniBarChart />
               </div>
-            ) : (
-              <PriorityRenewalsTable policies={urgentPolicies} />
-            )}
-          </div>
-        </div>
+            </div>
+            <SeeLink label="See detailed view" href="/renewals" />
+          </Card>
 
-        {/* ── Activity panel ── */}
-        <div className="w-[300px] shrink-0 overflow-y-auto flex flex-col" style={{ background: "var(--surface)", borderLeft: "1px solid var(--border)" }}>
-
-          <div className="px-5 py-4 sticky top-0 z-10 flex items-center justify-between" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-            <span className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#555555" }}>Activity</span>
-            <div className="w-1.5 h-1.5 rounded-full animate-hollis-pulse" style={{ background: "#FAFAFA" }} />
-          </div>
-
-          <div className="p-5 space-y-8">
-
-            {/* Top insight */}
-            <div className="p-4 rounded-lg" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}>
-              <div className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3" style={{ color: "#555555" }}>
-                Priority
-              </div>
-              {topInsight && topDays !== null ? (
+          {/* Card 3 — Expiring Soon */}
+          <Card>
+            <CardHead
+              icon={<Clock size={12} style={{ color: "#555555" }} />}
+              label="Expiring Soon"
+            />
+            <div className="flex-1">
+              {upcomingCount > 0 ? (
                 <>
-                  <p className="text-[13px] leading-[1.65]" style={{ color: "#555555" }}>
-                    <span className="font-medium" style={{ color: "#FAFAFA" }}>{topInsight.client_name}</span>
-                    {`'s policy expires in `}
-                    <span style={{ color: topDays <= 30 ? "#FF4444" : "#888888" }}>{topDays} days</span>.
+                  <p className="text-[12px]" style={{ color: "#777777" }}>
+                    Your current upcoming renewals
                   </p>
-                  <Link
-                    href={`/renewals/${topInsight.id}`}
-                    className="mt-4 text-[12px] flex items-center gap-1 transition-colors"
-                    style={{ color: "#555555" }}
+                  <p
+                    className="text-[42px] font-light leading-none mt-2 tracking-tight"
+                    style={{ color: upcomingCount > 5 ? "#FF6B6B" : "#FAFAFA" }}
                   >
-                    View Policy
-                    <ArrowRight size={11} />
-                  </Link>
+                    {upcomingCount}
+                    <span
+                      className="text-[14px] ml-2"
+                      style={{ color: "#666666", fontWeight: 400 }}
+                    >
+                      {upcomingCount === 1 ? "policy" : "policies"}
+                    </span>
+                  </p>
                 </>
               ) : (
-                <p className="text-[13px] leading-[1.65]" style={{ color: "#333333" }}>
-                  No urgent renewals right now.
+                <p className="text-[13px]" style={{ color: "#666666" }}>
+                  No renewals in the next 60 days.
                 </p>
               )}
             </div>
+            <SeeLink label="See renewals" href="/renewals" />
+          </Card>
 
-            {/* Activity Log */}
-            <div>
-              <h4 className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4" style={{ color: "#333333" }}>
-                Recent
-              </h4>
-              {recentLogs.length === 0 ? (
-                <p className="text-[13px]" style={{ color: "#333333" }}>No activity yet.</p>
+          {/* Card 4 — Certificates */}
+          <Card>
+            <CardHead
+              icon={<FileText size={12} style={{ color: "#555555" }} />}
+              label="Certificates"
+            />
+            <div className="flex-1">
+              {coiCount > 0 ? (
+                <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
+                  <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                    {coiCount} new {coiCount === 1 ? "request" : "requests"}
+                  </span>
+                  {", "}automatically categorised as certificates
+                </p>
               ) : (
-                <div>
-                  {recentLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="py-3"
-                      style={{ borderBottom: "1px solid #1C1C1C" }}
-                    >
-                      <div className="flex justify-between items-baseline gap-2">
-                        <span className="text-[13px] font-medium" style={{ color: "#FAFAFA" }}>
-                          {CHANNEL_LABEL[log.channel] ?? "Outreach Sent"}
-                        </span>
-                        <span className="text-[11px] whitespace-nowrap shrink-0 tabular-nums" style={{ color: "#333333" }}>
-                          {timeAgo(log.sent_at)}
-                        </span>
-                      </div>
-                      <span className="text-[12px]" style={{ color: "#555555" }}>
-                        {(Array.isArray(log.policies)
-                          ? log.policies[0]?.client_name
-                          : log.policies?.client_name) ?? "—"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-[13px] leading-[1.75]" style={{ color: "#666666" }}>
+                  No pending certificate requests.
+                </p>
               )}
             </div>
+            <SeeLink label="Show certificates" href="/certificates" />
+          </Card>
 
-          </div>
+          {/* ─── Row 2 ─────────────────────────────────────── */}
+
+          {/* Card 5 — Active Policies */}
+          <Card>
+            <CardHead
+              icon={<Shield size={12} style={{ color: "#555555" }} />}
+              label="Active Policies"
+            />
+            <div className="flex-1 flex flex-col justify-center">
+              <p className="text-[12px] mb-2" style={{ color: "#777777" }}>
+                Policies across your book
+              </p>
+              <p
+                className="text-[44px] font-light leading-none tracking-tight"
+                style={{ color: "#FAFAFA" }}
+              >
+                {activeCount.toLocaleString()}
+              </p>
+            </div>
+            <SeeLink label="See all policies" href="/renewals" />
+          </Card>
+
+          {/* Card 6 — Stalled */}
+          <Card>
+            <CardHead
+              icon={<AlertTriangle size={12} style={{ color: "#555555" }} />}
+              label="Stalled"
+            />
+            <div className="flex-1">
+              {stalledCount > 0 ? (
+                <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
+                  You currently have{" "}
+                  <span style={{ fontWeight: 600, color: "#FAFAFA" }}>
+                    {stalledCount} stalled
+                  </span>{" "}
+                  {stalledCount === 1 ? "policy" : "policies"} outstanding
+                  in your renewals
+                </p>
+              ) : (
+                <p className="text-[13px]" style={{ color: "#666666" }}>
+                  No stalled policies right now.
+                </p>
+              )}
+            </div>
+            <SeeLink label="See stalled" href="/renewals?filter=stalled" />
+          </Card>
+
+          {/* Card 7 — Review Queue */}
+          <Card>
+            <CardHead
+              icon={<ClipboardCheck size={12} style={{ color: "#555555" }} />}
+              label="Review Queue"
+            />
+            <div className="flex-1 flex items-start gap-3">
+              {/* Hollis mark */}
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                style={{ background: "#1C1C1C" }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-playfair)",
+                    fontWeight: 900,
+                    fontSize: 14,
+                    color: "#FAFAFA",
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1,
+                  }}
+                >
+                  h
+                </span>
+              </div>
+              <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
+                {reviewCount > 0 ? (
+                  <>
+                    <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                      {reviewCount} pending
+                    </span>{" "}
+                    {reviewCount === 1 ? "item" : "items"} awaiting your approval
+                  </>
+                ) : (
+                  "No items pending review."
+                )}
+              </p>
+            </div>
+            <SeeLink label="See review queue" href="/review" />
+          </Card>
+
+          {/* Card 8 — Activity */}
+          <Card>
+            <CardHead
+              icon={<Activity size={12} style={{ color: "#555555" }} />}
+              label="Activity"
+            />
+            <div className="flex-1 flex flex-col justify-between">
+              <p className="text-[12px] leading-[1.6]" style={{ color: "#777777" }}>
+                {recentLogs.length > 0 ? (
+                  <>
+                    Your outreach activity is{" "}
+                    <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                      {activityLevel}
+                    </span>{" "}
+                    this period
+                  </>
+                ) : (
+                  "No activity recorded yet."
+                )}
+              </p>
+              <div className="mt-3">
+                <Sparkline />
+              </div>
+            </div>
+            <SeeLink label="See activity" href="/activity" />
+          </Card>
+
         </div>
+
+        {/* ── Feed input section ── */}
+        <div className="mt-10">
+          <FeedInput />
+        </div>
+
       </div>
     </div>
   );

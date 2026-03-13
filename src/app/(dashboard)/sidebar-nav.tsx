@@ -6,15 +6,26 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
+import {
+  LayoutDashboard,
+  Activity,
+  RefreshCcw,
+  Users,
+  Award,
+  ClipboardCheck,
+  FileText,
+  Settings,
+} from "lucide-react";
 
-interface RailItemProps {
+interface RailIconProps {
   href: string;
+  icon: React.ElementType;
   label: string;
   badge?: number;
   pathname: string;
 }
 
-function RailItem({ href, label, badge, pathname }: RailItemProps) {
+function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
   const active =
     href === "/overview"
       ? pathname === "/overview"
@@ -25,29 +36,23 @@ function RailItem({ href, label, badge, pathname }: RailItemProps) {
   return (
     <Link
       href={href}
-      className="relative flex items-center justify-center w-full h-9 transition-colors"
-      style={{ color: active ? "#FAFAFA" : "#333333" }}
+      title={label}
+      className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
+      style={{
+        color:      active ? "#FAFAFA" : "#484848",
+        background: active ? "#1C1C1C" : "transparent",
+      }}
       onMouseEnter={(e) => {
-        if (!active) (e.currentTarget as HTMLElement).style.color = "#555555";
+        if (!active) (e.currentTarget as HTMLElement).style.color = "#888888";
       }}
       onMouseLeave={(e) => {
-        if (!active) (e.currentTarget as HTMLElement).style.color = "#333333";
+        if (!active) (e.currentTarget as HTMLElement).style.color = "#484848";
       }}
     >
-      <span
-        style={{
-          fontSize: 9,
-          fontWeight: 500,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          lineHeight: 1,
-        }}
-      >
-        {label}
-      </span>
-      {badge && badge > 0 && (
+      <Icon size={17} strokeWidth={1.6} />
+      {!!badge && badge > 0 && (
         <span
-          className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full"
+          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
           style={{ background: "#FF4444" }}
         />
       )}
@@ -57,9 +62,10 @@ function RailItem({ href, label, badge, pathname }: RailItemProps) {
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const router = useRouter();
-  const counts = useSidebarCounts();
+  const router   = useRouter();
+  const counts   = useSidebarCounts();
 
+  const [initials,   setInitials]   = useState<string>("H");
   const [agencyName, setAgencyName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,7 +75,7 @@ export default function SidebarNav() {
       Promise.all([
         supabase
           .from("agent_profiles")
-          .select("agency_name")
+          .select("agency_name, first_name, last_name")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -81,6 +87,10 @@ export default function SidebarNav() {
         const name =
           profileRes.data?.agency_name ?? agencyRes.data?.name ?? null;
         setAgencyName(name);
+
+        const first = profileRes.data?.first_name?.[0] ?? "";
+        const last  = profileRes.data?.last_name?.[0]  ?? "";
+        setInitials((first + last).toUpperCase() || "H");
       });
     });
   }, []);
@@ -107,17 +117,17 @@ export default function SidebarNav() {
       {/* Wordmark */}
       <div
         className="flex items-center justify-center h-14 shrink-0"
-        style={{ borderBottom: "1px solid #1C1C1C" }}
+        style={{ borderBottom: "1px solid #181818" }}
       >
         <Link href="/overview">
           <span
             style={{
-              fontFamily: "var(--font-playfair)",
-              fontWeight: 900,
-              fontSize: 16,
-              color: "#FAFAFA",
+              fontFamily:    "var(--font-playfair)",
+              fontWeight:    900,
+              fontSize:      16,
+              color:         "#FAFAFA",
               letterSpacing: "-0.02em",
-              lineHeight: 1,
+              lineHeight:    1,
             }}
           >
             h
@@ -125,35 +135,39 @@ export default function SidebarNav() {
         </Link>
       </div>
 
-      {/* Nav rail */}
-      <nav className="flex-1 flex flex-col items-center py-3 gap-0.5 overflow-y-auto">
-        <RailItem href="/overview"      label="over"   pathname={pathname} />
-        <RailItem href="/activity"      label="feed"   pathname={pathname} />
-        <RailItem href="/renewals"      label="renew"  pathname={pathname} badge={counts.renewals} />
-        <RailItem href="/clients"       label="client" pathname={pathname} />
-        <RailItem href="/certificates"  label="certs"  pathname={pathname} badge={counts.coi} />
-        <RailItem href="/review"        label="review" pathname={pathname} badge={counts.review} />
-        <RailItem href="/documents"     label="docs"   pathname={pathname} badge={counts.docChase} />
-        <RailItem href="/settings"      label="set"    pathname={pathname} />
+      {/* Icon nav rail */}
+      <nav className="flex-1 flex flex-col items-center py-3 gap-1 overflow-y-auto">
+        <RailIcon href="/overview"     icon={LayoutDashboard} label="Overview"     pathname={pathname} />
+        <RailIcon href="/activity"     icon={Activity}        label="Activity"     pathname={pathname} />
+        <RailIcon href="/renewals"     icon={RefreshCcw}      label="Renewals"     pathname={pathname} badge={counts.renewals} />
+        <RailIcon href="/clients"      icon={Users}           label="Clients"      pathname={pathname} />
+        <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={counts.coi} />
+        <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={counts.review} />
+        <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={counts.docChase} />
+        <RailIcon href="/settings"     icon={Settings}        label="Settings"     pathname={pathname} />
       </nav>
 
-      {/* Sign-out */}
+      {/* User avatar / sign-out */}
       <div
         className="flex items-center justify-center h-14 shrink-0"
-        style={{ borderTop: "1px solid #1C1C1C" }}
+        style={{ borderTop: "1px solid #181818" }}
       >
         <button
           onClick={handleSignOut}
-          title={agencyName ?? "Sign out"}
-          className="w-6 h-6 rounded-full transition-colors"
-          style={{ background: "#1C1C1C" }}
-          onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLElement).style.background = "#333333")
-          }
-          onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLElement).style.background = "#1C1C1C")
-          }
-        />
+          title={agencyName ? `${agencyName} — Sign out` : "Sign out"}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold transition-colors"
+          style={{ background: "#1C1C1C", color: "#666666" }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "#2A2A2A";
+            (e.currentTarget as HTMLElement).style.color      = "#999999";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "#1C1C1C";
+            (e.currentTarget as HTMLElement).style.color      = "#666666";
+          }}
+        >
+          {initials}
+        </button>
       </div>
     </aside>
   );
