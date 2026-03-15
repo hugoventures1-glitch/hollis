@@ -148,7 +148,7 @@ export default function DraftEditDrawer({
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-2.5 text-[14px] text-[#f5f5f7] placeholder-[#333333] outline-none focus:border-[#555555] transition-colors"
+              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-2.5 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] outline-none focus:border-[#555555] transition-colors"
             />
           </div>
 
@@ -161,9 +161,9 @@ export default function DraftEditDrawer({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={14}
-              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-3 text-[14px] text-[#f5f5f7] placeholder-[#333333] outline-none focus:border-[#555555] transition-colors resize-none leading-relaxed font-mono"
+              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-3 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] outline-none focus:border-[#555555] transition-colors resize-none leading-relaxed font-mono"
             />
-            <div className="text-[11px] text-[#333333] mt-1.5 text-right">
+            <div className="text-[11px] text-[#6b6b6b] mt-1.5 text-right">
               {body.split(/\s+/).filter(Boolean).length} words
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function DraftEditDrawer({
           >
             Cancel
           </button>
-          <span className="ml-auto text-[11px] text-[#333333]">
+          <span className="ml-auto text-[11px] text-[#6b6b6b]">
             Agent reviews before sending
           </span>
         </div>

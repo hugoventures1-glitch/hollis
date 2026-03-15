@@ -14,7 +14,7 @@ interface PageProps {
 }
 
 const STATUS_STYLES = {
-  draft:    "bg-[#ffffff08] text-[#555555] border border-[#ffffff10]",
+  draft:    "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]",
   sent:     "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
   expired:  "bg-red-900/30 text-red-400 border border-red-700/30",
   outdated: "bg-[#FF4444]/[0.06] text-[#FF4444] border border-[#FF4444]/[0.2]",
@@ -23,7 +23,7 @@ const STATUS_STYLES = {
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-0.5">{label}</div>
+      <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-0.5">{label}</div>
       <div className="text-[13px] text-[#FAFAFA]">{value || "—"}</div>
     </div>
   );
@@ -42,7 +42,7 @@ function CoverageSection({ label, enabled, rows }: { label: string; enabled: boo
         <div className="space-y-1.5">
           {rows.map(([k, v]) => v ? (
             <div key={k} className="flex justify-between text-[12px]">
-              <span className="text-[#333333]">{k}</span>
+              <span className="text-[#6b6b6b]">{k}</span>
               <span className="text-[#FAFAFA] font-medium">{v}</span>
             </div>
           ) : null)}
@@ -74,11 +74,11 @@ export default async function CertificateDetailPage({ params }: PageProps) {
 
       {/* Header */}
       <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
+        <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">
           <ArrowLeft size={13} /> Certificates
         </Link>
-        <ChevronRight size={12} className="text-[#333333]" />
-        <span className="font-mono text-[12px] text-[#333333]">{cert.certificate_number}</span>
+        <ChevronRight size={12} className="text-[#6b6b6b]" />
+        <span className="font-mono text-[12px] text-[#6b6b6b]">{cert.certificate_number}</span>
 
         <div className="ml-auto flex items-center gap-3">
           {cert.has_gap && (
@@ -93,7 +93,7 @@ export default async function CertificateDetailPage({ params }: PageProps) {
             href={`/api/coi/${cert.id}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+            className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
           >
             <ExternalLink size={12} /> View PDF
           </a>
@@ -128,7 +128,7 @@ export default async function CertificateDetailPage({ params }: PageProps) {
 
               {/* Summary card */}
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
-                <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-4">Certificate Summary</div>
+                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-4">Certificate Summary</div>
                 <div className="grid grid-cols-2 gap-5">
                   <InfoBlock label="Insured" value={cert.insured_name} />
                   <InfoBlock label="Insured Address" value={cert.insured_address ?? ""} />
@@ -141,21 +141,21 @@ export default async function CertificateDetailPage({ params }: PageProps) {
                 </div>
                 {cert.additional_insured_language && (
                   <div className="mt-4 pt-4 border-t border-[#1C1C1C]">
-                    <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-1">Additional Insured Language</div>
-                    <p className="text-[12px] text-[#555555] leading-relaxed">{cert.additional_insured_language}</p>
+                    <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Additional Insured Language</div>
+                    <p className="text-[12px] text-[#8a8a8a] leading-relaxed">{cert.additional_insured_language}</p>
                   </div>
                 )}
                 {cert.description && (
                   <div className="mt-4 pt-4 border-t border-[#1C1C1C]">
-                    <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-1">Description of Operations</div>
-                    <p className="text-[12px] text-[#555555] leading-relaxed">{cert.description}</p>
+                    <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Description of Operations</div>
+                    <p className="text-[12px] text-[#8a8a8a] leading-relaxed">{cert.description}</p>
                   </div>
                 )}
               </div>
 
               {/* Coverage */}
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
-                <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-4">Coverage Detail</div>
+                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-4">Coverage Detail</div>
                 <div className="grid grid-cols-2 gap-3">
                   <CoverageSection
                     label="General Liability"
@@ -220,25 +220,25 @@ export default async function CertificateDetailPage({ params }: PageProps) {
 
               {/* Send status */}
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-                <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Delivery</div>
+                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">Delivery</div>
                 {cert.status === "sent" ? (
                   <div>
                     <div className="flex items-center gap-2 text-[#FAFAFA] text-[13px] font-medium mb-2">
                       <CheckCircle size={14} /> Sent
                     </div>
-                    <div className="text-[12px] text-[#555555]">{cert.sent_to_email}</div>
-                    <div className="text-[11px] text-[#333333] mt-1">
+                    <div className="text-[12px] text-[#8a8a8a]">{cert.sent_to_email}</div>
+                    <div className="text-[11px] text-[#6b6b6b] mt-1">
                       {cert.sent_at && new Date(cert.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div className="text-[12px] text-[#555555] mb-3">Not yet sent</div>
+                    <div className="text-[12px] text-[#8a8a8a] mb-3">Not yet sent</div>
                     <a
                       href={`/api/coi/${cert.id}/pdf`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full h-8 flex items-center justify-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors mb-2"
+                      className="w-full h-8 flex items-center justify-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors mb-2"
                     >
                       <ExternalLink size={11} /> Download PDF
                     </a>
@@ -251,7 +251,7 @@ export default async function CertificateDetailPage({ params }: PageProps) {
 
               {/* Meta */}
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-3">
-                <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Metadata</div>
+                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">Metadata</div>
                 <InfoBlock label="Certificate #" value={cert.certificate_number} />
                 <InfoBlock label="Created" value={new Date(cert.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} />
                 {cert.request_id && <InfoBlock label="Source Request" value={cert.request_id.slice(0, 8) + "…"} />}

@@ -16,13 +16,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendSMS } from "@/lib/twilio/client";
+import { logAction, retainStandard } from "@/lib/logAction";
 
 interface RequestRow {
   id: string;
+  user_id: string;
   client_name: string;
   client_email: string;
   client_phone: string | null;
   document_type: string;
+  policy_id: string | null;
   status: string;
 }
 
@@ -109,10 +112,12 @@ export async function GET(request: NextRequest) {
         sequence_status,
         doc_chase_requests (
           id,
+          user_id,
           client_name,
           client_email,
           client_phone,
           document_type,
+          policy_id,
           status
         )
       )
@@ -202,6 +207,27 @@ export async function GET(request: NextRequest) {
           .update({ escalation_level: "phone_script", escalation_updated_at: nowIso })
           .eq("id", req.id);
 
+        void logAction({
+          broker_id: req.user_id,
+          policy_id: req.policy_id ?? null,
+          action_type: "doc_chase_escalated",
+          trigger_reason: `Document chase for ${req.document_type} from ${req.client_name} escalated to phone script (touch ${msg.touch_number} of sequence).`,
+          payload: {
+            body: msg.body,
+            recipient_name: req.client_name,
+            channel: "phone_script",
+            template_used: `doc_chase_touch_${msg.touch_number}`,
+          },
+          metadata: {
+            doc_chase_request_id: req.id,
+            sequence_id: msg.sequence_id,
+            touch_number: msg.touch_number,
+            document_type: req.document_type,
+          },
+          outcome: "escalated",
+          retain_until: retainStandard(),
+        });
+
         results.sent++;
         continue;
       }
@@ -227,6 +253,27 @@ export async function GET(request: NextRequest) {
           .from("doc_chase_requests")
           .update({ escalation_level: "sms", escalation_updated_at: nowIso })
           .eq("id", req.id);
+
+        void logAction({
+          broker_id: req.user_id,
+          policy_id: req.policy_id ?? null,
+          action_type: "doc_chase_sms",
+          trigger_reason: `Document chase SMS sent to ${req.client_name} requesting ${req.document_type} (touch ${msg.touch_number} of sequence).`,
+          payload: {
+            body: msg.body,
+            recipient_name: req.client_name,
+            channel: "sms",
+            template_used: `doc_chase_touch_${msg.touch_number}`,
+          },
+          metadata: {
+            doc_chase_request_id: req.id,
+            sequence_id: msg.sequence_id,
+            touch_number: msg.touch_number,
+            document_type: req.document_type,
+          },
+          outcome: "sent",
+          retain_until: retainStandard(),
+        });
 
         results.sent++;
         continue;
@@ -263,6 +310,29 @@ export async function GET(request: NextRequest) {
         .from("doc_chase_messages")
         .update({ status: "sent", sent_at: nowIso })
         .eq("id", msg.id);
+
+      void logAction({
+        broker_id: req.user_id,
+        policy_id: req.policy_id ?? null,
+        action_type: "doc_chase_email",
+        trigger_reason: `Document chase email sent to ${req.client_name} requesting ${req.document_type} (touch ${msg.touch_number} of sequence).`,
+        payload: {
+          subject: msg.subject,
+          body: msg.body,
+          recipient_email: req.client_email,
+          recipient_name: req.client_name,
+          channel: "email",
+          template_used: `doc_chase_touch_${msg.touch_number}`,
+        },
+        metadata: {
+          doc_chase_request_id: req.id,
+          sequence_id: msg.sequence_id,
+          touch_number: msg.touch_number,
+          document_type: req.document_type,
+        },
+        outcome: "sent",
+        retain_until: retainStandard(),
+      });
 
       results.sent++;
     } catch (err) {

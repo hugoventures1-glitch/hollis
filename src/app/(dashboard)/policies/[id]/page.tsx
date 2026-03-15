@@ -52,7 +52,7 @@ function VerdictIcon({ verdict }: { verdict: SummaryVerdict | null }) {
   if (!verdict || verdict === "all_clear") {
     return <ShieldCheck size={18} className="text-[#FAFAFA]" />;
   }
-  return <AlertTriangle size={18} className="text-[#888888]" />;
+  return <AlertTriangle size={18} className="text-[#9e9e9e]" />;
 }
 
 function formatDate(iso: string) {
@@ -195,7 +195,7 @@ function FlagCard({
         )}
 
         {flag.coverage_line && (
-          <span className="text-[10px] text-[#333333] bg-[#ffffff06] border border-[#ffffff0e] rounded px-1.5 py-0.5 shrink-0">
+          <span className="text-[10px] text-[#6b6b6b] bg-[#ffffff06] border border-[#ffffff0e] rounded px-1.5 py-0.5 shrink-0">
             {flag.coverage_line.toUpperCase()}
           </span>
         )}
@@ -205,22 +205,22 @@ function FlagCard({
           {flag.confidence} conf.
         </span>
         {isAnnotated && !expanded && (
-          <span className="text-[10px] text-[#333333] shrink-0">
+          <span className="text-[10px] text-[#6b6b6b] shrink-0">
             {ANNOTATION_LABELS[flag.annotation_status!]}
           </span>
         )}
         {expanded ? (
-          <ChevronUp size={14} className="text-[#333333] shrink-0" />
+          <ChevronUp size={14} className="text-[#6b6b6b] shrink-0" />
         ) : (
-          <ChevronDown size={14} className="text-[#333333] shrink-0" />
+          <ChevronDown size={14} className="text-[#6b6b6b] shrink-0" />
         )}
       </button>
 
       {/* Annotation ribbon (collapsed) */}
       {isAnnotated && !expanded && (
         <div className="px-4 pb-2.5 flex items-center gap-2">
-          <CheckCircle2 size={11} className="text-[#333333]" />
-          <span className="text-[11px] text-[#333333]">
+          <CheckCircle2 size={11} className="text-[#6b6b6b]" />
+          <span className="text-[11px] text-[#6b6b6b]">
             {ANNOTATION_LABELS[flag.annotation_status!]}
             {flag.annotation_reason ? ` — ${flag.annotation_reason}` : ""}
             {flag.annotated_at ? ` · ${formatDate(flag.annotated_at)}` : ""}
@@ -233,15 +233,15 @@ function FlagCard({
         <div className="px-4 pb-4 border-t border-[#1C1C1C]/60">
           <div className="pt-3 space-y-3">
             <div>
-              <div className="text-[10px] font-semibold text-[#333333] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
                 Flag Type
               </div>
-              <div className="text-[12px] text-[#555555]">
+              <div className="text-[12px] text-[#8a8a8a]">
                 {FLAG_TYPE_LABELS[flag.flag_type]}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-[#333333] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
                 What Was Found
               </div>
               <div className="text-[13px] text-[#FAFAFA] leading-relaxed">
@@ -249,7 +249,7 @@ function FlagCard({
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-[#333333] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
                 What Was Expected
               </div>
               <div className="text-[13px] text-[#FAFAFA] leading-relaxed">
@@ -257,7 +257,7 @@ function FlagCard({
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-[#333333] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
                 Why It Matters
               </div>
               <div className="text-[13px] text-[#FAFAFA] leading-relaxed">
@@ -268,34 +268,34 @@ function FlagCard({
 
           {/* ── Resolution section ──────────────────────────── */}
           <div className="mt-4 pt-3 border-t border-[#1C1C1C]/60">
-            <div className="text-[10px] font-semibold text-[#333333] uppercase tracking-wider mb-2.5">
+            <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-2.5">
               Resolve Flag
             </div>
 
             {flag.resolution_status === "actioned" ? (
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-[#FAFAFA]" />
-                <span className="text-[12px] text-[#555555]">
+                <span className="text-[12px] text-[#8a8a8a]">
                   Marked as <span className="text-[#FAFAFA] font-medium">Actioned</span>
                 </span>
                 <button
                   onClick={() => onResolve("open")}
                   disabled={resolving}
-                  className="ml-auto text-[11px] text-[#333333] hover:text-[#FAFAFA] transition-colors"
+                  className="ml-auto text-[11px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
                 >
                   Undo
                 </button>
               </div>
             ) : flag.resolution_status === "dismissed" ? (
               <div className="flex items-center gap-2">
-                <X size={13} className="text-[#333333]" />
-                <span className="text-[12px] text-[#555555]">
+                <X size={13} className="text-[#6b6b6b]" />
+                <span className="text-[12px] text-[#8a8a8a]">
                   Dismissed
                 </span>
                 <button
                   onClick={() => onResolve("open")}
                   disabled={resolving}
-                  className="ml-auto text-[11px] text-[#333333] hover:text-[#FAFAFA] transition-colors"
+                  className="ml-auto text-[11px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
                 >
                   Undo
                 </button>
@@ -326,7 +326,7 @@ function FlagCard({
                   <button
                     onClick={() => onResolve("dismissed")}
                     disabled={resolving || draftLoading}
-                    className="h-7 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-40"
+                    className="h-7 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-40"
                   >
                     {resolving ? (
                       <Loader2 size={11} className="animate-spin" />
@@ -340,7 +340,7 @@ function FlagCard({
                 {draftOpen && (
                   <div className="mt-3 rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] overflow-hidden">
                     {draftLoading && (
-                      <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-[#333333]">
+                      <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-[#6b6b6b]">
                         <Loader2 size={12} className="animate-spin text-[#FAFAFA]" />
                         Generating draft…
                       </div>
@@ -361,7 +361,7 @@ function FlagCard({
                         <div className="flex items-center gap-2 px-3 py-2 border-t border-[#1C1C1C] bg-[#ffffff03]">
                           <button
                             onClick={handleCopy}
-                            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
                           >
                             {copied ? (
                               <Check size={11} className="text-[#FAFAFA]" />
@@ -393,13 +393,13 @@ function FlagCard({
 
           {/* ── E&O annotation section ──────────────────────── */}
           <div className="mt-4 pt-3 border-t border-[#1C1C1C]/60">
-            <div className="text-[10px] font-semibold text-[#333333] uppercase tracking-wider mb-2.5">
+            <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-2.5">
               E&amp;O Documentation
             </div>
             {isAnnotated ? (
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-[#FAFAFA]" />
-                <span className="text-[12px] text-[#555555]">
+                <span className="text-[12px] text-[#8a8a8a]">
                   <span className="text-[#FAFAFA] font-medium">
                     {ANNOTATION_LABELS[flag.annotation_status!]}
                   </span>
@@ -413,7 +413,7 @@ function FlagCard({
               </div>
             ) : dismissMode ? (
               <div>
-                <div className="text-[11px] text-[#555555] mb-2">
+                <div className="text-[11px] text-[#8a8a8a] mb-2">
                   Reason for dismissal{" "}
                   <span className="text-red-400">*required</span>
                 </div>
@@ -422,7 +422,7 @@ function FlagCard({
                   onChange={(e) => setDismissReason(e.target.value)}
                   placeholder="e.g. Client confirmed this coverage is not required by contract"
                   rows={3}
-                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] placeholder:text-[#333333] outline-none focus:border-[#555555] resize-none mb-3"
+                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] placeholder:text-[#6b6b6b] outline-none focus:border-[#555555] resize-none mb-3"
                 />
                 <div className="flex items-center gap-2">
                   <button
@@ -440,7 +440,7 @@ function FlagCard({
                       setDismissMode(false);
                       setDismissReason("");
                     }}
-                    className="h-7 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                    className="h-7 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
                   >
                     Cancel
                   </button>
@@ -459,7 +459,7 @@ function FlagCard({
                 <button
                   onClick={() => setDismissMode(true)}
                   disabled={annotating}
-                  className="h-7 px-3 rounded-md bg-[#1C1C1C] border border-[#1C1C1C] text-[#888888] text-[12px] font-medium hover:bg-[#1C1C1C] transition-colors disabled:opacity-40"
+                  className="h-7 px-3 rounded-md bg-[#1C1C1C] border border-[#1C1C1C] text-[#9e9e9e] text-[12px] font-medium hover:bg-[#1C1C1C] transition-colors disabled:opacity-40"
                 >
                   Dismiss
                 </button>
@@ -512,7 +512,7 @@ function FlagGroup({
         <span className={`text-[11px] font-semibold uppercase tracking-wider ${labelColor}`}>
           {label}
         </span>
-        <span className="text-[11px] text-[#333333]">
+        <span className="text-[11px] text-[#6b6b6b]">
           {flags.length} {flags.length === 1 ? nounSingular : nounPlural}
         </span>
       </div>
@@ -662,14 +662,14 @@ export default function PolicyCheckDetailPage() {
         <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
           <Link
             href="/policies"
-            className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+            className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
           >
             <ArrowLeft size={13} />
             Policy Audit
           </Link>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 size={20} className="text-[#333333] animate-spin" />
+          <Loader2 size={20} className="text-[#6b6b6b] animate-spin" />
         </div>
       </div>
     );
@@ -681,14 +681,14 @@ export default function PolicyCheckDetailPage() {
         <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
           <Link
             href="/policies"
-            className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+            className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
           >
             <ArrowLeft size={13} />
             Policy Audit
           </Link>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-[14px] text-[#333333]">{error ?? "Not found"}</div>
+          <div className="text-[14px] text-[#6b6b6b]">{error ?? "Not found"}</div>
         </div>
       </div>
     );
@@ -747,7 +747,7 @@ export default function PolicyCheckDetailPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <div className="flex items-center gap-2 text-[13px] text-[#555555]">
+        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
           <Link
             href="/policies"
             className="flex items-center gap-1.5 hover:text-[#FAFAFA] transition-colors"
@@ -755,14 +755,14 @@ export default function PolicyCheckDetailPage() {
             <ArrowLeft size={13} />
             Policy Audit
           </Link>
-          <ChevronRight size={12} className="text-[#333333]" />
+          <ChevronRight size={12} className="text-[#6b6b6b]" />
           <span className="text-[#FAFAFA]">{clientName}</span>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Unannotated badge */}
           {unannotated > 0 && (
-            <span className="flex items-center gap-1.5 text-[11px] text-[#888888] bg-[#1C1C1C] border border-[#1C1C1C] rounded-full px-2.5 py-1">
+            <span className="flex items-center gap-1.5 text-[11px] text-[#9e9e9e] bg-[#1C1C1C] border border-[#1C1C1C] rounded-full px-2.5 py-1">
               <Clock size={10} />
               {unannotated} need review
             </span>
@@ -784,7 +784,7 @@ export default function PolicyCheckDetailPage() {
               href={`/api/policy-checks/${id}/report`}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
             >
               <Download size={12} />
               Export PDF
@@ -805,13 +805,13 @@ export default function PolicyCheckDetailPage() {
               <div className="flex items-start gap-2.5 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3 mb-5">
                 <AlertTriangle
                   size={14}
-                  className="text-[#888888] shrink-0 mt-0.5"
+                  className="text-[#9e9e9e] shrink-0 mt-0.5"
                 />
-                <div className="text-[12px] text-[#888888]">
+                <div className="text-[12px] text-[#9e9e9e]">
                   {failedDocs.length} document
                   {failedDocs.length !== 1 ? "s" : ""} could not be read —
                   flags may be incomplete.{" "}
-                  <span className="text-[#888888]/70">
+                  <span className="text-[#9e9e9e]/70">
                     {failedDocs.map((d) => d.original_filename).join(", ")}
                   </span>
                 </div>
@@ -822,8 +822,8 @@ export default function PolicyCheckDetailPage() {
             {totalFlags > 0 && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] text-[#333333]">Resolution progress</span>
-                  <span className="text-[11px] text-[#555555] tabular-nums">
+                  <span className="text-[11px] text-[#6b6b6b]">Resolution progress</span>
+                  <span className="text-[11px] text-[#8a8a8a] tabular-nums">
                     {resolvedCount} / {totalFlags} resolved
                   </span>
                 </div>
@@ -846,7 +846,7 @@ export default function PolicyCheckDetailPage() {
                     className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium transition-colors ${
                       activeTab === tab.key
                         ? "bg-[#1C1C1C] text-[#FAFAFA]"
-                        : "text-[#333333] hover:text-[#555555]"
+                        : "text-[#6b6b6b] hover:text-[#8a8a8a]"
                     }`}
                   >
                     {tab.label}
@@ -854,9 +854,9 @@ export default function PolicyCheckDetailPage() {
                       className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] tabular-nums font-semibold ${
                         activeTab === tab.key
                           ? tab.key === "open"
-                            ? "bg-[#1C1C1C] text-[#888888]"
+                            ? "bg-[#1C1C1C] text-[#9e9e9e]"
                             : "bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
-                          : "bg-[#ffffff08] text-[#333333]"
+                          : "bg-[#ffffff08] text-[#6b6b6b]"
                       }`}
                     >
                       {tab.count}
@@ -875,7 +875,7 @@ export default function PolicyCheckDetailPage() {
                 <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">
                   No issues found
                 </div>
-                <div className="text-[13px] text-[#555555]">
+                <div className="text-[13px] text-[#8a8a8a]">
                   This policy meets all coverage requirements.
                 </div>
               </div>
@@ -884,8 +884,8 @@ export default function PolicyCheckDetailPage() {
             {/* Empty tab state */}
             {totalFlags > 0 && tabFlags.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle2 size={20} className="text-[#333333] mb-3" />
-                <div className="text-[13px] text-[#333333]">
+                <CheckCircle2 size={20} className="text-[#6b6b6b] mb-3" />
+                <div className="text-[13px] text-[#6b6b6b]">
                   No {activeTab} flags
                 </div>
               </div>
@@ -910,7 +910,7 @@ export default function PolicyCheckDetailPage() {
             />
             <FlagGroup
               label="Warnings"
-              labelColor="text-[#888888]"
+              labelColor="text-[#9e9e9e]"
               flags={tabWarning}
               checkId={id}
               clientName={clientName}
@@ -967,8 +967,8 @@ export default function PolicyCheckDetailPage() {
 
               {check.requires_review && (
                 <div className="flex items-start gap-2 mt-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-3 py-2.5">
-                  <AlertTriangle size={13} className="text-[#888888] shrink-0 mt-0.5" />
-                  <div className="text-[11px] text-[#888888] leading-snug">
+                  <AlertTriangle size={13} className="text-[#9e9e9e] shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-[#9e9e9e] leading-snug">
                     <span className="font-semibold block">Manual review required</span>
                     AI confidence is low. Verify each flag against the source document before acting.
                   </div>
@@ -976,7 +976,7 @@ export default function PolicyCheckDetailPage() {
               )}
 
               {check.summary_note && (
-                <p className="text-[12px] text-[#555555] leading-relaxed mt-3">
+                <p className="text-[12px] text-[#8a8a8a] leading-relaxed mt-3">
                   {check.summary_note}
                 </p>
               )}
@@ -989,17 +989,17 @@ export default function PolicyCheckDetailPage() {
                   >
                     {criticalFlags.length}
                   </div>
-                  <div className="text-[10px] text-[#333333] mt-0.5">
+                  <div className="text-[10px] text-[#6b6b6b] mt-0.5">
                     Critical
                   </div>
                 </div>
                 <div className="text-center">
                   <div
-                    className={`text-[20px] font-bold tabular-nums ${warningFlags.length > 0 ? "text-[#888888]" : "text-[#FAFAFA]"}`}
+                    className={`text-[20px] font-bold tabular-nums ${warningFlags.length > 0 ? "text-[#9e9e9e]" : "text-[#FAFAFA]"}`}
                   >
                     {warningFlags.length}
                   </div>
-                  <div className="text-[10px] text-[#333333] mt-0.5">
+                  <div className="text-[10px] text-[#6b6b6b] mt-0.5">
                     Warning
                   </div>
                 </div>
@@ -1009,7 +1009,7 @@ export default function PolicyCheckDetailPage() {
                   >
                     {advisoryFlags.length}
                   </div>
-                  <div className="text-[10px] text-[#333333] mt-0.5">
+                  <div className="text-[10px] text-[#6b6b6b] mt-0.5">
                     Advisory
                   </div>
                 </div>
@@ -1018,7 +1018,7 @@ export default function PolicyCheckDetailPage() {
 
             {/* Documents card */}
             <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] p-4">
-              <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-3">
+              <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-3">
                 Documents Reviewed
               </div>
               <div className="space-y-3">
@@ -1026,19 +1026,19 @@ export default function PolicyCheckDetailPage() {
                   <div key={doc.id} className="flex items-start gap-2.5">
                     <FileText
                       size={12}
-                      className="text-[#333333] shrink-0 mt-0.5"
+                      className="text-[#6b6b6b] shrink-0 mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-[12px] text-[#FAFAFA] truncate">
                         {doc.original_filename}
                       </div>
                       {doc.extracted_named_insured && (
-                        <div className="text-[11px] text-[#555555] mt-0.5 truncate">
+                        <div className="text-[11px] text-[#8a8a8a] mt-0.5 truncate">
                           {doc.extracted_named_insured}
                         </div>
                       )}
                       {doc.extracted_expiry_date && (
-                        <div className="text-[10px] text-[#333333] mt-0.5">
+                        <div className="text-[10px] text-[#6b6b6b] mt-0.5">
                           Expires{" "}
                           {new Date(doc.extracted_expiry_date).toLocaleDateString(
                             "en-US",
@@ -1064,43 +1064,43 @@ export default function PolicyCheckDetailPage() {
 
             {/* Metadata card */}
             <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] p-4">
-              <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-3">
+              <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-3">
                 Check Details
               </div>
               <div className="space-y-2">
                 {check.clients && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#333333]">Client</span>
+                    <span className="text-[11px] text-[#6b6b6b]">Client</span>
                     <span className="text-[11px] text-[#FAFAFA]">
                       {check.clients.name}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#333333]">Checked</span>
+                  <span className="text-[11px] text-[#6b6b6b]">Checked</span>
                   <span className="text-[11px] text-[#FAFAFA]">
                     {formatDate(check.created_at)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#333333]">Documents</span>
+                  <span className="text-[11px] text-[#6b6b6b]">Documents</span>
                   <span className="text-[11px] text-[#FAFAFA]">
                     {check.document_count}
                   </span>
                 </div>
                 {unannotated > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#333333]">
+                    <span className="text-[11px] text-[#6b6b6b]">
                       Awaiting review
                     </span>
-                    <span className="text-[11px] text-[#888888]">
+                    <span className="text-[11px] text-[#9e9e9e]">
                       {unannotated} flags
                     </span>
                   </div>
                 )}
                 {resolvedCount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#333333]">Resolved</span>
+                    <span className="text-[11px] text-[#6b6b6b]">Resolved</span>
                     <span className="text-[11px] text-[#FAFAFA]">
                       {resolvedCount} / {totalFlags}
                     </span>
@@ -1108,7 +1108,7 @@ export default function PolicyCheckDetailPage() {
                 )}
                 {check.client_industry && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#333333]">Industry</span>
+                    <span className="text-[11px] text-[#6b6b6b]">Industry</span>
                     <span className="text-[11px] text-[#FAFAFA]">
                       {check.client_industry}
                     </span>
@@ -1118,7 +1118,7 @@ export default function PolicyCheckDetailPage() {
             </div>
 
             {/* E&O notice */}
-            <p className="text-[10px] text-[#333333] leading-relaxed px-1">
+            <p className="text-[10px] text-[#6b6b6b] leading-relaxed px-1">
               All flag annotations are logged with timestamp for E&amp;O
               documentation.
             </p>

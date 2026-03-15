@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 function VerdictBadge({ verdict }: { verdict: SummaryVerdict | null }) {
   if (!verdict) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ffffff08] text-[#555555] border border-[#ffffff10]">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]">
         Pending
       </span>
     );
@@ -31,7 +31,7 @@ function VerdictBadge({ verdict }: { verdict: SummaryVerdict | null }) {
 
 function StatusBadge({ status }: { status: PolicyCheckStatus }) {
   const styles: Record<PolicyCheckStatus, string> = {
-    pending:    "bg-[#ffffff08] text-[#555555] border border-[#ffffff10]",
+    pending:    "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]",
     processing: "bg-blue-900/20 text-blue-400 border border-blue-800/30",
     complete:   "",  // shown as verdict badge instead
     failed:     "bg-red-900/30 text-red-400 border border-red-700/30",
@@ -74,9 +74,9 @@ export default async function PoliciesPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <div className="flex items-center gap-2 text-[13px] text-[#555555]">
+        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
           <span>Hollis</span>
-          <ChevronRight size={12} className="text-[#333333]" />
+          <ChevronRight size={12} className="text-[#6b6b6b]" />
           <span className="text-[#FAFAFA]">Policy Audit</span>
         </div>
         <Link
@@ -95,19 +95,19 @@ export default async function PoliciesPage() {
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
               <div className="text-[28px] font-bold text-[#FAFAFA] tabular-nums">{totalChecks}</div>
-              <div className="text-[12px] text-[#333333] mt-1">Total Checks</div>
+              <div className="text-[12px] text-[#6b6b6b] mt-1">Total Checks</div>
             </div>
             <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
               <div className={`text-[28px] font-bold tabular-nums ${criticalChecks > 0 ? "text-red-400" : "text-[#FAFAFA]"}`}>
                 {criticalChecks}
               </div>
-              <div className="text-[12px] text-[#333333] mt-1">With Critical Issues</div>
+              <div className="text-[12px] text-[#6b6b6b] mt-1">With Critical Issues</div>
             </div>
             <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-              <div className={`text-[28px] font-bold tabular-nums ${pendingChecks > 0 ? "text-[#888888]" : "text-[#FAFAFA]"}`}>
+              <div className={`text-[28px] font-bold tabular-nums ${pendingChecks > 0 ? "text-[#9e9e9e]" : "text-[#FAFAFA]"}`}>
                 {pendingChecks}
               </div>
-              <div className="text-[12px] text-[#333333] mt-1">In Progress</div>
+              <div className="text-[12px] text-[#6b6b6b] mt-1">In Progress</div>
             </div>
           </div>
 
@@ -120,7 +120,7 @@ export default async function PoliciesPage() {
                 <ShieldCheck size={24} className="text-[#FAFAFA]" />
               </div>
               <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">No policy checks yet</div>
-              <div className="text-[13px] text-[#555555] mb-6 max-w-xs">
+              <div className="text-[13px] text-[#8a8a8a] mb-6 max-w-xs">
                 Upload a policy PDF to check for coverage gaps, E&amp;O risks, and discrepancies.
               </div>
               <Link
@@ -137,11 +137,11 @@ export default async function PoliciesPage() {
             <div className="rounded-xl border border-[#1C1C1C] overflow-hidden">
               {/* Table header */}
               <div className="grid grid-cols-12 gap-4 px-5 py-2.5 bg-[#0C0C0C] border-b border-[#1C1C1C]">
-                <div className="col-span-3 text-[11px] font-medium text-[#333333] uppercase tracking-wider">Client</div>
-                <div className="col-span-2 text-[11px] font-medium text-[#333333] uppercase tracking-wider">Verdict</div>
-                <div className="col-span-3 text-[11px] font-medium text-[#333333] uppercase tracking-wider">Flags (C / W / A)</div>
-                <div className="col-span-2 text-[11px] font-medium text-[#333333] uppercase tracking-wider">Docs</div>
-                <div className="col-span-2 text-[11px] font-medium text-[#333333] uppercase tracking-wider">Checked</div>
+                <div className="col-span-3 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Client</div>
+                <div className="col-span-2 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Verdict</div>
+                <div className="col-span-3 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Flags (C / W / A)</div>
+                <div className="col-span-2 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Docs</div>
+                <div className="col-span-2 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Checked</div>
               </div>
 
               {/* Table rows */}
@@ -165,7 +165,7 @@ export default async function PoliciesPage() {
                         {clientName}
                       </div>
                       {check.client_industry && (
-                        <div className="text-[11px] text-[#333333] mt-0.5 truncate">{check.client_industry}</div>
+                        <div className="text-[11px] text-[#6b6b6b] mt-0.5 truncate">{check.client_industry}</div>
                       )}
                     </div>
 
@@ -181,39 +181,39 @@ export default async function PoliciesPage() {
                     <div className="col-span-3 flex items-center gap-2">
                       {check.overall_status === "complete" ? (
                         <>
-                          <span className={`text-[12px] font-medium tabular-nums ${critical > 0 ? SEVERITY_BADGE_STYLES.critical.split(" ").slice(1).join(" ") : "text-[#333333]"}`}>
+                          <span className={`text-[12px] font-medium tabular-nums ${critical > 0 ? SEVERITY_BADGE_STYLES.critical.split(" ").slice(1).join(" ") : "text-[#6b6b6b]"}`}>
                             {critical}C
                           </span>
                           <span className="text-[#1C1C1C]">/</span>
-                          <span className={`text-[12px] font-medium tabular-nums ${warning > 0 ? SEVERITY_BADGE_STYLES.warning.split(" ").slice(1).join(" ") : "text-[#333333]"}`}>
+                          <span className={`text-[12px] font-medium tabular-nums ${warning > 0 ? SEVERITY_BADGE_STYLES.warning.split(" ").slice(1).join(" ") : "text-[#6b6b6b]"}`}>
                             {warning}W
                           </span>
                           <span className="text-[#1C1C1C]">/</span>
-                          <span className={`text-[12px] font-medium tabular-nums ${advisory > 0 ? "text-blue-400" : "text-[#333333]"}`}>
+                          <span className={`text-[12px] font-medium tabular-nums ${advisory > 0 ? "text-blue-400" : "text-[#6b6b6b]"}`}>
                             {advisory}A
                           </span>
                           {unannotated > 0 && (
-                            <span className="ml-2 flex items-center gap-1 text-[11px] text-[#888888]">
+                            <span className="ml-2 flex items-center gap-1 text-[11px] text-[#9e9e9e]">
                               <Clock size={10} />
                               {unannotated} pending
                             </span>
                           )}
                         </>
                       ) : (
-                        <span className="text-[12px] text-[#333333]">—</span>
+                        <span className="text-[12px] text-[#6b6b6b]">—</span>
                       )}
                     </div>
 
                     {/* Document count */}
                     <div className="col-span-2 flex items-center">
-                      <span className="text-[13px] text-[#555555] tabular-nums">
+                      <span className="text-[13px] text-[#8a8a8a] tabular-nums">
                         {check.document_count} {check.document_count === 1 ? "doc" : "docs"}
                       </span>
                     </div>
 
                     {/* Date */}
                     <div className="col-span-2 flex items-center">
-                      <span className="text-[12px] text-[#333333] tabular-nums">
+                      <span className="text-[12px] text-[#6b6b6b] tabular-nums">
                         {new Date(check.created_at).toLocaleDateString("en-US", {
                           month: "short", day: "numeric", year: "numeric",
                         })}
@@ -228,7 +228,7 @@ export default async function PoliciesPage() {
 
           {/* E&O notice */}
           {rows.length > 0 && (
-            <div className="flex items-center gap-2 mt-6 text-[11px] text-[#333333]">
+            <div className="flex items-center gap-2 mt-6 text-[11px] text-[#6b6b6b]">
               <AlertTriangle size={11} />
               All flag annotations are logged with timestamp for E&amp;O documentation.
             </div>

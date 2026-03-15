@@ -30,6 +30,7 @@ import { classifyIntent } from "@/lib/agent/intent-classifier";
 import { buildFlagsFromClassification, writeFlagsToPolicy, getCurrentFlags } from "@/lib/agent/flag-writer";
 import { routeTier } from "@/lib/agent/tier-router";
 import { writeAuditLog } from "@/lib/audit/log";
+import { logAction, retainStandard, retainLongTerm } from "@/lib/logAction";
 import { notifyBrokerTier3 } from "@/lib/agent/broker-notifier";
 import type { AuditEventType } from "@/types/renewals";
 import type { ParserOutcome } from "@/types/agent";
@@ -203,7 +204,53 @@ export async function POST(req: NextRequest) {
       } else if (queueItem) {
         tierDecision.approval_queue_id = queueItem.id as string;
       }
+
+      void logAction({
+        broker_id: user.id,
+        policy_id,
+        action_type: "approval_queued",
+        tier: "2",
+        trigger_reason: `Inbound signal from ${sender_name ?? sender_email ?? "client"} classified as "${classification.intent}" (confidence ${Math.round(classification.confidence * 100)}%) — queued for broker review before action.`,
+        payload: {
+          intent_classification: classification.intent,
+          confidence_score: classification.confidence,
+          channel: "internal",
+          escalation_reason: tierDecision.reason,
+        },
+        metadata: {
+          signal_id: signal.id,
+          flags_detected: classification.flags_detected,
+          premium_increase_pct: classification.premium_increase_pct ?? null,
+          reasoning: classification.reasoning,
+          approval_queue_id: tierDecision.approval_queue_id ?? null,
+        },
+        outcome: "queued",
+        retain_until: retainLongTerm(),
+      });
     }
+
+    // Also log the intent classification itself (all tiers)
+    void logAction({
+      broker_id: user.id,
+      policy_id,
+      action_type: "renewal_intent_classified",
+      tier: String(tierDecision.tier),
+      trigger_reason: `Inbound signal from ${sender_name ?? sender_email ?? "client"} classified as "${classification.intent}" with ${Math.round(classification.confidence * 100)}% confidence — routed to Tier ${tierDecision.tier}.`,
+      payload: {
+        intent_classification: classification.intent,
+        confidence_score: classification.confidence,
+        channel: "internal",
+      },
+      metadata: {
+        signal_id: signal.id,
+        flags_detected: classification.flags_detected,
+        premium_increase_pct: classification.premium_increase_pct ?? null,
+        reasoning: classification.reasoning,
+        tier_reason: tierDecision.reason,
+      },
+      outcome: "classified",
+      retain_until: tierDecision.tier === 3 ? retainLongTerm() : retainStandard(),
+    });
 
     // ── 10. Tier 3: send broker alert email ─────────────────────────────────────
     if (tierDecision.tier === 3) {
@@ -211,6 +258,28 @@ export async function POST(req: NextRequest) {
       notifyBrokerTier3(admin, user.id, policy_id, tierDecision).catch((err) =>
         console.error("[agent/signal] Broker notification failed:", err instanceof Error ? err.message : err)
       );
+
+      void logAction({
+        broker_id: user.id,
+        policy_id,
+        action_type: "escalation",
+        tier: "3",
+        trigger_reason: `Signal from ${sender_name ?? sender_email ?? "client"} triggered Tier 3 hard escalation — ${tierDecision.reason}`,
+        payload: {
+          intent_classification: classification.intent,
+          confidence_score: classification.confidence,
+          channel: "internal",
+          escalation_reason: tierDecision.reason,
+        },
+        metadata: {
+          signal_id: signal.id,
+          flags_detected: classification.flags_detected,
+          premium_increase_pct: classification.premium_increase_pct ?? null,
+          reasoning: classification.reasoning,
+        },
+        outcome: "escalated",
+        retain_until: retainLongTerm(),
+      });
     }
 
     // ── 11. Mark signal as processed ────────────────────────────────────────────

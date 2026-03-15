@@ -136,7 +136,7 @@ export function HolderAutofillInput({
           onFocus={handleInputFocus}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 pr-8 text-[13px] text-[#f5f5f7] outline-none focus:border-[#555555] placeholder-[#333333]"
+          className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 pr-8 text-[13px] text-[#f5f5f7] outline-none focus:border-[#555555] placeholder-[#6b6b6b]"
         />
         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
           {loading ? (
@@ -144,7 +144,7 @@ export function HolderAutofillInput({
           ) : selectedId ? (
             <Check size={13} className="text-[#FAFAFA]" />
           ) : (
-            <Search size={13} className="text-[#333333]" />
+            <Search size={13} className="text-[#6b6b6b]" />
           )}
         </div>
       </div>
@@ -163,12 +163,12 @@ export function HolderAutofillInput({
                   {holder.name}
                 </div>
                 {(holder.city || holder.state) && (
-                  <div className="text-[11px] text-[#333333] mt-0.5 truncate">
+                  <div className="text-[11px] text-[#6b6b6b] mt-0.5 truncate">
                     {formatShortAddress(holder)}
                   </div>
                 )}
               </div>
-              <span className="shrink-0 text-[10px] font-medium text-[#333333] bg-[#1e1e2a] border border-[#1C1C1C] px-2 py-0.5 rounded">
+              <span className="shrink-0 text-[10px] font-medium text-[#6b6b6b] bg-[#1e1e2a] border border-[#1C1C1C] px-2 py-0.5 rounded">
                 {holder.usage_count}×
               </span>
             </button>

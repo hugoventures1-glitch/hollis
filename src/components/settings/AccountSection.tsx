@@ -167,7 +167,7 @@ export function AccountSection({ planName }: Props) {
                 value={deleteInput}
                 onChange={(e) => setDeleteInput(e.target.value)}
                 placeholder="DELETE"
-                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#111111] border border-red-700/40 text-[14px] text-[#f5f5f7] placeholder-[#333333] focus:outline-none focus:border-red-500/60 transition-colors"
+                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#111111] border border-red-700/40 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] focus:outline-none focus:border-red-500/60 transition-colors"
               />
               {deleteError && <p className="text-[12px] text-red-400">{deleteError}</p>}
               <div className="flex items-center gap-2 pt-1">

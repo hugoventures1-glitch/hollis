@@ -51,7 +51,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
                 ? "text-[#FAFAFA]"
                 : currentIdx > i
                 ? "text-[#FAFAFA]"
-                : "text-[#333333]"
+                : "text-[#6b6b6b]"
             }`}
           >
             <div
@@ -60,7 +60,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
                   ? "bg-[#FAFAFA] border-[#FAFAFA] text-[#0C0C0C]"
                   : currentIdx > i
                   ? "bg-[#FAFAFA]/20 border-[#555555] text-[#FAFAFA]"
-                  : "bg-transparent border-[#333333] text-[#333333]"
+                  : "bg-transparent border-[#333333] text-[#6b6b6b]"
               }`}
             >
               {i + 1}
@@ -96,12 +96,12 @@ function FileStatusRow({ entry }: { entry: FileEntry }) {
 
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-[#1C1C1C]/60 last:border-b-0">
-      <FileText size={13} className="text-[#333333] shrink-0" />
+      <FileText size={13} className="text-[#6b6b6b] shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="text-[13px] text-[#FAFAFA] truncate">{entry.file.name}</div>
         <div
           className={`text-[11px] mt-0.5 ${
-            entry.status === "error" ? "text-red-400" : "text-[#333333]"
+            entry.status === "error" ? "text-red-400" : "text-[#6b6b6b]"
           }`}
         >
           {entry.status === "error" ? label : `${formatFileSize(entry.file.size)} · ${label}`}
@@ -324,12 +324,12 @@ export default function NewPolicyCheckPage() {
       <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
         <Link
           href="/policies"
-          className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
         >
           <ArrowLeft size={13} />
           Policy Audit
         </Link>
-        <ChevronRight size={12} className="text-[#333333]" />
+        <ChevronRight size={12} className="text-[#6b6b6b]" />
         <span className="text-[13px] text-[#FAFAFA]">New Check</span>
         <div className="ml-auto">
           <StepIndicator current={step} />
@@ -346,14 +346,14 @@ export default function NewPolicyCheckPage() {
               <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">
                 Run a policy check
               </h1>
-              <p className="text-[14px] text-[#555555] mb-8">
+              <p className="text-[14px] text-[#8a8a8a] mb-8">
                 Upload one or more policy PDFs. Hollis will extract all coverage
                 data and flag gaps against your client&apos;s profile.
               </p>
 
               {/* Client selector */}
               <div className="mb-6">
-                <label className="block text-[12px] font-medium text-[#555555] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-medium text-[#8a8a8a] uppercase tracking-wider mb-2">
                   Client <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -384,7 +384,7 @@ export default function NewPolicyCheckPage() {
 
               {/* Drop zone */}
               <div className="mb-4">
-                <label className="block text-[12px] font-medium text-[#555555] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-medium text-[#8a8a8a] uppercase tracking-wider mb-2">
                   Policy PDFs <span className="text-red-500">*</span>
                 </label>
                 <div
@@ -408,12 +408,12 @@ export default function NewPolicyCheckPage() {
                 >
                   <Upload
                     size={26}
-                    className={dragging ? "text-[#FAFAFA]" : "text-[#333333]"}
+                    className={dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}
                   />
                   <div className="text-[14px] font-medium text-[#FAFAFA] mt-3">
                     Drop policy PDFs here
                   </div>
-                  <div className="text-[12px] text-[#555555] mt-1">
+                  <div className="text-[12px] text-[#8a8a8a] mt-1">
                     or click to browse · PDF only · max 20 MB each
                   </div>
                   <input
@@ -441,12 +441,12 @@ export default function NewPolicyCheckPage() {
                       key={entry.file.name}
                       className="flex items-center gap-3 px-4 py-2.5 border-b border-[#1C1C1C]/60 last:border-b-0"
                     >
-                      <FileText size={13} className="text-[#333333] shrink-0" />
+                      <FileText size={13} className="text-[#6b6b6b] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] text-[#FAFAFA] truncate">
                           {entry.file.name}
                         </div>
-                        <div className="text-[11px] text-[#333333] mt-0.5">
+                        <div className="text-[11px] text-[#6b6b6b] mt-0.5">
                           {formatFileSize(entry.file.size)}
                         </div>
                       </div>
@@ -457,7 +457,7 @@ export default function NewPolicyCheckPage() {
                         }}
                         className="p-1 rounded hover:bg-white/[0.06] transition-colors"
                       >
-                        <X size={12} className="text-[#333333]" />
+                        <X size={12} className="text-[#6b6b6b]" />
                       </button>
                     </div>
                   ))}
@@ -490,7 +490,7 @@ export default function NewPolicyCheckPage() {
               <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">
                 Checking coverage…
               </h1>
-              <p className="text-[14px] text-[#555555] mb-8">
+              <p className="text-[14px] text-[#8a8a8a] mb-8">
                 Hollis is reading your policies. This usually takes 15–60
                 seconds per document.
               </p>
@@ -515,7 +515,7 @@ export default function NewPolicyCheckPage() {
                         <div className="text-[13px] font-medium text-[#FAFAFA]">
                           Analyzing coverage…
                         </div>
-                        <div className="text-[11px] text-[#333333] mt-0.5">
+                        <div className="text-[11px] text-[#6b6b6b] mt-0.5">
                           Comparing against client profile and industry
                           standards
                         </div>
@@ -548,7 +548,7 @@ export default function NewPolicyCheckPage() {
                         </button>
                       )}
                       {successCount === 0 && (
-                        <p className="text-[12px] text-[#333333]">
+                        <p className="text-[12px] text-[#6b6b6b]">
                           No documents were extracted successfully. Please go
                           back and try again with different files.
                         </p>
@@ -563,9 +563,9 @@ export default function NewPolicyCheckPage() {
                 <div className="flex items-start gap-2.5 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3 mt-4">
                   <AlertCircle
                     size={14}
-                    className="text-[#888888] shrink-0 mt-0.5"
+                    className="text-[#9e9e9e] shrink-0 mt-0.5"
                   />
-                  <div className="text-[12px] text-[#888888]">
+                  <div className="text-[12px] text-[#9e9e9e]">
                     {errorCount} document{errorCount !== 1 ? "s" : ""} could not
                     be read. The analysis will run on the{" "}
                     {successCount} successful{" "}
@@ -586,7 +586,7 @@ export default function NewPolicyCheckPage() {
               <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-2">
                 Analysis complete
               </h1>
-              <p className="text-[14px] text-[#555555] mb-8">
+              <p className="text-[14px] text-[#8a8a8a] mb-8">
                 Your coverage gap report is ready. Review the flags and annotate
                 each one for your E&amp;O records.
               </p>
@@ -602,7 +602,7 @@ export default function NewPolicyCheckPage() {
                     setAnalysisError(null);
                     setCompletedCheckId(null);
                   }}
-                  className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                  className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
                 >
                   Run Another Check
                 </button>

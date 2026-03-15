@@ -18,6 +18,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getResendClient } from "@/lib/resend/client";
 import { generateFinalNotice, finalNoticeFallback } from "@/lib/renewals/final-notice";
 import { writeAuditLog } from "@/lib/audit/log";
+import { logAction, retainStandard } from "@/lib/logAction";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy } from "@/types/renewals";
 
@@ -160,6 +161,32 @@ export async function GET(request: NextRequest) {
         expiration_date: policy.expiration_date,
       },
       actor_type: "system",
+    });
+
+    void logAction({
+      broker_id: policy.user_id,
+      policy_id: policy.id,
+      action_type: "renewal_email",
+      tier: "1",
+      trigger_reason: `Policy ${policy.policy_name ?? policy.id} is ${days} day${days !== 1 ? "s" : ""} from expiry with no client confirmation — 7-day final notice sent to ${policy.client_name}.`,
+      payload: {
+        subject: notice.subject,
+        body: notice.body,
+        recipient_email: policy.client_email,
+        recipient_name: policy.client_name,
+        channel: "email",
+        template_used: "final_notice_7",
+        previous_stage: policy.campaign_stage,
+        new_stage: "final_notice_sent",
+      },
+      metadata: {
+        carrier: policy.carrier ?? null,
+        days_to_expiry: days,
+        expiration_date: policy.expiration_date,
+        provider_id: providerId,
+      },
+      outcome: "sent",
+      retain_until: retainStandard(),
     });
 
     results.sent++;

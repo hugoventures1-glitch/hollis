@@ -222,7 +222,7 @@ export function DailyBriefing() {
         <div className={`flex items-center justify-between ${collapsed ? "mb-0" : "mb-4"}`}>
           <button
             onClick={toggleCollapsed}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#555555] uppercase tracking-widest hover:text-[#888888] transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest hover:text-[#9e9e9e] transition-colors"
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expand today's briefing" : "Collapse briefing"}
           >
@@ -238,7 +238,7 @@ export function DailyBriefing() {
               onClick={handleRefresh}
               disabled={refreshing}
               title="Refresh briefing"
-              className="text-[#333333] hover:text-[#555555] transition-colors disabled:opacity-40"
+              className="text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors disabled:opacity-40"
               aria-label="Refresh morning briefing"
             >
               <RefreshCw
@@ -267,7 +267,7 @@ export function DailyBriefing() {
                 {/* "View →" fades in on row hover */}
                 <button
                   onClick={() => handleNavigate(item)}
-                  className="shrink-0 text-[13px] text-[#333333] hover:text-[#FAFAFA] opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap"
+                  className="shrink-0 text-[13px] text-[#6b6b6b] hover:text-[#FAFAFA] opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap"
                   aria-label={`View details for: ${item.text}`}
                 >
                   View →

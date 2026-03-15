@@ -61,12 +61,12 @@ export default function SignupPage() {
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-[#FAFAFA]">Check your email</h2>
-        <p className="mt-2 text-sm text-[#8a8b91]">
+        <p className="mt-2 text-sm text-[#9e9e9e]">
           We sent a confirmation link to{" "}
           <span className="font-medium text-[#FAFAFA]">{confirmedEmail}</span>.
           Click it to activate your account and sign in.
         </p>
-        <p className="mt-6 text-sm text-[#333333]">
+        <p className="mt-6 text-sm text-[#6b6b6b]">
           Already confirmed?{" "}
           <Link
             href="/login"
@@ -85,7 +85,7 @@ export default function SignupPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
           Create your account
         </h1>
-        <p className="mt-1 text-sm text-[#8a8b91]">
+        <p className="mt-1 text-sm text-[#9e9e9e]">
           Get started with Hollis today
         </p>
       </div>
@@ -110,7 +110,7 @@ export default function SignupPage() {
             type="text"
             autoComplete="name"
             placeholder="Jane Smith"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.name && (
             <p className="mt-1.5 text-xs text-red-400">{errors.name.message}</p>
@@ -130,7 +130,7 @@ export default function SignupPage() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.email && (
             <p className="mt-1.5 text-xs text-red-400">
@@ -152,14 +152,14 @@ export default function SignupPage() {
             type="password"
             autoComplete="new-password"
             placeholder="••••••••"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.password ? (
             <p className="mt-1.5 text-xs text-red-400">
               {errors.password.message}
             </p>
           ) : (
-            <p className="mt-1.5 text-xs text-[#333333]">
+            <p className="mt-1.5 text-xs text-[#6b6b6b]">
               At least 8 characters, one uppercase letter, and one number
             </p>
           )}
@@ -174,7 +174,7 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#8a8b91]">
+      <p className="mt-6 text-center text-sm text-[#9e9e9e]">
         Already have an account?{" "}
         <Link
           href="/login"

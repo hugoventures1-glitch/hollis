@@ -26,7 +26,7 @@ export function SettingsInput({ error, className = "", ...props }: InputProps) {
       {...props}
       className={`w-full px-3 py-2 rounded-md bg-[#111111] border ${
         error ? "border-red-500/60" : "border-[#2a2a36]"
-      } text-[14px] text-[#f5f5f7] placeholder-[#333333] focus:outline-none focus:border-[#555555] focus:ring-1 focus:ring-0 transition-colors ${className}`}
+      } text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] focus:ring-1 focus:ring-0 transition-colors ${className}`}
     />
   );
 }
@@ -41,7 +41,7 @@ export function SettingsTextarea({ error, className = "", ...props }: TextareaPr
       {...props}
       className={`w-full px-3 py-2 rounded-md bg-[#111111] border ${
         error ? "border-red-500/60" : "border-[#2a2a36]"
-      } text-[14px] text-[#f5f5f7] placeholder-[#333333] focus:outline-none focus:border-[#555555] focus:ring-1 focus:ring-0 transition-colors resize-none ${className}`}
+      } text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] focus:ring-1 focus:ring-0 transition-colors resize-none ${className}`}
     />
   );
 }

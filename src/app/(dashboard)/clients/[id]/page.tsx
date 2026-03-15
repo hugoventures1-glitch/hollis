@@ -23,7 +23,7 @@ interface PageProps {
 function InfoBlock({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">{label}</div>
       <div className="text-[14px] text-[#FAFAFA]">{value ?? "—"}</div>
     </div>
   );
@@ -60,9 +60,9 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
   const STATUS_COLORS: Record<string, string> = {
     sent:     "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]",
-    draft:    "text-[#555555] bg-white/[0.04] border-[#1C1C1C]",
+    draft:    "text-[#8a8a8a] bg-white/[0.04] border-[#1C1C1C]",
     expired:  "text-red-400 bg-red-950/20 border-red-800/20",
-    outdated: "text-[#888888] bg-[#1C1C1C] border-[#1C1C1C]",
+    outdated: "text-[#9e9e9e] bg-[#1C1C1C] border-[#1C1C1C]",
   };
 
   return (
@@ -72,12 +72,12 @@ export default async function ClientDetailPage({ params }: PageProps) {
       <div className="flex items-center gap-3 px-6 h-[56px] border-b border-[#1C1C1C] shrink-0">
         <Link
           href="/clients"
-          className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
         >
           <ArrowLeft size={13} />
           Clients
         </Link>
-        <ChevronRight size={12} className="text-[#333333]" />
+        <ChevronRight size={12} className="text-[#6b6b6b]" />
         <span className="text-[13px] text-[#FAFAFA] truncate">{client.name}</span>
       </div>
 
@@ -94,7 +94,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
             <div>
               <h1 className="text-[22px] font-bold text-[#FAFAFA] leading-tight">{client.name}</h1>
               {client.industry && (
-                <p className="text-[14px] text-[#555555] mt-0.5 capitalize">
+                <p className="text-[14px] text-[#8a8a8a] mt-0.5 capitalize">
                   {client.industry.replace(/_/g, " ")}
                 </p>
               )}
@@ -129,8 +129,8 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
           {client.notes && (
             <div className="pt-5 mt-5 border-t border-[#1C1C1C]">
-              <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-2">Notes</div>
-              <p className="text-[14px] text-[#555555] leading-relaxed">{client.notes}</p>
+              <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-2">Notes</div>
+              <p className="text-[14px] text-[#8a8a8a] leading-relaxed">{client.notes}</p>
             </div>
           )}
         </div>
@@ -138,12 +138,12 @@ export default async function ClientDetailPage({ params }: PageProps) {
         {/* Certificates */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-widest">
+            <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-widest">
               Certificates
             </div>
             <Link
               href="/certificates"
-              className="text-[12px] text-[#333333] hover:text-[#FAFAFA] transition-colors"
+              className="text-[12px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
             >
               View all →
             </Link>
@@ -151,8 +151,8 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
           {certificates.length === 0 ? (
             <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-8 text-center">
-              <FileText size={20} className="text-[#333333] mx-auto mb-2" />
-              <p className="text-[13px] text-[#333333]">No certificates found for this client</p>
+              <FileText size={20} className="text-[#6b6b6b] mx-auto mb-2" />
+              <p className="text-[13px] text-[#6b6b6b]">No certificates found for this client</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -166,7 +166,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                     <div className="text-[13px] font-medium text-[#FAFAFA]">
                       {cert.certificate_number}
                     </div>
-                    <div className="text-[12px] text-[#333333] mt-0.5">
+                    <div className="text-[12px] text-[#6b6b6b] mt-0.5">
                       Holder: {cert.holder_name ?? "—"}
                       {cert.expiration_date && (
                         <> · Exp {cert.expiration_date}</>
@@ -183,7 +183,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                     </span>
                     <ArrowLeft
                       size={13}
-                      className="text-[#333333] opacity-0 group-hover:opacity-100 transition-opacity rotate-180"
+                      className="text-[#6b6b6b] opacity-0 group-hover:opacity-100 transition-opacity rotate-180"
                     />
                   </div>
                 </Link>
@@ -194,7 +194,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
         {/* Communication History */}
         <div>
-          <div className="text-[11px] font-semibold text-[#333333] uppercase tracking-wider mb-4">
+          <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-4">
             Communication History
           </div>
           <CommunicationTimeline clientId={client.id} />

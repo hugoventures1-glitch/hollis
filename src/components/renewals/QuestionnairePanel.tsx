@@ -56,14 +56,14 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
   return (
     <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest">
+        <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest">
           Client Questionnaire
         </div>
         {(!latest || latest.status === "responded") && (
           <button
             onClick={handleSend}
             disabled={isPending}
-            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#555555] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#8a8a8a] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
           >
             {isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
             {latest?.status === "responded" ? "Send Again" : "Send Questionnaire"}
@@ -73,7 +73,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
 
       {/* Status */}
       {!latest && (
-        <div className="text-[13px] text-[#333333] py-2">
+        <div className="text-[13px] text-[#6b6b6b] py-2">
           No questionnaire sent yet. Send one to capture client&apos;s current risk details.
         </div>
       )}
@@ -86,16 +86,16 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
                 ? "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border-[#1C1C1C]"
                 : latest.status === "expired"
                 ? "bg-[#FF4444]/[0.08] text-[#FF4444] border-[#FF4444]/20"
-                : "bg-[#ffffff06] text-[#555555] border-[#1C1C1C]"
+                : "bg-[#ffffff06] text-[#8a8a8a] border-[#1C1C1C]"
             }`}>
               {latest.status === "responded" && <Check size={11} />}
               {latest.status === "responded" ? "Responded" : latest.status === "expired" ? "Expired" : "Awaiting Response"}
             </span>
-            <span className="text-[12px] text-[#333333]">
+            <span className="text-[12px] text-[#6b6b6b]">
               Sent {daysSinceSent === 0 ? "today" : `${daysSinceSent}d ago`}
             </span>
             {latest.responded_at && (
-              <span className="text-[12px] text-[#333333]">
+              <span className="text-[12px] text-[#6b6b6b]">
                 Responded{" "}
                 {new Date(latest.responded_at).toLocaleDateString("en-AU", {
                   day: "numeric", month: "short",
@@ -110,7 +110,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
               <>
                 <button
                   onClick={() => handleCopyLink(latest.token)}
-                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#555555] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors"
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#8a8a8a] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors"
                 >
                   <ClipboardCopy size={12} />
                   Copy Link
@@ -118,7 +118,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
                 <button
                   onClick={handleSend}
                   disabled={isPending}
-                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#555555] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#8a8a8a] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
                 >
                   {isPending ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                   Resend Reminder
@@ -132,21 +132,21 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
             <div className="space-y-3 pt-1">
               {suggestions.summary && (
                 <div className="rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] px-4 py-3">
-                  <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-1.5">
+                  <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-1.5">
                     AI Summary
                   </div>
-                  <p className="text-[13px] text-[#555555] leading-relaxed">{suggestions.summary}</p>
+                  <p className="text-[13px] text-[#8a8a8a] leading-relaxed">{suggestions.summary}</p>
                 </div>
               )}
 
               {suggestions.risk_flags.length > 0 && (
                 <div className="rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3">
-                  <div className="text-[11px] font-semibold text-[#888888] uppercase tracking-widest mb-1.5">
+                  <div className="text-[11px] font-semibold text-[#9e9e9e] uppercase tracking-widest mb-1.5">
                     Risk Flags
                   </div>
                   <ul className="space-y-1">
                     {suggestions.risk_flags.map((flag, i) => (
-                      <li key={i} className="text-[12px] text-[#888888]/80 flex gap-1.5">
+                      <li key={i} className="text-[12px] text-[#9e9e9e]/80 flex gap-1.5">
                         <span className="shrink-0">⚠</span>
                         {flag}
                       </li>
@@ -157,7 +157,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
 
               {visibleSuggestions.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-2">
+                  <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-2">
                     Suggested Policy Updates
                   </div>
                   <div className="space-y-2">
@@ -170,15 +170,15 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
                             </div>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                               {sug.current_value && (
-                                <span className="text-[11px] text-[#333333] line-through">{sug.current_value}</span>
+                                <span className="text-[11px] text-[#6b6b6b] line-through">{sug.current_value}</span>
                               )}
                               <span className="text-[11px] text-[#FAFAFA]">→ {sug.suggested_value}</span>
                             </div>
-                            <div className="text-[11px] text-[#555555] mt-1">{sug.reason}</div>
+                            <div className="text-[11px] text-[#8a8a8a] mt-1">{sug.reason}</div>
                           </div>
                           <button
                             onClick={() => handleDismiss(i)}
-                            className="shrink-0 p-1 text-[#333333] hover:text-[#555555] transition-colors"
+                            className="shrink-0 p-1 text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors"
                             title="Dismiss"
                           >
                             <X size={12} />
@@ -191,7 +191,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
               )}
 
               {visibleSuggestions.length === 0 && suggestions.suggested_updates.length > 0 && (
-                <div className="text-[12px] text-[#333333]">All suggestions reviewed.</div>
+                <div className="text-[12px] text-[#6b6b6b]">All suggestions reviewed.</div>
               )}
             </div>
           )}
@@ -199,7 +199,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
           {/* Raw responses (collapsed by default) */}
           {latest.status === "responded" && latest.responses && (
             <details className="group">
-              <summary className="text-[12px] text-[#555555] hover:text-[#555555] cursor-pointer list-none flex items-center gap-1">
+              <summary className="text-[12px] text-[#8a8a8a] hover:text-[#8a8a8a] cursor-pointer list-none flex items-center gap-1">
                 <span className="group-open:hidden">▶</span>
                 <span className="hidden group-open:inline">▼</span>
                 View raw responses
@@ -207,7 +207,7 @@ export function QuestionnairePanel({ policyId, questionnaires }: QuestionnairePa
               <div className="mt-2 rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] p-3 space-y-2">
                 {Object.entries(latest.responses).map(([q, a]) => (
                   <div key={q}>
-                    <div className="text-[11px] text-[#555555] mb-0.5">{q}</div>
+                    <div className="text-[11px] text-[#8a8a8a] mb-0.5">{q}</div>
                     <div className="text-[12px] text-[#FAFAFA]">{a}</div>
                   </div>
                 ))}

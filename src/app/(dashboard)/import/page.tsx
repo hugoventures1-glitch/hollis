@@ -112,7 +112,7 @@ const HOLLIS_FIELD_LABELS: Record<string, string> = {
 
 const CONFIDENCE_STYLES = {
   high: { label: "High confidence", className: "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]" },
-  medium: { label: "Medium confidence", className: "text-[#888888] bg-[#1C1C1C] border-[#1C1C1C]" },
+  medium: { label: "Medium confidence", className: "text-[#9e9e9e] bg-[#1C1C1C] border-[#1C1C1C]" },
   low: { label: "Low confidence", className: "text-red-400 bg-red-900/20 border-red-700/30" },
 };
 
@@ -416,7 +416,7 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-5 flex flex-col gap-1.5">
-      <span className="text-[11px] font-bold text-[#333333] uppercase tracking-[0.1em]">
+      <span className="text-[11px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
         {label}
       </span>
       <span
@@ -425,7 +425,7 @@ function SummaryCard({
         {value}
       </span>
       {sub && (
-        <span className="text-[12px] text-[#333333] font-medium">{sub}</span>
+        <span className="text-[12px] text-[#6b6b6b] font-medium">{sub}</span>
       )}
     </div>
   );
@@ -453,13 +453,13 @@ function MappingRow({
         </div>
       </td>
       <td className="px-5 py-3">
-        <span className="text-[12px] font-mono text-[#555555] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
+        <span className="text-[12px] font-mono text-[#8a8a8a] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
           {header}
         </span>
       </td>
       <td className="px-5 py-3">
         <span className="text-[13px] text-[#FAFAFA] truncate max-w-[220px] block">
-          {sample || <span className="text-[#333333]">—</span>}
+          {sample || <span className="text-[#6b6b6b]">—</span>}
         </span>
       </td>
     </tr>
@@ -676,13 +676,13 @@ export default function FullBookImportPage() {
       {/* Header */}
       <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center px-10 gap-3">
         <div className="flex items-center gap-2 text-[13px]">
-          <span className="text-[#333333]">Import</span>
+          <span className="text-[#6b6b6b]">Import</span>
           <span className="text-[#1C1C1C]">/</span>
           <span className="text-[#FAFAFA] font-medium">Full Book Import</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Zap size={13} className="text-[#FAFAFA]" />
-          <span className="text-[12px] text-[#333333] font-medium">AI-Powered</span>
+          <span className="text-[12px] text-[#6b6b6b] font-medium">AI-Powered</span>
         </div>
       </header>
 
@@ -696,7 +696,7 @@ export default function FullBookImportPage() {
               <h1 className="text-[28px] font-bold text-[#FAFAFA] tracking-tight mb-2">
                 Drop your AMS export
               </h1>
-              <p className="text-[15px] text-[#333333]">
+              <p className="text-[15px] text-[#6b6b6b]">
                 Hollis reads any WinBEAT, Sunrise, or Applied Epic export and maps every field automatically.
               </p>
             </div>
@@ -722,19 +722,19 @@ export default function FullBookImportPage() {
               >
                 <Upload
                   size={26}
-                  className={`transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#333333]"}`}
+                  className={`transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}`}
                 />
               </div>
 
               <p className={`text-[17px] font-semibold mb-1 transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#FAFAFA]"}`}>
                 {dragging ? "Release to analyse" : "Drop file here"}
               </p>
-              <p className="text-[13px] text-[#333333] mb-6">
+              <p className="text-[13px] text-[#6b6b6b] mb-6">
                 Excel (.xlsx, .xls) or CSV · max 10 MB
               </p>
 
               <div
-                className="h-9 px-5 rounded-lg border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors font-medium"
+                className="h-9 px-5 rounded-lg border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors font-medium"
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
               >
                 Browse files
@@ -765,7 +765,7 @@ export default function FullBookImportPage() {
               {["WinBEAT", "Sunrise", "Applied Epic", "Insight", "Any CSV"].map((s) => (
                 <span
                   key={s}
-                  className="text-[11px] text-[#333333] font-medium px-2 py-0.5 rounded border border-[#1C1C1C]"
+                  className="text-[11px] text-[#6b6b6b] font-medium px-2 py-0.5 rounded border border-[#1C1C1C]"
                 >
                   {s}
                 </span>
@@ -792,7 +792,7 @@ export default function FullBookImportPage() {
             <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
               {analysingPhase <= 1 ? "Reading your file…" : analysingPhase === 2 ? "Analysing format…" : "Building mapping…"}
             </h2>
-            <p className="text-[13px] text-[#333333] mb-10">
+            <p className="text-[13px] text-[#6b6b6b] mb-10">
               {parsedFile?.name ?? "Processing"}
             </p>
 
@@ -818,7 +818,7 @@ export default function FullBookImportPage() {
                     ) : null}
                   </div>
                   <span className={`text-[13px] transition-colors ${
-                    analysingPhase >= phase ? "text-[#FAFAFA]" : "text-[#333333]"
+                    analysingPhase >= phase ? "text-[#FAFAFA]" : "text-[#6b6b6b]"
                   }`}>
                     {label}
                   </span>
@@ -850,7 +850,7 @@ export default function FullBookImportPage() {
                   in your {aiAnalysis.detected_system} export.
                 </h1>
               </div>
-              <p className="text-[14px] text-[#333333]">
+              <p className="text-[14px] text-[#6b6b6b]">
                 Review the mapping below, resolve any flagged fields, then confirm to import.
               </p>
             </div>
@@ -858,10 +858,10 @@ export default function FullBookImportPage() {
             {/* Low confidence warning */}
             {aiAnalysis.confidence === "low" && (
               <div className="flex items-start gap-3 rounded-xl bg-[#1C1C1C] border border-[#1C1C1C] px-5 py-4 mb-6">
-                <AlertTriangle size={16} className="text-[#888888] shrink-0 mt-0.5" />
+                <AlertTriangle size={16} className="text-[#9e9e9e] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-[13px] font-semibold text-[#888888] mb-0.5">Low confidence mapping</p>
-                  <p className="text-[13px] text-[#888888]/80">
+                  <p className="text-[13px] font-semibold text-[#9e9e9e] mb-0.5">Low confidence mapping</p>
+                  <p className="text-[13px] text-[#9e9e9e]/80">
                     The field mapping is uncertain. Review carefully before importing.
                   </p>
                 </div>
@@ -897,7 +897,7 @@ export default function FullBookImportPage() {
                 label="Due in 90 days"
                 value={aiAnalysis.summary.renewals_in_90_days}
                 sub="upcoming renewals"
-                accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#333333]"}
+                accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#6b6b6b]"}
               />
               <SummaryCard
                 label="At Risk"
@@ -906,11 +906,11 @@ export default function FullBookImportPage() {
                 accent={
                   (aiAnalysis.summary.overdue_renewals ?? 0) > 0
                     ? "text-red-400"
-                    : "text-[#333333]"
+                    : "text-[#6b6b6b]"
                 }
               />
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-5 flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-[#333333] uppercase tracking-[0.1em]">
+                <span className="text-[11px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
                   Detected System
                 </span>
                 <span className="text-[20px] font-bold text-[#FAFAFA] leading-tight mt-0.5">
@@ -930,20 +930,20 @@ export default function FullBookImportPage() {
             {mappedFields.length > 0 && (
               <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
                 <div className="px-5 py-3 border-b border-[#1C1C1C] bg-[#0C0C0C]">
-                  <span className="text-[12px] font-bold text-[#333333] uppercase tracking-[0.1em]">
+                  <span className="text-[12px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
                     Field Mapping — {mappedFields.length} fields detected
                   </span>
                 </div>
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#1C1C1C]">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#333333] uppercase tracking-wider w-[200px]">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider w-[200px]">
                         Hollis Field
                       </th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#333333] uppercase tracking-wider">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">
                         Detected From
                       </th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#333333] uppercase tracking-wider">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">
                         Sample Value
                       </th>
                     </tr>
@@ -966,8 +966,8 @@ export default function FullBookImportPage() {
             {aiAnalysis.ambiguous_columns.length > 0 && (
               <div className="rounded-xl border border-[#1C1C1C] bg-[#1C1C1C] overflow-hidden mb-6">
                 <div className="px-5 py-3 border-b border-[#1C1C1C] flex items-center gap-2.5">
-                  <AlertTriangle size={13} className="text-[#888888]" />
-                  <span className="text-[12px] font-bold text-[#888888]/80 uppercase tracking-[0.1em]">
+                  <AlertTriangle size={13} className="text-[#9e9e9e]" />
+                  <span className="text-[12px] font-bold text-[#9e9e9e]/80 uppercase tracking-[0.1em]">
                     {aiAnalysis.ambiguous_columns.length} field{aiAnalysis.ambiguous_columns.length !== 1 ? "s" : ""} need clarification
                   </span>
                 </div>
@@ -979,12 +979,12 @@ export default function FullBookImportPage() {
                           <span className="text-[13px] font-mono text-[#FAFAFA] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
                             {col.header}
                           </span>
-                          <span className="text-[12px] text-[#888888]/70">
+                          <span className="text-[12px] text-[#9e9e9e]/70">
                             is ambiguous
                           </span>
                         </div>
-                        <p className="text-[12px] text-[#333333]">
-                          AI suggests: <span className="text-[#888888]">{col.recommendation}</span>
+                        <p className="text-[12px] text-[#6b6b6b]">
+                          AI suggests: <span className="text-[#9e9e9e]">{col.recommendation}</span>
                         </p>
                       </div>
                       <select
@@ -1018,8 +1018,8 @@ export default function FullBookImportPage() {
                     key={i}
                     className="flex items-start gap-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3"
                   >
-                    <AlertTriangle size={13} className="text-[#888888] shrink-0 mt-0.5" />
-                    <p className="text-[13px] text-[#888888]/90">{w}</p>
+                    <AlertTriangle size={13} className="text-[#9e9e9e] shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-[#9e9e9e]/90">{w}</p>
                   </div>
                 ))}
               </div>
@@ -1033,26 +1033,26 @@ export default function FullBookImportPage() {
                   className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[12px] font-bold text-[#333333] uppercase tracking-[0.1em]">
+                    <span className="text-[12px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
                       {aiAnalysis.unmapped_columns.length} columns won&apos;t be imported
                     </span>
                   </div>
                   {unmappedOpen ? (
-                    <ChevronUp size={14} className="text-[#333333]" />
+                    <ChevronUp size={14} className="text-[#6b6b6b]" />
                   ) : (
-                    <ChevronDown size={14} className="text-[#333333]" />
+                    <ChevronDown size={14} className="text-[#6b6b6b]" />
                   )}
                 </button>
                 {unmappedOpen && (
                   <div className="border-t border-[#1C1C1C] px-5 py-4">
-                    <p className="text-[12px] text-[#333333] mb-3">
+                    <p className="text-[12px] text-[#6b6b6b] mb-3">
                       These columns don&apos;t match any Hollis field and will be skipped.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {aiAnalysis.unmapped_columns.map((col) => (
                         <span
                           key={col}
-                          className="text-[11px] font-mono text-[#333333] bg-[#111111] border border-[#1C1C1C] px-2 py-0.5 rounded"
+                          className="text-[11px] font-mono text-[#6b6b6b] bg-[#111111] border border-[#1C1C1C] px-2 py-0.5 rounded"
                         >
                           {col}
                         </span>
@@ -1080,7 +1080,7 @@ export default function FullBookImportPage() {
               </button>
               <button
                 onClick={reset}
-                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#333333] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
               >
                 Cancel
               </button>
@@ -1100,7 +1100,7 @@ export default function FullBookImportPage() {
             <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
               Writing to your book…
             </h2>
-            <p className="text-[13px] text-[#333333]">
+            <p className="text-[13px] text-[#6b6b6b]">
               Matching clients, creating policies, scheduling renewals.
             </p>
           </div>
@@ -1143,7 +1143,7 @@ export default function FullBookImportPage() {
                   key={label}
                   className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-4 flex items-center justify-between"
                 >
-                  <span className="text-[14px] font-semibold text-[#555555]">
+                  <span className="text-[14px] font-semibold text-[#8a8a8a]">
                     {label}
                   </span>
                   <div className="flex items-baseline gap-4">
@@ -1151,14 +1151,14 @@ export default function FullBookImportPage() {
                       <span className={`text-[22px] font-bold tabular-nums ${color}`}>
                         {inserted}
                       </span>
-                      <span className="text-[12px] text-[#333333] ml-1.5">added</span>
+                      <span className="text-[12px] text-[#6b6b6b] ml-1.5">added</span>
                     </div>
                     {dupes > 0 && (
                       <div className="text-right">
-                        <span className="text-[16px] font-bold tabular-nums text-[#333333]">
+                        <span className="text-[16px] font-bold tabular-nums text-[#6b6b6b]">
                           {dupes}
                         </span>
-                        <span className="text-[12px] text-[#333333] ml-1">skipped</span>
+                        <span className="text-[12px] text-[#6b6b6b] ml-1">skipped</span>
                       </div>
                     )}
                   </div>
@@ -1169,17 +1169,17 @@ export default function FullBookImportPage() {
             {/* Row errors */}
             {importResult.errors.length > 0 && (
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-5 py-4 mb-6">
-                <p className="text-[12px] text-[#333333] mb-2">
+                <p className="text-[12px] text-[#6b6b6b] mb-2">
                   {importResult.errors.length} row{importResult.errors.length !== 1 ? "s" : ""} couldn&apos;t be imported and were skipped.
                 </p>
                 <ul className="space-y-1 max-h-24 overflow-y-auto">
                   {importResult.errors.slice(0, 5).map((err, i) => (
-                    <li key={i} className="text-[11px] text-[#333333] font-mono">
+                    <li key={i} className="text-[11px] text-[#6b6b6b] font-mono">
                       Row {err.row}: {err.reason}
                     </li>
                   ))}
                   {importResult.errors.length > 5 && (
-                    <li className="text-[11px] text-[#333333]">
+                    <li className="text-[11px] text-[#6b6b6b]">
                       + {importResult.errors.length - 5} more
                     </li>
                   )}
@@ -1198,7 +1198,7 @@ export default function FullBookImportPage() {
               </Link>
               <button
                 onClick={reset}
-                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#333333] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
               >
                 Import another file
               </button>

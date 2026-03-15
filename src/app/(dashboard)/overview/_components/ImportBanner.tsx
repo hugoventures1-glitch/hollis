@@ -75,7 +75,7 @@ export function ImportBanner() {
         <div className="text-[14px] font-semibold text-[#FAFAFA] mb-0.5">
           You&apos;re all set — import complete
         </div>
-        <p className="text-[13px] text-[#555555] leading-relaxed">
+        <p className="text-[13px] text-[#8a8a8a] leading-relaxed">
           Hollis imported <span className="text-[#FAFAFA] font-medium">{summary}</span>.
           Your first renewal reminders will go out automatically as policies approach their expiration date.
         </p>
@@ -88,7 +88,7 @@ export function ImportBanner() {
           </Link>
           <Link
             href="/import"
-            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
           >
             <Upload size={11} />
             Import more
@@ -98,7 +98,7 @@ export function ImportBanner() {
 
       <button
         onClick={dismiss}
-        className="shrink-0 text-[#333333] hover:text-[#FAFAFA] transition-colors mt-0.5"
+        className="shrink-0 text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors mt-0.5"
         aria-label="Dismiss"
       >
         <X size={16} />

@@ -72,13 +72,13 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
   return (
     <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest">
+        <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest">
           Insurer Quotes
         </div>
         <button
           onClick={() => setShowForm(v => !v)}
           disabled={isPending}
-          className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#555555] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg bg-[#ffffff06] text-[#8a8a8a] hover:bg-[#ffffff0a] hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
         >
           <Plus size={12} />
           Add Quote
@@ -88,7 +88,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
       {/* Add quote form */}
       {showForm && (
         <div className="rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] p-4 space-y-3">
-          <div className="text-[12px] text-[#555555]">
+          <div className="text-[12px] text-[#8a8a8a]">
             Paste the insurer renewal letter or key terms below. Claude will parse and structure it.
           </div>
           <input
@@ -96,14 +96,14 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
             value={insurerName}
             onChange={e => setInsurerName(e.target.value)}
             placeholder="Insurer name (e.g. Zurich, QBE, Allianz)"
-            className="block w-full text-[13px] bg-[#111111] border border-[#2a2a35] rounded-lg px-3 py-2 text-[#FAFAFA] placeholder-[#333333] focus:outline-none focus:border-[#555555]"
+            className="block w-full text-[13px] bg-[#111111] border border-[#2a2a35] rounded-lg px-3 py-2 text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555]"
           />
           <textarea
             value={rawText}
             onChange={e => setRawText(e.target.value)}
             placeholder="Paste insurer renewal terms, quote letter, or key conditions here…"
             rows={6}
-            className="block w-full text-[13px] bg-[#111111] border border-[#2a2a35] rounded-lg px-3 py-2 text-[#FAFAFA] placeholder-[#333333] focus:outline-none focus:border-[#555555] resize-none font-mono"
+            className="block w-full text-[13px] bg-[#111111] border border-[#2a2a35] rounded-lg px-3 py-2 text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] resize-none font-mono"
           />
           <div className="flex gap-2">
             <button
@@ -122,7 +122,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="text-[12px] px-3 py-1.5 rounded-lg text-[#555555] hover:text-[#555555] transition-colors"
+              className="text-[12px] px-3 py-1.5 rounded-lg text-[#8a8a8a] hover:text-[#8a8a8a] transition-colors"
             >
               Cancel
             </button>
@@ -132,7 +132,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
 
       {/* Terms cards */}
       {terms.length === 0 && !showForm && (
-        <div className="text-[13px] text-[#333333] py-4 text-center">
+        <div className="text-[13px] text-[#6b6b6b] py-4 text-center">
           No quotes added yet. Add quotes to compare insurers.
         </div>
       )}
@@ -143,7 +143,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
             const isExpanded = expandedId === term.id;
             const changeColor =
               term.premium_change === null
-                ? "text-[#555555]"
+                ? "text-[#8a8a8a]"
                 : term.premium_change > 0
                 ? "text-red-400"
                 : "text-[#4ade80]";
@@ -162,7 +162,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
                   <div>
                     <div className="text-[14px] font-semibold text-[#FAFAFA]">{term.insurer_name}</div>
                     {term.effective_date && (
-                      <div className="text-[11px] text-[#333333] mt-0.5">
+                      <div className="text-[11px] text-[#6b6b6b] mt-0.5">
                         Effective{" "}
                         {new Date(term.effective_date + "T00:00:00").toLocaleDateString("en-AU", {
                           day: "numeric", month: "short", year: "numeric",
@@ -177,7 +177,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
                     className={`shrink-0 p-1 rounded-md transition-colors disabled:opacity-50 ${
                       term.is_recommended
                         ? "text-yellow-400 hover:text-yellow-300"
-                        : "text-[#333333] hover:text-[#555555]"
+                        : "text-[#6b6b6b] hover:text-[#8a8a8a]"
                     }`}
                   >
                     <Star size={14} fill={term.is_recommended ? "currentColor" : "none"} />
@@ -187,7 +187,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
                 {/* Premium */}
                 <div className="flex items-baseline gap-3">
                   <div>
-                    <div className="text-[11px] text-[#333333] uppercase tracking-wider">Premium</div>
+                    <div className="text-[11px] text-[#6b6b6b] uppercase tracking-wider">Premium</div>
                     <div className="text-[18px] font-bold text-[#FAFAFA]">
                       {term.quoted_premium !== null
                         ? `$${Number(term.quoted_premium).toLocaleString("en-AU")}`
@@ -206,8 +206,8 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
 
                 {/* Payment terms */}
                 {term.payment_terms && (
-                  <div className="text-[12px] text-[#555555]">
-                    <span className="text-[#333333]">Payment: </span>
+                  <div className="text-[12px] text-[#8a8a8a]">
+                    <span className="text-[#6b6b6b]">Payment: </span>
                     {term.payment_terms}
                   </div>
                 )}
@@ -217,7 +217,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
                   <div>
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : term.id)}
-                      className="flex items-center gap-1 text-[11px] text-[#555555] hover:text-[#555555] transition-colors"
+                      className="flex items-center gap-1 text-[11px] text-[#8a8a8a] hover:text-[#8a8a8a] transition-colors"
                     >
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       {term.new_exclusions.length} exclusion{term.new_exclusions.length !== 1 ? "s" : ""},{" "}
@@ -228,11 +228,11 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
                       <div className="mt-2 space-y-2">
                         {term.new_exclusions.length > 0 && (
                           <div>
-                            <div className="text-[11px] font-medium text-[#888888] mb-1">New Exclusions</div>
+                            <div className="text-[11px] font-medium text-[#9e9e9e] mb-1">New Exclusions</div>
                             <ul className="space-y-1">
                               {term.new_exclusions.map((exc, i) => (
-                                <li key={i} className="text-[12px] text-[#555555] flex gap-1.5">
-                                  <span className="text-[#888888] shrink-0">•</span>
+                                <li key={i} className="text-[12px] text-[#8a8a8a] flex gap-1.5">
+                                  <span className="text-[#9e9e9e] shrink-0">•</span>
                                   {exc}
                                 </li>
                               ))}
@@ -244,7 +244,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
                             <div className="text-[11px] font-medium text-[#60a5fa] mb-1">Changed Conditions</div>
                             <ul className="space-y-1">
                               {term.changed_conditions.map((cond, i) => (
-                                <li key={i} className="text-[12px] text-[#555555] flex gap-1.5">
+                                <li key={i} className="text-[12px] text-[#8a8a8a] flex gap-1.5">
                                   <span className="text-[#60a5fa] shrink-0">•</span>
                                   {cond}
                                 </li>
@@ -259,7 +259,7 @@ export function InsurerTermsPanel({ policyId, terms, priorPremium }: InsurerTerm
 
                 {/* Notes */}
                 {term.notes && (
-                  <div className="text-[12px] text-[#555555] italic border-t border-[#1C1C1C] pt-2">
+                  <div className="text-[12px] text-[#8a8a8a] italic border-t border-[#1C1C1C] pt-2">
                     {term.notes}
                   </div>
                 )}

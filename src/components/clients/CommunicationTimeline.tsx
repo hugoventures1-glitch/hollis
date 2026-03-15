@@ -151,7 +151,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
               className={className}
             >
               {content}
-              <span className="text-[#333333] group-hover:text-[#FAFAFA] transition-colors shrink-0 self-center">
+              <span className="text-[#6b6b6b] group-hover:text-[#FAFAFA] transition-colors shrink-0 self-center">
                 →
               </span>
             </Link>

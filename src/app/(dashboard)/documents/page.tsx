@@ -32,10 +32,10 @@ import { useHollisStore } from "@/stores/hollisStore";
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<DocChaseRequestStatus, string> = {
-  pending:   "text-[#555555] bg-[#1C1C1C] border-[#1C1C1C]",
+  pending:   "text-[#8a8a8a] bg-[#1C1C1C] border-[#1C1C1C]",
   active:    "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]",
   received:  "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]",
-  cancelled: "text-[#333333] bg-[#111111] border-[#1C1C1C]",
+  cancelled: "text-[#6b6b6b] bg-[#111111] border-[#1C1C1C]",
 };
 
 const STATUS_LABELS: Record<DocChaseRequestStatus, string> = {
@@ -93,7 +93,7 @@ function ToastStack({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: nu
           {t.message}
           <button
             onClick={() => onDismiss(t.id)}
-            className="ml-2 text-[#333333] hover:text-[#555555] transition-colors"
+            className="ml-2 text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors"
           >
             <X size={13} />
           </button>
@@ -236,7 +236,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
           </span>
           <button
             onClick={onClose}
-            className="text-[#333333] hover:text-[#FAFAFA] transition-colors"
+            className="text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
           >
             <X size={18} />
           </button>
@@ -247,7 +247,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Client Name */}
           <div>
-            <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
+            <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
               Client Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -270,7 +270,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Client Email */}
           <div>
-            <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
+            <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
               Client Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -292,8 +292,8 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Client Phone */}
           <div>
-            <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
-              Client Phone <span className="text-[#333333]">(optional)</span>
+            <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
+              Client Phone <span className="text-[#6b6b6b]">(optional)</span>
             </label>
             <input
               type="tel"
@@ -306,7 +306,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Document Type */}
           <div>
-            <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
+            <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
               Document Type <span className="text-red-500">*</span>
             </label>
             <select
@@ -324,7 +324,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
           {/* Other document type text field */}
           {form.document_type === "Other (specify)" && (
             <div>
-              <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
+              <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
                 Specify Document <span className="text-red-500">*</span>
               </label>
               <input
@@ -342,11 +342,11 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Policy (typeahead) */}
           <div className="relative">
-            <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
-              Linked Policy <span className="text-[#333333]">(optional)</span>
+            <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
+              Linked Policy <span className="text-[#6b6b6b]">(optional)</span>
             </label>
             <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333333] pointer-events-none" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b6b] pointer-events-none" />
               <input
                 type="text"
                 value={policySearch}
@@ -375,7 +375,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
                     className="w-full text-left px-3 py-2 text-[13px] text-[#FAFAFA] hover:bg-white/[0.04] transition-colors"
                   >
                     <span className="text-[#FAFAFA] font-medium">{p.policy_name}</span>
-                    <span className="text-[#555555] ml-2">{p.client_name}</span>
+                    <span className="text-[#8a8a8a] ml-2">{p.client_name}</span>
                   </button>
                 ))}
               </div>
@@ -384,8 +384,8 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Notes */}
           <div>
-            <label className="block text-[12px] font-medium text-[#555555] mb-1.5">
-              Notes <span className="text-[#333333]">(optional)</span>
+            <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
+              Notes <span className="text-[#6b6b6b]">(optional)</span>
             </label>
             <textarea
               value={form.notes}
@@ -398,7 +398,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
 
           {/* Info banner */}
           <div className="rounded-lg bg-[#FAFAFA]/[0.05] border border-[#FAFAFA]/15 px-4 py-3">
-            <p className="text-[12px] text-[#555555] leading-relaxed">
+            <p className="text-[12px] text-[#8a8a8a] leading-relaxed">
               Hollis will draft a 4-touch sequence (days 0, 5, 10, 20). Touch 3
               can be SMS if you add a phone number. Touch 4 surfaces a call script
               for you to use — no automatic send.
@@ -411,7 +411,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
           <button
             type="button"
             onClick={onClose}
-            className="h-9 px-4 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#1C1C1C] transition-colors"
+            className="h-9 px-4 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#1C1C1C] transition-colors"
           >
             Cancel
           </button>
@@ -597,7 +597,7 @@ export default function DocumentsPage() {
 
       {/* Header */}
       <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center justify-between px-10">
-        <div className="flex items-center gap-2 text-[13px] text-[#555555]">
+        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
           <span>Hollis</span>
           <ChevronRight size={12} />
           <span className="text-[#FAFAFA]">Documents</span>
@@ -622,23 +622,23 @@ export default function DocumentsPage() {
           <div className="text-[32px] font-bold text-[#FAFAFA] leading-none">
             {loading ? "—" : activeCount}
           </div>
-          <div className="text-[12px] text-[#555555] mt-1.5">Active Requests</div>
+          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Active Requests</div>
         </div>
         <div className="px-10 border-l border-[#1C1C1C]">
           <div className="text-[32px] font-bold text-[#FAFAFA] leading-none">
             {loading ? "—" : receivedThisMonth}
           </div>
-          <div className="text-[12px] text-[#555555] mt-1.5">Received This Month</div>
+          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Received This Month</div>
         </div>
         <div className="px-10 border-l border-[#1C1C1C]">
           <div
             className={`text-[32px] font-bold leading-none ${
-              overdueCount > 0 ? "text-red-400" : "text-[#333333]"
+              overdueCount > 0 ? "text-red-400" : "text-[#6b6b6b]"
             }`}
           >
             {loading ? "—" : overdueCount}
           </div>
-          <div className="text-[12px] text-[#555555] mt-1.5">Overdue</div>
+          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Overdue</div>
         </div>
       </div>
 
@@ -646,7 +646,7 @@ export default function DocumentsPage() {
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <Loader2 size={22} className="animate-spin text-[#333333]" />
+            <Loader2 size={22} className="animate-spin text-[#6b6b6b]" />
           </div>
         ) : requests.length === 0 ? (
           <EmptyState onRequest={() => setDrawerOpen(true)} />
@@ -654,22 +654,22 @@ export default function DocumentsPage() {
           <table className="w-full">
             <thead className="sticky top-0 bg-[#0C0C0C] z-10">
               <tr className="border-b border-[#1C1C1C]">
-                <th className="px-10 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
+                <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                   Client
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                   Document
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                   Touches
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                   Last Contact
                 </th>
-                <th className="px-10 py-3 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider">
+                <th className="px-10 py-3 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -697,12 +697,12 @@ export default function DocumentsPage() {
                           {req.client_name}
                         </span>
                         {(req as { escalation_level?: string }).escalation_level === "phone_script" && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#1C1C1C] text-[#888888] border border-[#1C1C1C]">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#1C1C1C] text-[#9e9e9e] border border-[#1C1C1C]">
                             📞 Call ready
                           </span>
                         )}
                       </div>
-                      <div className="text-[12px] text-[#555555] mt-0.5">
+                      <div className="text-[12px] text-[#8a8a8a] mt-0.5">
                         {req.client_email}
                       </div>
                     </td>
@@ -710,12 +710,12 @@ export default function DocumentsPage() {
                     {/* Document type */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        <FileText size={13} className="text-[#333333] shrink-0" />
+                        <FileText size={13} className="text-[#6b6b6b] shrink-0" />
                         <span className="text-[13px] text-[#FAFAFA]">
                           {req.document_type}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[#333333] mt-0.5">
+                      <div className="text-[11px] text-[#6b6b6b] mt-0.5">
                         {formatDate(req.created_at)}
                       </div>
                     </td>
@@ -728,7 +728,7 @@ export default function DocumentsPage() {
                         {STATUS_LABELS[effectiveStatus]}
                       </span>
                       {effectiveStatus === "received" && req.received_at && (
-                        <div className="text-[11px] text-[#333333] mt-0.5">
+                        <div className="text-[11px] text-[#6b6b6b] mt-0.5">
                           {formatDate(req.received_at)}
                         </div>
                       )}
@@ -749,7 +749,7 @@ export default function DocumentsPage() {
                             />
                           ))}
                         </div>
-                        <span className="text-[12px] text-[#555555] tabular-nums">
+                        <span className="text-[12px] text-[#8a8a8a] tabular-nums">
                           {req.touches_sent} / {req.touches_total}
                         </span>
                       </div>
@@ -757,7 +757,7 @@ export default function DocumentsPage() {
 
                     {/* Last contact */}
                     <td className="px-4 py-3.5">
-                      <span className="text-[12px] text-[#555555]">
+                      <span className="text-[12px] text-[#8a8a8a]">
                         {req.last_contact ? timeAgo(req.last_contact) : "—"}
                       </span>
                     </td>
@@ -767,7 +767,7 @@ export default function DocumentsPage() {
                       {isConfirming ? (
                         // Inline confirmation
                         <div className="flex flex-col gap-2">
-                          <p className="text-[12px] text-[#555555] leading-snug max-w-[220px]">
+                          <p className="text-[12px] text-[#8a8a8a] leading-snug max-w-[220px]">
                             Mark{" "}
                             <span className="text-[#FAFAFA] font-medium">
                               {confirm.document_type}
@@ -779,7 +779,7 @@ export default function DocumentsPage() {
                             as{" "}
                             {confirm.action === "received" ? "received" : "cancelled"}?
                             {confirm.action === "received" && (
-                              <span className="text-[#555555]">
+                              <span className="text-[#8a8a8a]">
                                 {" "}This will cancel all pending follow-ups.
                               </span>
                             )}
@@ -792,14 +792,14 @@ export default function DocumentsPage() {
                               className={`h-7 px-3 text-[12px] font-semibold rounded-md transition-colors ${
                                 confirm.action === "received"
                                   ? "bg-[#FAFAFA]/[0.08] text-[#FAFAFA] hover:bg-[#FAFAFA]/[0.08] border border-[#1C1C1C]"
-                                  : "bg-[#1C1C1C] text-[#555555] hover:bg-[#222222] border border-[#1C1C1C]"
+                                  : "bg-[#1C1C1C] text-[#8a8a8a] hover:bg-[#222222] border border-[#1C1C1C]"
                               }`}
                             >
                               Confirm
                             </button>
                             <button
                               onClick={() => setConfirm(null)}
-                              className="h-7 px-3 text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                              className="h-7 px-3 text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
                             >
                               Cancel
                             </button>
@@ -810,7 +810,7 @@ export default function DocumentsPage() {
                           {(req as { escalation_level?: string }).escalation_level === "phone_script" && (
                             <button
                               onClick={() => setPhoneScriptRequestId(req.id)}
-                              className="h-7 px-2.5 flex items-center gap-1.5 text-[12px] font-medium rounded-md bg-[#1C1C1C] text-[#888888] border border-[#1C1C1C] hover:bg-[#1C1C1C] transition-colors"
+                              className="h-7 px-2.5 flex items-center gap-1.5 text-[12px] font-medium rounded-md bg-[#1C1C1C] text-[#9e9e9e] border border-[#1C1C1C] hover:bg-[#1C1C1C] transition-colors"
                             >
                               <Phone size={12} />
                               View Script
@@ -840,14 +840,14 @@ export default function DocumentsPage() {
                                     document_type: req.document_type,
                                   })
                                 }
-                                className="h-7 px-2.5 text-[12px] rounded-md text-[#333333] border border-[#1C1C1C] hover:text-[#555555] hover:border-[#333333] transition-colors"
+                                className="h-7 px-2.5 text-[12px] rounded-md text-[#6b6b6b] border border-[#1C1C1C] hover:text-[#8a8a8a] hover:border-[#333333] transition-colors"
                               >
                                 Cancel
                               </button>
                             </>
                           )}
                           {!isActive && (
-                            <span className="text-[12px] text-[#333333]">—</span>
+                            <span className="text-[12px] text-[#6b6b6b]">—</span>
                           )}
                         </div>
                       )}
@@ -893,12 +893,12 @@ function EmptyState({ onRequest }: { onRequest: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center px-6">
       <div className="w-14 h-14 rounded-full bg-[#111111] border border-[#1C1C1C] flex items-center justify-center mb-4">
-        <FileText size={22} className="text-[#333333]" />
+        <FileText size={22} className="text-[#6b6b6b]" />
       </div>
       <h2 className="text-[16px] font-semibold text-[#FAFAFA] mb-1">
         No document requests yet
       </h2>
-      <p className="text-[13px] text-[#333333] max-w-xs mb-6">
+      <p className="text-[13px] text-[#6b6b6b] max-w-xs mb-6">
         When you need a signed application, loss runs, or any other document
         from a client, Hollis will send a 4-touch follow-up sequence automatically.
       </p>

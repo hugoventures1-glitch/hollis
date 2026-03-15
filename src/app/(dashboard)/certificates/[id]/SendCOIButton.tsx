@@ -66,7 +66,7 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
         onChange={(e) => setEmail(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
         placeholder="recipient@email.com"
-        className="h-8 px-3 rounded-md bg-[#111111] border border-[#1C1C1C] text-[13px] text-[#FAFAFA] placeholder-[#333333] focus:outline-none focus:border-[#555555] w-52"
+        className="h-8 px-3 rounded-md bg-[#111111] border border-[#1C1C1C] text-[13px] text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] w-52"
       />
       <button
         onClick={handleSend}
@@ -78,7 +78,7 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
       </button>
       <button
         onClick={() => setShowForm(false)}
-        className="h-8 px-3 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+        className="h-8 px-3 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
       >
         Cancel
       </button>

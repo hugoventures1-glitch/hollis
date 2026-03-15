@@ -69,8 +69,8 @@ const SEQ_STATUS_CHIP: Record<
   { label: string; className: string }
 > = {
   active:    { label: "Active",    className: "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]" },
-  completed: { label: "Completed", className: "bg-[#ffffff08] text-[#555555] border border-[#ffffff10]" },
-  cancelled: { label: "Cancelled", className: "bg-[#ffffff08] text-[#333333] border border-[#ffffff10]" },
+  completed: { label: "Completed", className: "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]" },
+  cancelled: { label: "Cancelled", className: "bg-[#ffffff08] text-[#6b6b6b] border border-[#ffffff10]" },
 };
 
 // ── Component ────────────────────────────────────────────────
@@ -180,10 +180,10 @@ export function FollowUpSection({
   if (loadingSeq) {
     return (
       <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-        <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-3">
+        <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">
           Certificate Holder Follow-Up
         </div>
-        <div className="flex items-center gap-2 text-[12px] text-[#333333]">
+        <div className="flex items-center gap-2 text-[12px] text-[#6b6b6b]">
           <Loader2 size={12} className="animate-spin" />
           Loading…
         </div>
@@ -203,7 +203,7 @@ export function FollowUpSection({
     return (
       <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest">
+          <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest">
             Certificate Holder Follow-Up
           </div>
           <span
@@ -214,12 +214,12 @@ export function FollowUpSection({
         </div>
 
         {/* Sequence meta */}
-        <div className="text-[12px] text-[#555555] mb-1">
+        <div className="text-[12px] text-[#8a8a8a] mb-1">
           <span className="text-[#FAFAFA] font-medium">{sequence.holder_name}</span>
           {" · "}
           <span className="font-mono">{sequence.holder_email}</span>
         </div>
-        <div className="text-[11px] text-[#333333] mb-4">
+        <div className="text-[11px] text-[#6b6b6b] mb-4">
           Started {fmtDate(sequence.created_at)} · {sentCount} of{" "}
           {messages.length} touches sent
           {sequence.completed_at
@@ -238,7 +238,7 @@ export function FollowUpSection({
                 <div
                   className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[msg.status]}`}
                 />
-                <span className="text-[11px] font-semibold text-[#333333] w-12">
+                <span className="text-[11px] font-semibold text-[#6b6b6b] w-12">
                   Day {msg.touch_number === 1 ? "0" : msg.touch_number === 2 ? "7" : "14"}
                 </span>
               </div>
@@ -246,7 +246,7 @@ export function FollowUpSection({
                 <div className="text-[12px] text-[#FAFAFA] font-medium truncate">
                   {msg.subject}
                 </div>
-                <div className="text-[11px] text-[#333333] mt-0.5">
+                <div className="text-[11px] text-[#6b6b6b] mt-0.5">
                   {msg.status === "sent" && msg.sent_at ? (
                     <span className="text-[#FAFAFA]">
                       Sent {fmtDate(msg.sent_at)} at {fmtTime(msg.sent_at)}
@@ -254,7 +254,7 @@ export function FollowUpSection({
                   ) : msg.status === "cancelled" ? (
                     <span>Cancelled</span>
                   ) : (
-                    <span className="text-[#888888]/70">
+                    <span className="text-[#9e9e9e]/70">
                       Scheduled for {fmtDate(msg.scheduled_for)}
                     </span>
                   )}
@@ -264,9 +264,9 @@ export function FollowUpSection({
                 {msg.status === "sent" ? (
                   <CheckCircle2 size={13} className="text-[#FAFAFA]" />
                 ) : msg.status === "cancelled" ? (
-                  <XCircle size={13} className="text-[#333333]" />
+                  <XCircle size={13} className="text-[#6b6b6b]" />
                 ) : (
-                  <Clock size={13} className="text-[#888888]/60" />
+                  <Clock size={13} className="text-[#9e9e9e]/60" />
                 )}
               </div>
             </div>
@@ -287,7 +287,7 @@ export function FollowUpSection({
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-red-400 hover:border-red-800/40 transition-colors disabled:opacity-50"
+              className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-red-400 hover:border-red-800/40 transition-colors disabled:opacity-50"
             >
               {cancelling ? (
                 <Loader2 size={11} className="animate-spin" />
@@ -308,26 +308,26 @@ export function FollowUpSection({
 
   return (
     <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-      <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-4">
+      <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-4">
         Certificate Holder Follow-Up
       </div>
 
       {/* Holder info */}
       <div className="space-y-3 mb-4">
         <div>
-          <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-0.5">
+          <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-0.5">
             Holder
           </div>
           <div className="text-[13px] text-[#FAFAFA]">{holderName}</div>
         </div>
 
         <div>
-          <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-1">
+          <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">
             Email
           </div>
           {missingEmail ? (
             <div>
-              <div className="flex items-center gap-1.5 text-[11px] text-[#888888] mb-2">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#9e9e9e] mb-2">
                 <AlertTriangle size={11} />
                 Add holder email to enable automated follow-up
               </div>
@@ -336,7 +336,7 @@ export function FollowUpSection({
                 value={emailOverride}
                 onChange={(e) => setEmailOverride(e.target.value)}
                 placeholder="holder@example.com"
-                className="w-full h-8 bg-[#0C0C0C] border border-[#1C1C1C] rounded-md px-3 text-[13px] text-[#FAFAFA] placeholder:text-[#333333] outline-none focus:border-[#555555]"
+                className="w-full h-8 bg-[#0C0C0C] border border-[#1C1C1C] rounded-md px-3 text-[13px] text-[#FAFAFA] placeholder:text-[#6b6b6b] outline-none focus:border-[#555555]"
               />
             </div>
           ) : (
@@ -348,7 +348,7 @@ export function FollowUpSection({
 
         {expirationDate && (
           <div>
-            <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-0.5">
+            <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-0.5">
               COI Expires
             </div>
             <div className="text-[13px] text-[#FAFAFA]">
@@ -362,7 +362,7 @@ export function FollowUpSection({
       </div>
 
       {/* Info blurb */}
-      <p className="text-[11px] text-[#333333] leading-relaxed mb-4">
+      <p className="text-[11px] text-[#6b6b6b] leading-relaxed mb-4">
         Starting a sequence sends 3 follow-up emails to the certificate holder —
         immediately, then at 7 and 14 days — to confirm they have the renewed
         COI on file. Emails are AI-drafted and sent automatically. No manual
@@ -402,7 +402,7 @@ export function FollowUpSection({
         {!creating && sequence === null && !loadingSeq && (
           <button
             onClick={loadSequence}
-            className="h-8 w-8 flex items-center justify-center rounded-md border border-[#1C1C1C] text-[#333333] hover:text-[#FAFAFA] transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-md border border-[#1C1C1C] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
             title="Refresh"
           >
             <RefreshCw size={12} />

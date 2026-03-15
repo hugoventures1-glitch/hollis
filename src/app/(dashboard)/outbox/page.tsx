@@ -11,7 +11,7 @@ export default function OutboxPage() {
   if (loading && !lastFetched) {
     return (
       <div className="flex h-full items-center justify-center bg-[#0C0C0C]">
-        <Loader2 size={22} className="animate-spin text-[#333333]" />
+        <Loader2 size={22} className="animate-spin text-[#6b6b6b]" />
       </div>
     );
   }

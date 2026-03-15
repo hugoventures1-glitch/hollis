@@ -96,7 +96,7 @@ export function PhoneScriptModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2a] shrink-0">
           <div className="flex items-center gap-2">
-            <Phone size={16} className="text-[#888888]" />
+            <Phone size={16} className="text-[#9e9e9e]" />
             <span className="text-[15px] font-semibold text-[#f5f5f7]">
               Phone Script
             </span>
@@ -136,7 +136,7 @@ export function PhoneScriptModal({
                       key={i}
                       className="flex gap-3 text-[14px] text-[#c5c5cb] leading-relaxed"
                     >
-                      <span className="text-[#888888] shrink-0">•</span>
+                      <span className="text-[#9e9e9e] shrink-0">•</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -165,7 +165,7 @@ export function PhoneScriptModal({
               "Mark as Called"
             )}
           </button>
-          <p className="text-[11px] text-[#333333] mt-2 text-center">
+          <p className="text-[11px] text-[#6b6b6b] mt-2 text-center">
             Marks the document as received and cancels pending follow-ups
           </p>
         </div>

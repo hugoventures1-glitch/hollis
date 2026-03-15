@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkCoverage } from "@/lib/coi/check-coverage";
+import { logAction, retainStandard } from "@/lib/logAction";
 import type { GenerateCOIInput } from "@/types/coi";
 
 export async function POST(request: NextRequest) {
@@ -96,6 +97,29 @@ export async function POST(request: NextRequest) {
     console.error("[coi/generate] Insert failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  void logAction({
+    broker_id: user.id,
+    policy_id: input.policy_id ?? null,
+    action_type: "coi_generated",
+    trigger_reason: `Certificate of Insurance generated for ${input.insured_name} — holder: ${input.holder_name}${hasGap ? " (coverage gap detected)" : ""}.`,
+    payload: {
+      channel: "internal",
+      recipient_name: input.holder_name,
+    },
+    metadata: {
+      certificate_id: cert.id,
+      request_id: input.request_id ?? null,
+      insured_name: input.insured_name,
+      holder_name: input.holder_name,
+      has_gap: hasGap,
+      gap_details: gapDetails.length > 0 ? gapDetails : null,
+      effective_date: earliestEffective ?? null,
+      expiration_date: latestExpiration ?? null,
+    },
+    outcome: "sent",
+    retain_until: retainStandard(),
+  });
 
   // ── Link request to certificate (if applicable) ───────────
   if (input.request_id) {

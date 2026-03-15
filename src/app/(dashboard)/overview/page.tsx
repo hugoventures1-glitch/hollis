@@ -382,7 +382,7 @@ export default async function DashboardPage() {
               </Link>
               <Link
                 href="/activity"
-                className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#888888]"
+                className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#9e9e9e]"
                 style={{ color: "#444444" }}
               >
                 Metrics

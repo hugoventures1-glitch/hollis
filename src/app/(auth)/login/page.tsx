@@ -39,7 +39,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
           Welcome back
         </h1>
-        <p className="mt-1 text-sm text-[#8a8b91]">Sign in to your account</p>
+        <p className="mt-1 text-sm text-[#9e9e9e]">Sign in to your account</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -62,7 +62,7 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.email && (
             <p className="mt-1.5 text-xs text-red-400">{errors.email.message}</p>
@@ -82,7 +82,7 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             placeholder="••••••••"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#333333] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.password && (
             <p className="mt-1.5 text-xs text-red-400">
@@ -100,7 +100,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#8a8b91]">
+      <p className="mt-6 text-center text-sm text-[#9e9e9e]">
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"

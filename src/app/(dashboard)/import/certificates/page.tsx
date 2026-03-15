@@ -119,9 +119,9 @@ function StepIndicator({ current }: { current: Step }) {
       {STEPS.slice(0, 3).map((s, i) => (
         <div key={s} className="flex items-center gap-2">
           {i > 0 && <div className="w-8 h-px bg-[#1C1C1C]" />}
-          <div className={`flex items-center gap-1.5 text-[12px] ${ci === i ? "text-[#FAFAFA]" : ci > i ? "text-[#FAFAFA]" : "text-[#333333]"}`}>
+          <div className={`flex items-center gap-1.5 text-[12px] ${ci === i ? "text-[#FAFAFA]" : ci > i ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}`}>
             <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
-              ci === i ? "bg-[#FAFAFA] border-[#FAFAFA] text-[#0C0C0C]" : ci > i ? "bg-[#FAFAFA]/20 border-[#555555] text-[#FAFAFA]" : "bg-transparent border-[#333333] text-[#333333]"
+              ci === i ? "bg-[#FAFAFA] border-[#FAFAFA] text-[#0C0C0C]" : ci > i ? "bg-[#FAFAFA]/20 border-[#555555] text-[#FAFAFA]" : "bg-transparent border-[#333333] text-[#6b6b6b]"
             }`}>{i + 1}</div>
             {["Upload", "Map", "Preview"][i]}
           </div>
@@ -230,10 +230,10 @@ export default function CertificateImportPage() {
   return (
     <div className="flex flex-col h-full bg-[#0C0C0C]">
       <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <Link href="/import" className="flex items-center gap-1.5 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">
+        <Link href="/import" className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">
           <ArrowLeft size={13} /> Import
         </Link>
-        <ChevronRight size={12} className="text-[#333333]" />
+        <ChevronRight size={12} className="text-[#6b6b6b]" />
         <span className="text-[13px] text-[#FAFAFA]">Certificate Import</span>
         <div className="ml-auto"><StepIndicator current={step} /></div>
       </div>
@@ -245,18 +245,18 @@ export default function CertificateImportPage() {
             <div className="flex items-center justify-between mb-1">
               <h1 className="text-[22px] font-bold text-[#FAFAFA]">Import certificates</h1>
               <button onClick={() => triggerCsvDownload("hollis-certificates-template.csv", generateTemplateCsv(TEMPLATE_HEADERS, TEMPLATE_ROWS))}
-                className="flex items-center gap-1.5 text-[12px] text-[#333333] hover:text-[#555555] transition-colors">
+                className="flex items-center gap-1.5 text-[12px] text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors">
                 <Download size={12} /> Download template
               </button>
             </div>
-            <p className="text-[14px] text-[#555555] mb-8">Upload a CSV of issued certificates or COIs. Deduplicates on certificate number.</p>
+            <p className="text-[14px] text-[#8a8a8a] mb-8">Upload a CSV of issued certificates or COIs. Deduplicates on certificate number.</p>
 
             <div onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop}
               onClick={() => fileRef.current?.click()}
               className={`relative flex flex-col items-center justify-center h-52 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${dragging ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04]" : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#14141e]"}`}>
-              <Upload size={28} className={dragging ? "text-[#FAFAFA]" : "text-[#333333]"} />
+              <Upload size={28} className={dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"} />
               <div className="text-[15px] font-medium text-[#FAFAFA] mt-3">Drop a CSV file here</div>
-              <div className="text-[13px] text-[#555555] mt-1">or click to browse — max 10 MB</div>
+              <div className="text-[13px] text-[#8a8a8a] mt-1">or click to browse — max 10 MB</div>
               <input ref={fileRef} type="file" accept=".csv" className="sr-only"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
             </div>
@@ -264,16 +264,16 @@ export default function CertificateImportPage() {
             {fileError && <div className="mt-4 flex items-center gap-2 text-[13px] text-red-400"><AlertCircle size={14} /> {fileError}</div>}
 
             <div className="mt-8 rounded-lg bg-[#111111] border border-[#1C1C1C] p-5">
-              <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Required</div>
+              <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">Required</div>
               {REQUIRED.map((f) => (
                 <div key={f} className="flex items-center gap-2 text-[13px] text-[#FAFAFA] mb-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#FAFAFA]" /> {FIELD_LABELS[f]}
                 </div>
               ))}
-              <div className="text-[11px] font-semibold text-[#555555] uppercase tracking-widest mt-4 mb-3">Optional</div>
+              <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mt-4 mb-3">Optional</div>
               <div className="grid grid-cols-2 gap-1">
                 {OPTIONAL.map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-[13px] text-[#333333]">
+                  <div key={f} className="flex items-center gap-2 text-[13px] text-[#6b6b6b]">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#333333]" /> {FIELD_LABELS[f]}
                   </div>
                 ))}
@@ -285,14 +285,14 @@ export default function CertificateImportPage() {
         {step === "map" && (
           <div className="max-w-2xl mx-auto">
             <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Map your columns</h1>
-            <p className="text-[14px] text-[#555555] mb-8">
+            <p className="text-[14px] text-[#8a8a8a] mb-8">
               <strong className="text-[#FAFAFA]">{csvHeaders.length} columns</strong> · <strong className="text-[#FAFAFA]">{csvRows.length} rows</strong>
             </p>
 
             <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
               <div className="grid grid-cols-2 px-5 py-2.5 border-b border-[#1C1C1C] bg-[#0C0C0C]">
-                <div className="text-[11px] font-medium text-[#555555] uppercase tracking-wider">CSV Column</div>
-                <div className="text-[11px] font-medium text-[#555555] uppercase tracking-wider">Maps To</div>
+                <div className="text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">CSV Column</div>
+                <div className="text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">Maps To</div>
               </div>
               {csvHeaders.map((header) => (
                 <div key={header} className="grid grid-cols-2 px-5 py-3 border-b border-[#1C1C1C]/60 last:border-b-0 items-center">
@@ -314,7 +314,7 @@ export default function CertificateImportPage() {
             )}
 
             <div className="flex items-center gap-3">
-              <button onClick={() => setStep("upload")} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">Back</button>
+              <button onClick={() => setStep("upload")} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">Back</button>
               <button onClick={handleConfirmMapping} disabled={missingRequired.length > 0}
                 className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 Preview Import
@@ -326,7 +326,7 @@ export default function CertificateImportPage() {
         {step === "preview" && (
           <div className="max-w-5xl mx-auto">
             <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Preview import</h1>
-            <p className="text-[14px] text-[#555555] mb-6">
+            <p className="text-[14px] text-[#8a8a8a] mb-6">
               Ready to import <strong className="text-[#FAFAFA]">{mappedRows.length} certificates</strong>.
             </p>
 
@@ -334,11 +334,11 @@ export default function CertificateImportPage() {
               {[
                 { label: "Total rows", value: mappedRows.length, color: "text-[#FAFAFA]" },
                 { label: "With holder email", value: withEmail, color: "text-[#FAFAFA]" },
-                { label: "Date issues", value: badDates, color: badDates > 0 ? "text-[#888888]" : "text-[#333333]" },
+                { label: "Date issues", value: badDates, color: badDates > 0 ? "text-[#9e9e9e]" : "text-[#6b6b6b]" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-lg bg-[#111111] border border-[#1C1C1C] px-4 py-3">
                   <div className={`text-[22px] font-bold tabular-nums ${color}`}>{value}</div>
-                  <div className="text-[11px] text-[#333333] mt-0.5">{label}</div>
+                  <div className="text-[11px] text-[#6b6b6b] mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -357,7 +357,7 @@ export default function CertificateImportPage() {
                   <thead>
                     <tr className="border-b border-[#1C1C1C] bg-[#0C0C0C]">
                       {ALL_FIELDS.map((f) => (
-                        <th key={f} className="px-4 py-2.5 text-left text-[11px] font-medium text-[#555555] uppercase tracking-wider whitespace-nowrap">
+                        <th key={f} className="px-4 py-2.5 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider whitespace-nowrap">
                           {FIELD_LABELS[f]}{REQUIRED.includes(f) ? " *" : ""}
                         </th>
                       ))}
@@ -368,18 +368,18 @@ export default function CertificateImportPage() {
                       <tr key={i} className="border-b border-[#1C1C1C]/60 last:border-b-0">
                         <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.insured_name || <span className="text-red-400">Missing</span>}</td>
                         <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.holder_name || <span className="text-red-400">Missing</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.holder_email || <span className="text-[#333333]">—</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.holder_email || <span className="text-[#6b6b6b]">—</span>}</td>
                         <td className="px-4 py-2.5 text-[13px] whitespace-nowrap">
-                          <span className={/^\d{4}-\d{2}-\d{2}$/.test(row.expiration_date) ? "text-[#FAFAFA]" : "text-[#888888]"}>
+                          <span className={/^\d{4}-\d{2}-\d{2}$/.test(row.expiration_date) ? "text-[#FAFAFA]" : "text-[#9e9e9e]"}>
                             {row.expiration_date || <span className="text-red-400">Missing</span>}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#333333] font-mono whitespace-nowrap">{row.certificate_number || "—"}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#333333] whitespace-nowrap">{row.coverage_type || "—"}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#6b6b6b] font-mono whitespace-nowrap">{row.certificate_number || "—"}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-[#6b6b6b] whitespace-nowrap">{row.coverage_type || "—"}</td>
                       </tr>
                     ))}
                     {mappedRows.length > 5 && (
-                      <tr><td colSpan={6} className="px-4 py-2.5 text-[12px] text-[#333333] text-center">+ {mappedRows.length - 5} more rows not shown</td></tr>
+                      <tr><td colSpan={6} className="px-4 py-2.5 text-[12px] text-[#6b6b6b] text-center">+ {mappedRows.length - 5} more rows not shown</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -387,7 +387,7 @@ export default function CertificateImportPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button onClick={() => setStep("map")} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">Back</button>
+              <button onClick={() => setStep("map")} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">Back</button>
               <button onClick={handleImport} disabled={loading}
                 className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-60">
                 {loading ? "Importing…" : `Import ${mappedRows.length} Certificates`}
@@ -406,12 +406,12 @@ export default function CertificateImportPage() {
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[
                 { label: "Inserted", value: result.inserted, color: "text-[#FAFAFA]" },
-                { label: "Duplicates skipped", value: result.duplicates, color: "text-[#555555]" },
-                { label: "Errors", value: result.errors.length, color: result.errors.length > 0 ? "text-red-400" : "text-[#333333]" },
+                { label: "Duplicates skipped", value: result.duplicates, color: "text-[#8a8a8a]" },
+                { label: "Errors", value: result.errors.length, color: result.errors.length > 0 ? "text-red-400" : "text-[#6b6b6b]" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-lg bg-[#111111] border border-[#1C1C1C] px-4 py-3">
                   <div className={`text-[22px] font-bold tabular-nums ${color}`}>{value}</div>
-                  <div className="text-[11px] text-[#333333] mt-0.5">{label}</div>
+                  <div className="text-[11px] text-[#6b6b6b] mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -433,7 +433,7 @@ export default function CertificateImportPage() {
             )}
 
             <div className="flex items-center justify-center gap-3">
-              <button onClick={reset} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors">Import Another</button>
+              <button onClick={reset} className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">Import Another</button>
               <Link href="/certificates" className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors flex items-center gap-1.5">
                 <ShieldCheck size={13} /> View Certificates
               </Link>

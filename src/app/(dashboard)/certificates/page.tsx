@@ -25,16 +25,16 @@ import { useHollisData } from "@/hooks/useHollisData";
 // ── Status style maps ─────────────────────────────────────────────────────────
 
 const REQUEST_STATUS_STYLES: Record<COIRequestStatus, string> = {
-  pending:            "bg-[#1C1C1C] text-[#888888] border border-[#1C1C1C]",
+  pending:            "bg-[#1C1C1C] text-[#9e9e9e] border border-[#1C1C1C]",
   approved:           "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
   rejected:           "bg-red-900/30 text-red-400 border border-red-700/30",
   sent:               "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
   ready_for_approval: "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
-  needs_review:       "bg-[#1C1C1C] text-[#888888] border border-[#1C1C1C]",
+  needs_review:       "bg-[#1C1C1C] text-[#9e9e9e] border border-[#1C1C1C]",
 };
 
 const CERT_STATUS_STYLES: Record<CertificateStatus, string> = {
-  draft:    "bg-[#ffffff08] text-[#555555] border border-[#ffffff10]",
+  draft:    "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]",
   sent:     "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
   expired:  "bg-red-900/30 text-red-400 border border-red-700/30",
   outdated: "bg-[#FF4444]/[0.06] text-[#FF4444] border border-[#FF4444]/[0.2]",
@@ -85,7 +85,7 @@ function CertificatesContent() {
   if (loading) {
     return (
       <div className="flex flex-col h-full bg-[#0C0C0C] items-center justify-center">
-        <Loader2 size={22} className="animate-spin text-[#333333]" />
+        <Loader2 size={22} className="animate-spin text-[#6b6b6b]" />
       </div>
     );
   }
@@ -95,7 +95,7 @@ function CertificatesContent() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <div className="flex items-center gap-2 text-[13px] text-[#555555]">
+        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
           <span>Hollis</span>
           <ChevronRight size={12} />
           <span className="text-[#FAFAFA]">Certificates</span>
@@ -107,7 +107,7 @@ function CertificatesContent() {
           <Link
             href={userId ? `/certificates/request/${userId}` : "#"}
             target="_blank"
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#1C1C1C] transition-colors"
+            className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#1C1C1C] transition-colors"
           >
             Copy Portal Link
           </Link>
@@ -127,30 +127,30 @@ function CertificatesContent() {
           <div className="text-[28px] font-bold text-[#FAFAFA] leading-none">
             {certs.length}
           </div>
-          <div className="text-[12px] text-[#555555] mt-1.5">Issued</div>
+          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Issued</div>
         </div>
         <div className="px-10 border-l border-[#1C1C1C]">
-          <div className="text-[28px] font-bold text-[#888888] leading-none">{pendingCount}</div>
-          <div className="text-[12px] text-[#555555] mt-1.5">Pending Requests</div>
+          <div className="text-[28px] font-bold text-[#9e9e9e] leading-none">{pendingCount}</div>
+          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Pending Requests</div>
         </div>
         {readyItems.length > 0 && (
           <div className="px-10 border-l border-[#1C1C1C]">
             <div className="text-[28px] font-bold text-[#FAFAFA] leading-none">
               {readyItems.length}
             </div>
-            <div className="text-[12px] text-[#555555] mt-1.5">Ready to Send</div>
+            <div className="text-[12px] text-[#8a8a8a] mt-1.5">Ready to Send</div>
           </div>
         )}
         <div className="px-10 border-l border-[#1C1C1C]">
-          <div className="text-[28px] font-bold text-[#555555] leading-none">
+          <div className="text-[28px] font-bold text-[#8a8a8a] leading-none">
             {certs.filter((c) => c.has_gap).length}
           </div>
-          <div className="text-[12px] text-[#555555] mt-1.5">Coverage Gaps</div>
+          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Coverage Gaps</div>
         </div>
         {staleCount > 0 && (
           <div className="px-10 border-l border-[#1C1C1C]">
             <div className="text-[28px] font-bold text-[#FF4444] leading-none">{staleCount}</div>
-            <div className="text-[12px] text-[#555555] mt-1.5">Stale / Expired</div>
+            <div className="text-[12px] text-[#8a8a8a] mt-1.5">Stale / Expired</div>
           </div>
         )}
       </div>
@@ -199,9 +199,9 @@ function CertificatesContent() {
               }`}
             >
               <div className="flex items-center gap-2.5 mb-4">
-                <AlertTriangle size={14} className="text-[#888888]" />
+                <AlertTriangle size={14} className="text-[#9e9e9e]" />
                 <h2 className="text-[13px] font-semibold text-[#FAFAFA]">Needs Review</h2>
-                <span className="text-[11px] font-semibold text-[#888888] bg-[#1C1C1C] border border-[#1C1C1C] rounded-full px-1.5 py-0.5">
+                <span className="text-[11px] font-semibold text-[#9e9e9e] bg-[#1C1C1C] border border-[#1C1C1C] rounded-full px-1.5 py-0.5">
                   {needsReviewItems.length}
                 </span>
               </div>
@@ -215,7 +215,7 @@ function CertificatesContent() {
         </div>
       ) : (
         <div className="px-10 py-3.5 border-b border-[#1C1C1C] shrink-0 bg-[#0a0a10]">
-          <p className="text-[13px] text-[#333333]">
+          <p className="text-[13px] text-[#6b6b6b]">
             All caught up — no pending COI requests.
           </p>
         </div>
@@ -234,14 +234,14 @@ function CertificatesContent() {
             className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
               tab === key
                 ? "bg-[rgba(255,255,255,0.06)] text-[#FAFAFA]"
-                : "text-[#555555] hover:text-[#FAFAFA] hover:bg-white/[0.03]"
+                : "text-[#8a8a8a] hover:text-[#FAFAFA] hover:bg-white/[0.03]"
             }`}
           >
             {label}
             {count > 0 && (
               <span
                 className={`text-[11px] px-1.5 py-0.5 rounded-full ${
-                  tab === key ? "bg-[#FAFAFA]/20 text-[#FAFAFA]" : "text-[#333333]"
+                  tab === key ? "bg-[#FAFAFA]/20 text-[#FAFAFA]" : "text-[#6b6b6b]"
                 }`}
               >
                 {count}
@@ -258,7 +258,7 @@ function CertificatesContent() {
         {tab === "requests" &&
           (requests.filter((r) => r.status === "pending").length === 0 ? (
             <EmptyState
-              icon={<Clock size={24} className="text-[#555555]" />}
+              icon={<Clock size={24} className="text-[#8a8a8a]" />}
               title="No COI requests yet"
               description="Share your portal link with clients to receive requests. Go to Certificates and copy your portal link."
             />
@@ -276,7 +276,7 @@ function CertificatesContent() {
         {tab === "certificates" &&
           (certs.length === 0 ? (
             <EmptyState
-              icon={<FileText size={24} className="text-[#555555]" />}
+              icon={<FileText size={24} className="text-[#8a8a8a]" />}
               title="No certificates issued yet"
               description="Generate your first COI from an incoming request or click New COI."
             >
@@ -307,7 +307,7 @@ export default function CertificatesPage() {
     <Suspense
       fallback={
         <div className="flex flex-col h-full bg-[#0C0C0C] items-center justify-center">
-          <Loader2 size={22} className="animate-spin text-[#333333]" />
+          <Loader2 size={22} className="animate-spin text-[#6b6b6b]" />
         </div>
       }
     >
@@ -341,7 +341,7 @@ function ReadyCard({ req }: { req: COIRequest }) {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 text-[12px] text-[#333333] flex-wrap">
+          <div className="flex items-center gap-3 text-[12px] text-[#6b6b6b] flex-wrap">
             <span>Holder: {req.holder_name}</span>
             {req.holder_city && (
               <span>
@@ -367,7 +367,7 @@ function ReadyCard({ req }: { req: COIRequest }) {
         {req.certificate_id && (
           <Link
             href={`/certificates/${req.certificate_id}`}
-            className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+            className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
           >
             <Eye size={12} />
             Review
@@ -387,7 +387,7 @@ function NeedsReviewCard({ req }: { req: COIRequest }) {
         <div className="flex items-start gap-4 min-w-0 flex-1">
           {/* Avatar */}
           <div className="w-8 h-8 rounded-full bg-[#1C1C1C] border border-[#1C1C1C] flex items-center justify-center shrink-0 mt-0.5">
-            <span className="text-[12px] font-bold text-[#888888]">
+            <span className="text-[12px] font-bold text-[#9e9e9e]">
               {req.insured_name.charAt(0).toUpperCase()}
             </span>
           </div>
@@ -398,7 +398,7 @@ function NeedsReviewCard({ req }: { req: COIRequest }) {
                 {req.insured_name}
               </span>
             </div>
-            <div className="flex items-center gap-3 text-[12px] text-[#333333] mb-2.5 flex-wrap">
+            <div className="flex items-center gap-3 text-[12px] text-[#6b6b6b] mb-2.5 flex-wrap">
               <span>Holder: {req.holder_name}</span>
               {req.coverage_types.length > 0 && (
                 <span className="flex items-center gap-1">
@@ -414,8 +414,8 @@ function NeedsReviewCard({ req }: { req: COIRequest }) {
             {/* Coverage gap warning callout */}
             {req.coverage_check_notes && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C]">
-                <AlertTriangle size={12} className="text-[#888888] shrink-0 mt-0.5" />
-                <p className="text-[12px] text-[#888888] leading-relaxed">
+                <AlertTriangle size={12} className="text-[#9e9e9e] shrink-0 mt-0.5" />
+                <p className="text-[12px] text-[#9e9e9e] leading-relaxed">
                   {req.coverage_check_notes}
                 </p>
               </div>
@@ -426,7 +426,7 @@ function NeedsReviewCard({ req }: { req: COIRequest }) {
         <div className="flex items-center gap-2 shrink-0">
           <Link
             href={`/certificates/new?request=${req.id}`}
-            className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-[#1a1a24] border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+            className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-[#1a1a24] border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
           >
             Generate COI
           </Link>
@@ -449,7 +449,7 @@ function RequestRow({ req }: { req: COIRequest }) {
           {/* Header */}
           <div className="flex items-center gap-3 mb-2">
             <StatusBadge status={req.status} table="request" />
-            <span className="text-[11px] text-[#333333]">
+            <span className="text-[11px] text-[#6b6b6b]">
               {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
             </span>
           </div>
@@ -457,17 +457,17 @@ function RequestRow({ req }: { req: COIRequest }) {
           <div className="grid grid-cols-3 gap-6">
             {/* Insured */}
             <div>
-              <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-1">Insured</div>
+              <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Insured</div>
               <div className="text-[14px] font-medium text-[#FAFAFA]">{req.insured_name}</div>
-              <div className="text-[12px] text-[#555555] mt-0.5">Requested by {req.requester_name}</div>
+              <div className="text-[12px] text-[#8a8a8a] mt-0.5">Requested by {req.requester_name}</div>
             </div>
 
             {/* Holder */}
             <div>
-              <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-1">Certificate Holder</div>
+              <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Certificate Holder</div>
               <div className="text-[13px] text-[#FAFAFA]">{req.holder_name}</div>
               {req.holder_city && (
-                <div className="text-[12px] text-[#333333]">
+                <div className="text-[12px] text-[#6b6b6b]">
                   {[req.holder_city, req.holder_state].filter(Boolean).join(", ")}
                 </div>
               )}
@@ -475,13 +475,13 @@ function RequestRow({ req }: { req: COIRequest }) {
 
             {/* Coverage required */}
             <div>
-              <div className="text-[11px] font-medium text-[#333333] uppercase tracking-wider mb-1">Coverage Required</div>
+              <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Coverage Required</div>
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {req.coverage_types.map((t) => (
                   <CovTag key={t} label={COVERAGE_TYPE_LABELS[t]?.split(" ")[0] ?? t} />
                 ))}
               </div>
-              <div className="space-y-0.5 text-[11px] text-[#555555]">
+              <div className="space-y-0.5 text-[11px] text-[#8a8a8a]">
                 {req.required_gl_per_occurrence && <div>GL Occ: {formatLimit(req.required_gl_per_occurrence)}</div>}
                 {req.required_gl_aggregate && <div>GL Agg: {formatLimit(req.required_gl_aggregate)}</div>}
                 {req.required_auto_combined_single && <div>Auto CSL: {formatLimit(req.required_auto_combined_single)}</div>}
@@ -506,7 +506,7 @@ function RequestRow({ req }: { req: COIRequest }) {
           )}
 
           {req.project_description && (
-            <div className="mt-2 text-[12px] text-[#333333] italic">
+            <div className="mt-2 text-[12px] text-[#6b6b6b] italic">
               &ldquo;{req.project_description}&rdquo;
             </div>
           )}
@@ -529,7 +529,7 @@ function RequestRow({ req }: { req: COIRequest }) {
           {req.certificate_id && (
             <Link
               href={`/certificates/${req.certificate_id}`}
-              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
             >
               View COI →
             </Link>
@@ -542,7 +542,7 @@ function RequestRow({ req }: { req: COIRequest }) {
 
 function CovTag({ label }: { label: string }) {
   return (
-    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ffffff06] text-[#555555] border border-[#ffffff0f]">
+    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ffffff06] text-[#8a8a8a] border border-[#ffffff0f]">
       {label}
     </span>
   );
@@ -565,7 +565,7 @@ function EmptyState({
         {icon}
       </div>
       <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">{title}</div>
-      <div className="text-[13px] text-[#555555] mb-6 max-w-xs">{description}</div>
+      <div className="text-[13px] text-[#8a8a8a] mb-6 max-w-xs">{description}</div>
       {children}
     </div>
   );

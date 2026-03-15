@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropicClient } from "@/lib/anthropic/client";
 import { analyzePolicyCheck } from "@/lib/policy-checker/analyze";
+import { logAction, retainStandard } from "@/lib/logAction";
 import type {
   ActionType,
   ClientCoverageProfile,
@@ -306,6 +307,27 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
       })
       .eq("id", checkId)
       .eq("user_id", user.id);
+
+    void logAction({
+      broker_id: user.id,
+      client_id: check.client_id ?? null,
+      action_type: "policy_check",
+      trigger_reason: `Policy coverage analysis completed for ${clientName} — ${rawFlags.length} flag${rawFlags.length !== 1 ? "s" : ""} found (verdict: ${summary_verdict}).`,
+      payload: { channel: "internal" },
+      metadata: {
+        check_id: checkId,
+        client_id: check.client_id ?? null,
+        flag_count: rawFlags.length,
+        critical_count: rawFlags.filter(f => f.severity === "critical").length,
+        summary_verdict,
+        overall_confidence,
+        carrier: carrier ?? null,
+        business_type: clientContext.business_type ?? null,
+        industry: clientContext.industry ?? null,
+      },
+      outcome: "sent",
+      retain_until: retainStandard(),
+    });
 
     return NextResponse.json({
       check_id: checkId,

@@ -29,6 +29,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysUntilExpiry } from "@/types/renewals";
 import { writeAuditLog } from "@/lib/audit/log";
+import { logAction, retainLongTerm } from "@/lib/logAction";
 import { notifyBrokerTier3 } from "@/lib/agent/broker-notifier";
 import { routeTier } from "@/lib/agent/tier-router";
 import { DEFAULT_RENEWAL_FLAGS } from "@/types/agent";
@@ -190,7 +191,44 @@ export async function GET(request: NextRequest) {
       actor_type: "system",
     });
 
-    // 4. Send broker alert email via Tier 3 notification path
+    // 4. Log to hollis_actions (fire-and-forget)
+    void logAction({
+      broker_id: policy.user_id,
+      policy_id: policy.id,
+      action_type: "silence_detected",
+      tier: "3",
+      trigger_reason: `No client engagement from ${policy.client_name} across 3 touchpoints (90d, 60d, 30d) with ${days} day${days !== 1 ? "s" : ""} to expiry — sequence halted and broker escalation triggered.`,
+      payload: {
+        channel: "internal",
+        escalation_reason: `Silent client at ${days} days to expiry — zero inbound signals after 3 outbound touchpoints.`,
+      },
+      metadata: {
+        days_to_expiry: days,
+        touchpoints_sent: [...sentTypes],
+        expiration_date: policy.expiration_date,
+        flag_set: "silent_client",
+        sequence_halted: true,
+      },
+      outcome: "escalated",
+      retain_until: retainLongTerm(),
+    });
+    void logAction({
+      broker_id: policy.user_id,
+      policy_id: policy.id,
+      action_type: "renewal_halted",
+      tier: "3",
+      trigger_reason: `Renewal sequence for ${policy.client_name} halted — silent client rule triggered at ${days} days to expiry.`,
+      payload: { channel: "internal" },
+      metadata: {
+        days_to_expiry: days,
+        expiration_date: policy.expiration_date,
+        halt_reason: "silent_client",
+      },
+      outcome: "halted",
+      retain_until: retainLongTerm(),
+    });
+
+    // 5. Send broker alert email via Tier 3 notification path
     const silenceDecision = routeTier(
       updatedFlags,
       {

@@ -25,6 +25,7 @@ import type { Policy, CampaignTouchpoint, TouchpointType } from "@/types/renewal
 import { refreshPolicyHealthScore } from "@/lib/renewals/health-score";
 import { isSendThrottled } from "@/lib/cron/throttle";
 import { writeAuditLog } from "@/lib/audit/log";
+import { logAction, retainStandard } from "@/lib/logAction";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
@@ -142,6 +143,27 @@ export async function GET(request: NextRequest) {
             content_snapshot: `Subject: ${lapseSubject}\n\n${lapseBody}`,
             metadata: { expiration_date: policy.expiration_date },
             actor_type: "system",
+          });
+          void logAction({
+            broker_id: policy.user_id,
+            policy_id: policy.id,
+            action_type: "renewal_email",
+            tier: "1",
+            trigger_reason: `Policy ${policy.policy_name ?? policy.id} expired on ${policy.expiration_date} — lapse confirmation email sent to ${policy.client_name}.`,
+            payload: {
+              subject: lapseSubject,
+              body: lapseBody,
+              recipient_email: policy.client_email,
+              recipient_name: policy.client_name,
+              channel: "email",
+              template_used: "lapse_confirmation",
+            },
+            metadata: {
+              carrier: policy.carrier ?? null,
+              expiration_date: policy.expiration_date,
+            },
+            outcome: "sent",
+            retain_until: retainStandard(),
           });
         } catch (err) {
           console.error("[cron/renewals] Lapse email failed for", policy.client_name, err instanceof Error ? err.message : err);
@@ -351,6 +373,45 @@ async function fireTouchpoint(
 
   // Advance policy campaign stage
   const newStage = STAGE_MAP[type];
+
+  // Log to hollis_actions (fire-and-forget)
+  const days = daysUntilExpiry(policy.expiration_date);
+  const isSms = type === "sms_30";
+  const templateLabels: Record<TouchpointType, string> = {
+    email_90: "90-day renewal email",
+    email_60: "60-day renewal email",
+    sms_30:   "30-day renewal SMS",
+    script_14: "14-day call script",
+    questionnaire_90: "90-day questionnaire",
+    submission_60: "60-day submission",
+    recommendation_30: "30-day recommendation",
+    final_notice_7: "7-day final notice",
+  };
+  void logAction({
+    broker_id: policy.user_id,
+    policy_id: policy.id,
+    action_type: isSms ? "renewal_sms" : "renewal_email",
+    tier: "1",
+    trigger_reason: `Policy ${policy.policy_name ?? policy.id} is ${days} day${days !== 1 ? "s" : ""} from expiry — ${templateLabels[type] ?? type} dispatched to ${policy.client_name}.`,
+    payload: {
+      subject: subject ?? null,
+      body: content ?? null,
+      recipient_email: isSms ? null : (policy.client_email ?? null),
+      recipient_name: policy.client_name,
+      channel,
+      template_used: type,
+      previous_stage: policy.campaign_stage,
+      new_stage: newStage,
+    },
+    metadata: {
+      carrier: policy.carrier ?? null,
+      days_to_expiry: days,
+      touchpoint_id: touchpoint.id,
+      provider_id: providerId,
+    },
+    outcome: "sent",
+    retain_until: retainStandard(),
+  });
   await supabase
     .from("policies")
     .update({

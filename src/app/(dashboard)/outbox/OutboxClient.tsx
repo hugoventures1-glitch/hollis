@@ -87,7 +87,7 @@ export default function OutboxClient({ initialDrafts }: OutboxClientProps) {
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="h-8 flex items-center gap-2 px-4 rounded-md bg-[#1a1a24] border border-[#1C1C1C] text-[13px] text-[#555555] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-8 flex items-center gap-2 px-4 rounded-md bg-[#1a1a24] border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {generating ? (
             <Loader2 size={13} className="animate-spin" />
@@ -115,12 +115,12 @@ export default function OutboxClient({ initialDrafts }: OutboxClientProps) {
       {drafts.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
           <div className="w-14 h-14 rounded-full bg-[#111111] border border-[#1C1C1C] flex items-center justify-center mb-4">
-            <Inbox size={22} className="text-[#333333]" />
+            <Inbox size={22} className="text-[#6b6b6b]" />
           </div>
           <h2 className="text-[16px] font-semibold text-[#FAFAFA] mb-1">
             All caught up
           </h2>
-          <p className="text-[13px] text-[#333333] max-w-xs">
+          <p className="text-[13px] text-[#6b6b6b] max-w-xs">
             No pending drafts. Click &ldquo;Generate New Drafts&rdquo; to
             create renewal outreach emails for upcoming expirations.
           </p>
@@ -135,7 +135,7 @@ export default function OutboxClient({ initialDrafts }: OutboxClientProps) {
                 days !== null && days <= 14
                   ? "text-red-400"
                   : days !== null && days <= 30
-                  ? "text-[#888888]"
+                  ? "text-[#9e9e9e]"
                   : "text-[#FAFAFA]";
 
               const bodyPreview = draft.body
@@ -173,17 +173,17 @@ export default function OutboxClient({ initialDrafts }: OutboxClientProps) {
                         )}
                       </div>
 
-                      <div className="text-[13px] font-medium text-[#555555] mb-1.5 truncate">
+                      <div className="text-[13px] font-medium text-[#8a8a8a] mb-1.5 truncate">
                         {draft.subject}
                       </div>
 
-                      <p className="text-[12px] text-[#333333] leading-relaxed line-clamp-2">
+                      <p className="text-[12px] text-[#6b6b6b] leading-relaxed line-clamp-2">
                         {bodyPreview}
                         {draft.body.length > 160 ? "…" : ""}
                       </p>
 
                       {policy?.carrier && (
-                        <div className="mt-2 text-[11px] text-[#333333]">
+                        <div className="mt-2 text-[11px] text-[#6b6b6b]">
                           {policy.carrier}
                           {policy.policy_name ? ` · ${policy.policy_name}` : ""}
                         </div>
@@ -202,7 +202,7 @@ export default function OutboxClient({ initialDrafts }: OutboxClientProps) {
                     </button>
                     <button
                       onClick={() => handleDismiss(draft.id)}
-                      className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#333333] hover:text-red-400 hover:border-red-800/50 transition-colors"
+                      className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#6b6b6b] hover:text-red-400 hover:border-red-800/50 transition-colors"
                     >
                       <Trash2 size={12} />
                       Dismiss

@@ -32,7 +32,7 @@ export function SettingsShell({ profile, userEmail, planName }: Props) {
     <div className="flex h-full overflow-hidden bg-[#0f0f14]">
       {/* Left tab rail */}
       <nav className="w-[200px] shrink-0 border-r border-[#1e1e2a] pt-8 pb-4 flex flex-col gap-0.5 px-2">
-        <p className="text-[11px] font-semibold text-[#333333] uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
+        <p className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
           return (
@@ -49,7 +49,7 @@ export function SettingsShell({ profile, userEmail, planName }: Props) {
               <Icon
                 size={16}
                 strokeWidth={active ? 2 : 1.5}
-                className={active ? "text-[#FAFAFA]" : "text-[#333333]"}
+                className={active ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}
               />
               {label}
             </button>

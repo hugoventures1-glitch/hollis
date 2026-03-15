@@ -96,13 +96,13 @@ function PolicyTableRow({
       <div className="col-span-1 flex items-start gap-2">
         <CheckCircle2
           size={14}
-          className="opacity-0 group-hover:opacity-100 text-[#333333] transition-opacity shrink-0 mt-0.5"
+          className="opacity-0 group-hover:opacity-100 text-[#6b6b6b] transition-opacity shrink-0 mt-0.5"
         />
         <div className="flex flex-col leading-tight">
-          <span className="text-[11px] font-mono text-[#333333] uppercase">
+          <span className="text-[11px] font-mono text-[#6b6b6b] uppercase">
             {prefix}-
           </span>
-          <span className="text-[12px] font-mono text-[#555555] uppercase">
+          <span className="text-[12px] font-mono text-[#8a8a8a] uppercase">
             {num}
           </span>
         </div>
@@ -113,7 +113,7 @@ function PolicyTableRow({
         <span className="text-[15px] font-medium text-white shrink-0 truncate">
           {policy.policy_name ?? policy.carrier ?? "Policy"}
         </span>
-        <span className="text-[14px] text-[#555555] truncate">
+        <span className="text-[14px] text-[#8a8a8a] truncate">
           {policy.client_name}
         </span>
       </div>
@@ -133,7 +133,7 @@ function PolicyTableRow({
       </div>
 
       {/* Date */}
-      <div className="col-span-1 text-[14px] text-[#333333] font-medium text-right">
+      <div className="col-span-1 text-[14px] text-[#6b6b6b] font-medium text-right">
         {formatDate(policy.expiration_date)}
       </div>
 
@@ -144,12 +144,12 @@ function PolicyTableRow({
         ) : loading ? (
           <Loader2
             size={14}
-            className="text-[#555555] animate-spin"
+            className="text-[#8a8a8a] animate-spin"
           />
         ) : (
           <button
             onClick={handleSend}
-            className="text-[12px] text-[#333333] hover:text-[#FAFAFA] transition-colors opacity-0 group-hover:opacity-100 font-medium whitespace-nowrap"
+            className="text-[12px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors opacity-0 group-hover:opacity-100 font-medium whitespace-nowrap"
           >
             → Send
           </button>

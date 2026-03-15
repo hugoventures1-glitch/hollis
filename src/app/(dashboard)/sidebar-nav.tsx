@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
@@ -15,6 +15,8 @@ import {
   ClipboardCheck,
   FileText,
   Settings,
+  LogOut,
+  User,
 } from "lucide-react";
 
 interface RailIconProps {
@@ -37,16 +39,20 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
     <Link
       href={href}
       title={label}
-      className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
+      className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
       style={{
         color:      active ? "#FAFAFA" : "#484848",
         background: active ? "#1C1C1C" : "transparent",
       }}
       onMouseEnter={(e) => {
-        if (!active) (e.currentTarget as HTMLElement).style.color = "#888888";
+        const el = e.currentTarget as HTMLElement;
+        if (!active) el.style.color = "#FAFAFA";
+        el.style.transform = "scale(1.15)";
       }}
       onMouseLeave={(e) => {
-        if (!active) (e.currentTarget as HTMLElement).style.color = "#484848";
+        const el = e.currentTarget as HTMLElement;
+        if (!active) el.style.color = "#484848";
+        el.style.transform = "scale(1)";
       }}
     >
       <Icon size={17} strokeWidth={1.6} />
@@ -67,11 +73,15 @@ export default function SidebarNav() {
 
   const [initials,   setInitials]   = useState<string>("H");
   const [agencyName, setAgencyName] = useState<string | null>(null);
+  const [email,      setEmail]      = useState<string | null>(null);
+  const [menuOpen,   setMenuOpen]   = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
+      setEmail(user.email ?? null);
       Promise.all([
         supabase
           .from("agent_profiles")
@@ -100,6 +110,18 @@ export default function SidebarNav() {
     await supabase.auth.signOut();
     router.push("/login");
   };
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   const handleNavHover = () => {
     const { lastFetched, fetchAll } = useHollisStore.getState();
@@ -147,23 +169,97 @@ export default function SidebarNav() {
         <RailIcon href="/settings"     icon={Settings}        label="Settings"     pathname={pathname} />
       </nav>
 
-      {/* User avatar / sign-out */}
+      {/* User avatar / profile menu */}
       <div
-        className="flex items-center justify-center h-14 shrink-0"
+        ref={menuRef}
+        className="relative flex items-center justify-center h-14 shrink-0"
         style={{ borderTop: "1px solid #181818" }}
       >
+        {/* Pop-up menu */}
+        {menuOpen && (
+          <div
+            className="absolute bottom-[calc(100%+8px)] left-full ml-2 z-50 rounded-xl overflow-hidden"
+            style={{
+              width: 200,
+              background: "#111111",
+              border: "1px solid #222222",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+            }}
+          >
+            {/* Identity header */}
+            <div className="px-4 py-3" style={{ borderBottom: "1px solid #1E1E1E" }}>
+              <div className="text-[12px] font-semibold" style={{ color: "#FAFAFA" }}>
+                {agencyName ?? "My Agency"}
+              </div>
+              {email && (
+                <div
+                  className="text-[11px] mt-0.5 truncate"
+                  style={{ color: "#555" }}
+                >
+                  {email}
+                </div>
+              )}
+            </div>
+
+            {/* Nav items */}
+            <div className="py-1.5">
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-[12px] transition-colors"
+                style={{ color: "#888" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#FAFAFA")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+              >
+                <Settings size={13} strokeWidth={1.6} />
+                Settings
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-[12px] transition-colors"
+                style={{ color: "#888" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#FAFAFA")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+              >
+                <User size={13} strokeWidth={1.6} />
+                Profile
+              </Link>
+            </div>
+
+            {/* Sign out */}
+            <div className="py-1.5" style={{ borderTop: "1px solid #1E1E1E" }}>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] transition-colors"
+                style={{ color: "#555" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#FF4444")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+              >
+                <LogOut size={13} strokeWidth={1.6} />
+                Sign out
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
-          onClick={handleSignOut}
-          title={agencyName ? `${agencyName} — Sign out` : "Sign out"}
+          onClick={() => setMenuOpen((o) => !o)}
+          title={agencyName ?? "Account"}
           className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold transition-colors"
-          style={{ background: "#1C1C1C", color: "#666666" }}
+          style={{
+            background: menuOpen ? "#2A2A2A" : "#1C1C1C",
+            color:      menuOpen ? "#FAFAFA" : "#666666",
+          }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background = "#2A2A2A";
             (e.currentTarget as HTMLElement).style.color      = "#999999";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "#1C1C1C";
-            (e.currentTarget as HTMLElement).style.color      = "#666666";
+            if (!menuOpen) {
+              (e.currentTarget as HTMLElement).style.background = "#1C1C1C";
+              (e.currentTarget as HTMLElement).style.color      = "#666666";
+            }
           }}
         >
           {initials}

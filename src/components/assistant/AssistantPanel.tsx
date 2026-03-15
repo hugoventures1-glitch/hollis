@@ -371,7 +371,7 @@ function MessageBubble({
           <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
             {isUser ? "You" : "Hollis"}
           </span>
-          <span className="text-[11px] text-[#333333]">{formatTime(msg.timestamp)}</span>
+          <span className="text-[11px] text-[#6b6b6b]">{formatTime(msg.timestamp)}</span>
         </div>
         {isUser ? (
           <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-[#0C0C0C] max-w-[85%] leading-relaxed">
@@ -390,7 +390,7 @@ function MessageBubble({
                       key={i}
                       href={action.href}
                       onClick={onLinkClick}
-                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
                     >
                       <ArrowRight size={14} />
                       {action.label}
@@ -399,7 +399,7 @@ function MessageBubble({
                     <button
                       key={i}
                       onClick={() => onAction(action)}
-                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
                     >
                       <Check size={14} />
                       {action.label}
@@ -433,7 +433,7 @@ function MessageBubble({
                 key={i}
                 href={action.href}
                 onClick={onLinkClick}
-                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
               >
                 {action.label}
               </Link>
@@ -441,7 +441,7 @@ function MessageBubble({
               <button
                 key={i}
                 onClick={() => onAction(action)}
-                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#555555] hover:text-[#FAFAFA] transition-colors"
+                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
               >
                 {action.label}
               </button>
@@ -727,9 +727,9 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 <form onSubmit={handleUnifiedSubmit} className="flex items-center gap-3 px-5 py-4 pb-2">
                   <div className="w-8 h-8 flex items-center justify-center shrink-0">
                     {searchLoading ? (
-                      <Loader2 size={15} className="text-[#555555] animate-spin" />
+                      <Loader2 size={15} className="text-[#8a8a8a] animate-spin" />
                     ) : (
-                      <Search size={15} className="text-[#555555]" />
+                      <Search size={15} className="text-[#8a8a8a]" />
                     )}
                   </div>
                   <input
@@ -834,7 +834,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                                       </div>
                                     )}
                                     {meta && meta !== subtitle && (
-                                      <div className="text-[11px] text-[#333333] truncate mt-0.5">
+                                      <div className="text-[11px] text-[#6b6b6b] truncate mt-0.5">
                                         {meta}
                                       </div>
                                     )}
@@ -855,7 +855,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                       <div className="text-[14px] text-zinc-400 mb-0.5">
                         No results for &ldquo;{searchQuery.trim()}&rdquo;
                       </div>
-                      <div className="text-[12px] text-[#333333] mb-4">
+                      <div className="text-[12px] text-[#6b6b6b] mb-4">
                         Try a broader term, or ask Hollis for help.
                       </div>
                     </div>
@@ -871,7 +871,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                             onClick={() => handleSuggestionClick(s)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-300 transition-colors text-left"
                           >
-                            <Search size={13} className="text-[#333333] shrink-0" />
+                            <Search size={13} className="text-[#6b6b6b] shrink-0" />
                             {s}
                           </button>
                         ))}

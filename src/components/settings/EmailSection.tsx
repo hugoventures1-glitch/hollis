@@ -122,7 +122,7 @@ export function EmailSection({ profile }: Props) {
           </p>
           <hr className="border-[#2a2a36]" />
           <pre className="whitespace-pre-wrap text-zinc-400 font-mono text-[13px]">
-            {signature || <span className="italic text-[#333333]">Your signature will appear here.</span>}
+            {signature || <span className="italic text-[#6b6b6b]">Your signature will appear here.</span>}
           </pre>
         </div>
       </div>

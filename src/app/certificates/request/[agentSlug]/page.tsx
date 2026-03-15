@@ -31,7 +31,7 @@ function Field({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full bg-[#111111] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[14px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] transition-colors"
+        className="w-full bg-[#111111] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[14px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#6b6b6b] transition-colors"
       />
     </div>
   );
@@ -40,15 +40,15 @@ function Field({
 function MoneyInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
-      <label className="block text-[11px] font-medium text-[#333333] mb-1">{label}</label>
+      <label className="block text-[11px] font-medium text-[#6b6b6b] mb-1">{label}</label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333333] text-[13px]">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b6b] text-[13px]">$</span>
         <input
           type="text"
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder ?? ""}
-          className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 pl-7 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] transition-colors"
+          className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 pl-7 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#6b6b6b] transition-colors"
         />
       </div>
     </div>
@@ -198,7 +198,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
           <p className="text-[15px] text-[#8a8b91] mb-2">
             Your COI request has been sent to <strong className="text-[#FAFAFA]">{agencyName}</strong>.
           </p>
-          <p className="text-[14px] text-[#333333]">
+          <p className="text-[14px] text-[#6b6b6b]">
             You&apos;ll receive a copy at <strong className="text-[#8a8b91]">{requesterEmail}</strong> once
             the certificate is approved and issued — typically within 1 business day.
           </p>
@@ -316,7 +316,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
                     </div>
                     <div>
                       <div className={`text-[12px] font-semibold ${selected ? "text-[#FAFAFA]" : "text-[#FAFAFA]"}`}>{opt.label}</div>
-                      <div className="text-[11px] text-[#333333] mt-0.5">{opt.desc}</div>
+                      <div className="text-[11px] text-[#6b6b6b] mt-0.5">{opt.desc}</div>
                     </div>
                   </button>
                 );
@@ -351,26 +351,26 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
             <div className="space-y-4">
               <div>
                 <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
-                  Additional Insured Language <span className="text-[#333333] font-normal">(if required)</span>
+                  Additional Insured Language <span className="text-[#6b6b6b] font-normal">(if required)</span>
                 </label>
                 <textarea
                   value={additionalInsured}
                   onChange={e => setAdditionalInsured(e.target.value)}
                   rows={2}
                   placeholder="e.g. ABC Property Management is included as additional insured per written contract…"
-                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] resize-none"
+                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#6b6b6b] resize-none"
                 />
               </div>
               <div>
                 <label className="block text-[12px] font-medium text-[#8a8b91] mb-1.5">
-                  Project Description <span className="text-[#333333] font-normal">(optional)</span>
+                  Project Description <span className="text-[#6b6b6b] font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={projectDescription}
                   onChange={e => setProjectDescription(e.target.value)}
                   rows={2}
                   placeholder="Brief description of the project or reason for the COI request…"
-                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#333333] resize-none"
+                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3.5 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#6b6b6b] resize-none"
                 />
               </div>
             </div>
@@ -391,7 +391,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
             {submitting ? "Submitting…" : "Submit COI Request"}
           </button>
 
-          <p className="text-center text-[11px] text-[#333333]">
+          <p className="text-center text-[11px] text-[#6b6b6b]">
             Your request will be reviewed by {agencyName}. You&apos;ll receive the certificate at your email once approved.
           </p>
         </form>

@@ -8,12 +8,12 @@
   --border:          #1C1C1C;
   --border-subtle:   #161616;
   --text-primary:    #FAFAFA;
-  --text-secondary:  #555555;
-  --text-tertiary:   #333333;
+  --text-secondary:  #8a8a8a;
+  --text-tertiary:   #6b6b6b;
   --text-inverse:    #0C0C0C;
   --accent:          #FAFAFA;
   --danger:          #FF4444;
-  --warning-text:    #888888;
+  --warning-text:    #9e9e9e;
 }
 
 @theme inline {

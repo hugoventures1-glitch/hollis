@@ -46,11 +46,11 @@ const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
 };
 
 const STATUS_ICON_MAP: Record<TouchpointStatus, React.ReactNode> = {
-  pending:    <Clock size={14} className="text-[#555555]" />,
-  processing: <Clock size={14} className="text-[#888888]" />,
+  pending:    <Clock size={14} className="text-[#8a8a8a]" />,
+  processing: <Clock size={14} className="text-[#9e9e9e]" />,
   sent:       <CheckCircle2 size={14} className="text-[#FAFAFA]" />,
   failed:     <XCircle size={14} className="text-[#FF4444]" />,
-  skipped:    <SkipForward size={14} className="text-[#333333]" />,
+  skipped:    <SkipForward size={14} className="text-[#6b6b6b]" />,
 };
 
 const STATUS_LABEL_MAP: Record<TouchpointStatus, string> = {
