@@ -221,12 +221,11 @@ function RenewalsContent() {
               if (e.key === "Escape") setHollisQuery("");
             }}
             placeholder="Search or filter"
-            className="flex-1 bg-transparent outline-none"
+            className="flex-1 bg-transparent outline-none placeholder-[#555]"
             style={{
               fontFamily: "var(--font-sans)",
               fontSize:   13,
               color:      "#AAAAAA",
-              placeholderColor: "#555",
             }}
           />
           {hollisQuery && (
