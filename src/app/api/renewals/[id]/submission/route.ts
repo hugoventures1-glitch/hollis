@@ -89,7 +89,7 @@ export async function POST(
   // Fetch agent profile
   const { data: profile } = await supabase
     .from("agent_profiles")
-    .select("first_name, last_name, phone, agency_name, agency_afsl")
+    .select("first_name, last_name, phone, agency_name, agency_afsl, email_from_name")
     .eq("user_id", user.id)
     .single();
 
@@ -125,12 +125,17 @@ export async function POST(
   const sentTo: string[] = [];
   const sendErrors: string[] = [];
 
+  const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+  const from = profile?.email_from_name
+    ? `${profile.email_from_name} <${baseFrom}>`
+    : baseFrom;
+
   for (const email of insurer_emails) {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) continue;
     try {
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+        from,
         to: trimmedEmail,
         subject: submission.subject,
         text: submission.body,

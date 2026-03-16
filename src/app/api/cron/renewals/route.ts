@@ -117,9 +117,19 @@ export async function GET(request: NextRequest) {
         const lapseBody = `Dear ${policy.client_name},\n\nThis is to confirm that your ${policy.policy_name} with ${policy.carrier} lapsed on ${expiryFormatted}.\n\nAs of this date, your cover has ended and you are currently uninsured. Any claims arising after this date will not be covered.\n\nPlease contact us immediately to discuss reinstating your cover or arranging alternative insurance.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
         const lapseSubject = `IMPORTANT: Your ${policy.policy_name} has lapsed`;
 
+        const { data: lapseProfile } = await supabase
+          .from("agent_profiles")
+          .select("email_from_name")
+          .eq("user_id", policy.user_id)
+          .maybeSingle();
+        const lapseBaseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+        const lapseFrom = lapseProfile?.email_from_name
+          ? `${lapseProfile.email_from_name} <${lapseBaseFrom}>`
+          : lapseBaseFrom;
+
         try {
           const { data: sent } = await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+            from: lapseFrom,
             to: policy.client_email,
             subject: lapseSubject,
             text: lapseBody,
@@ -310,8 +320,18 @@ async function fireTouchpoint(
     subject = generated.subject;
     content = generated.body;
 
+    const { data: brokerProfile } = await supabase
+      .from("agent_profiles")
+      .select("email_from_name")
+      .eq("user_id", policy.user_id)
+      .maybeSingle();
+    const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+    const from = brokerProfile?.email_from_name
+      ? `${brokerProfile.email_from_name} <${baseFrom}>`
+      : baseFrom;
+
     const { data: sent } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+      from,
       to: policy.client_email,
       subject,
       text: content,

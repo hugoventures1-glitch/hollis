@@ -17,7 +17,9 @@ import {
   Settings,
   LogOut,
   User,
+  Search,
 } from "lucide-react";
+import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 
 interface RailIconProps {
   href: string;
@@ -67,9 +69,10 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
 }
 
 export default function SidebarNav() {
-  const pathname = usePathname();
-  const router   = useRouter();
-  const counts   = useSidebarCounts();
+  const pathname   = usePathname();
+  const router     = useRouter();
+  const counts     = useSidebarCounts();
+  const { openPanel } = useUnifiedPanel();
 
   const [initials,   setInitials]   = useState<string>("H");
   const [agencyName, setAgencyName] = useState<string | null>(null);
@@ -132,7 +135,7 @@ export default function SidebarNav() {
 
   return (
     <aside
-      style={{ width: 56 }}
+      style={{ width: 68 }}
       className="flex flex-col shrink-0"
       onMouseEnter={handleNavHover}
     >
@@ -166,7 +169,25 @@ export default function SidebarNav() {
         <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={counts.coi} />
         <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={counts.review} />
         <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={counts.docChase} />
-        <RailIcon href="/settings"     icon={Settings}        label="Settings"     pathname={pathname} />
+        {/* Search — opens assistant panel */}
+        <button
+          onClick={openPanel}
+          title="Search"
+          className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
+          style={{ color: "#484848" }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color     = "#FAFAFA";
+            (e.currentTarget as HTMLElement).style.transform = "scale(1.15)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color     = "#484848";
+            (e.currentTarget as HTMLElement).style.transform = "scale(1)";
+          }}
+        >
+          <Search size={17} strokeWidth={1.6} />
+        </button>
+
+        <RailIcon href="/settings" icon={Settings} label="Settings" pathname={pathname} />
       </nav>
 
       {/* User avatar / profile menu */}

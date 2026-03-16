@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     // Fetch agent profile for personalized sign-off
     const { data: profile } = await supabase
       .from("agent_profiles")
-      .select("first_name, last_name, phone")
+      .select("first_name, last_name, phone, email_from_name")
       .eq("user_id", policy.user_id)
       .single();
 
@@ -100,8 +100,13 @@ export async function GET(request: NextRequest) {
     // Send via Resend
     let providerId: string | null = null;
     try {
+      const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+      const from = profile?.email_from_name
+        ? `${profile.email_from_name} <${baseFrom}>`
+        : baseFrom;
+
       const { data: sent } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+        from,
         to: policy.client_email,
         subject: notice.subject,
         text: notice.body,

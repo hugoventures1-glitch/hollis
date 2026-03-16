@@ -49,6 +49,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Recipient email required" }, { status: 400 });
     }
 
+    const { data: agentProfile } = await supabase
+      .from("agent_profiles")
+      .select("email_from_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+    const from = agentProfile?.email_from_name
+      ? `${agentProfile.email_from_name} <${baseFrom}>`
+      : baseFrom;
+
     // Fetch certificate
     const { data: certData, error: certErr } = await supabase
       .from("certificates")
@@ -76,7 +87,7 @@ export async function PATCH(
     const resend = getResendClient();
     try {
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "certs@hollis.ai",
+        from,
         to: recipientEmail,
         subject: `Certificate of Insurance — ${cert.insured_name} (${cert.certificate_number})`,
         text: [

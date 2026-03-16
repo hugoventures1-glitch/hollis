@@ -456,7 +456,7 @@ function MessageBubble({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AssistantPanel({ page, data }: AssistantPanelProps) {
-  const { registerOpenHandler } = useUnifiedPanel();
+  const { registerOpenHandler, registerOpenWithQueryHandler } = useUnifiedPanel();
 
   const [viewMode, setViewMode] = useState<ViewMode>("closed");
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
@@ -479,7 +479,13 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
       setViewMode("center");
       setTimeout(() => unifiedInputRef.current?.focus(), 180);
     });
-  }, [registerOpenHandler]);
+    registerOpenWithQueryHandler((text: string) => {
+      setInput(text);
+      setSearchQuery(text);
+      setViewMode("center");
+      setTimeout(() => unifiedInputRef.current?.focus(), 180);
+    });
+  }, [registerOpenHandler, registerOpenWithQueryHandler]);
 
   // Don't restore panel from localStorage on mount — always start closed so it
   // doesn't auto-appear when signing in or refreshing

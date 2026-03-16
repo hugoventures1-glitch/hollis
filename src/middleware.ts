@@ -45,10 +45,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session — must be called before any conditional logic
+  // Refresh session — reads from cookie, no network call, avoids rate-limiting.
+  // Individual API routes and server components call getUser() for server-side
+  // verification when they actually need it.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
 
@@ -56,15 +58,15 @@ export async function middleware(request: NextRequest) {
     (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
   );
 
-  // Unauthenticated user on any protected route → /login
-  if (!user && !isPublic) {
+  // No session on any protected route → /login
+  if (!session && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // Authenticated user on an auth page → /overview
-  if (user && (pathname === "/login" || pathname === "/signup")) {
+  if (session && (pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
     url.pathname = "/overview";
     return NextResponse.redirect(url);

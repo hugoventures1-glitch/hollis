@@ -50,7 +50,7 @@ export async function POST(
   // Fetch agent profile for name/email/phone
   const { data: profile } = await supabase
     .from("agent_profiles")
-    .select("first_name, last_name, phone, agency_name")
+    .select("first_name, last_name, phone, agency_name, email_from_name")
     .eq("user_id", user.id)
     .single();
 
@@ -78,9 +78,14 @@ export async function POST(
   // Send via Resend
   let providerId: string | null = null;
   try {
+    const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+    const from = profile?.email_from_name
+      ? `${profile.email_from_name} <${baseFrom}>`
+      : baseFrom;
+
     const resend = getResendClient();
     const { data: sent } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+      from,
       to: policy.client_email,
       subject: pack.subject,
       text: pack.body,

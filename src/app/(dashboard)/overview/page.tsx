@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  Search,
   BarChart2,
   Clock,
   FileText,
@@ -14,7 +13,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { ImportBanner } from "./_components/ImportBanner";
-import { FeedInput } from "./_components/FeedInput";
+import { Sparkline } from "./_components/Sparkline";
+import { MiniBarChart } from "./_components/MiniBarChart";
 
 export const dynamic = "force-dynamic";
 
@@ -33,72 +33,21 @@ function addDays(n: number): string {
   return d.toISOString().split("T")[0];
 }
 
-// ── SVG mini bar chart (Book Value card) ─────────────────────────────────────
-
-function MiniBarChart() {
-  const bars = [
-    0.30, 0.55, 0.40, 0.70, 0.48, 0.82, 0.44, 0.76,
-    0.53, 0.88, 0.65, 0.42, 0.92, 0.75,
-  ];
-  return (
-    <svg viewBox="0 0 140 38" width="100%" height="38" preserveAspectRatio="none">
-      {bars.map((h, i) => (
-        <rect
-          key={i}
-          x={i * 10 + 1}
-          y={(1 - h) * 38}
-          width={7}
-          height={h * 38}
-          rx={1.5}
-          fill={
-            i === bars.length - 1
-              ? "rgba(250,250,250,0.80)"
-              : i >= bars.length - 3
-              ? "rgba(250,250,250,0.38)"
-              : "rgba(250,250,250,0.16)"
-          }
-        />
-      ))}
-    </svg>
-  );
-}
-
-// ── SVG sparkline (Activity card) ────────────────────────────────────────────
-
-function Sparkline() {
-  const pts = [3, 7, 5, 12, 8, 18, 14, 10, 22, 16, 20, 15];
-  const max = Math.max(...pts);
-  const W = 100, H = 34;
-  const points = pts
-    .map((p, i) => `${(i / (pts.length - 1)) * W},${H - (p / max) * H}`)
-    .join(" ");
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
-      <polyline
-        points={points}
-        fill="none"
-        stroke="rgba(250,250,250,0.40)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 // ── Card primitives ───────────────────────────────────────────────────────────
 
 function Card({
   children,
   className = "",
+  style: extraStyle,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <div
-      className={`rounded-xl p-5 flex flex-col ${className}`}
-      style={{ background: "#111111", border: "1px solid #1E1E1E", minHeight: 172 }}
+      className={`rounded-2xl p-6 flex flex-col ${className}`}
+      style={{ background: "#141414", border: "1px solid #252525", minHeight: 196, ...extraStyle }}
     >
       {children}
     </div>
@@ -161,8 +110,15 @@ export default async function DashboardPage() {
   const hour = new Date().getUTCHours();
   const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
 
+  // Today's badge for Daily Insights card
+  const todayBadge = new Date().toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
   const today = new Date().toISOString().split("T")[0];
-  const in60 = addDays(60);
+  const in60  = addDays(60);
 
   const [
     activePoliciesRes,
@@ -173,7 +129,7 @@ export default async function DashboardPage() {
     coiRes,
     reviewRes,
   ] = await Promise.all([
-    // All active policies — for count + premium sum
+    // All active policies — for count + premium sum + bar chart
     supabase
       .from("policies")
       .select("premium")
@@ -197,13 +153,13 @@ export default async function DashboardPage() {
       .eq("status", "active")
       .eq("health_label", "stalled"),
 
-    // Recent send logs — for activity level
+    // Recent send logs — for activity sparkline (60 limit covers 12 days)
     supabase
       .from("send_logs")
       .select("id, sent_at")
       .eq("user_id", user.id)
       .order("sent_at", { ascending: false })
-      .limit(30),
+      .limit(60),
 
     // User profile — for first name
     supabase
@@ -234,26 +190,38 @@ export default async function DashboardPage() {
   const stalledCount   = stalledCountRes.count  ?? 0;
   const recentLogs     = logsRes.data            ?? [];
   const firstName      = profileRes.data?.first_name ?? null;
-  const lastName       = profileRes.data?.last_name  ?? null;
   const coiCount       = coiRes.count    ?? 0;
   const reviewCount    = reviewRes.count ?? 0;
 
-  // Header avatar initials
-  const initials =
-    [firstName?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() || "H";
+  // ── Real sparkline: sends per day for last 12 days ───────────────────────
+  const sparklineData: number[] = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (11 - i));
+    const dateStr = d.toISOString().split("T")[0];
+    return recentLogs.filter((l) => l.sent_at?.startsWith(dateStr)).length;
+  });
 
-  // Summary card text
-  const summaryParts: string[] = [];
-  if (bookValue > 0)     summaryParts.push(`Book value ${formatBookValue(bookValue)}`);
-  if (activeCount > 0)   summaryParts.push(`${activeCount} active policies`);
-  if (upcomingCount > 0) summaryParts.push(`${upcomingCount} renewing in 60 days`);
-  const summaryText   = summaryParts.length ? summaryParts.join(", ") + "." : "No data yet.";
+  // ── Real bar chart: premium distribution across active policies ───────────
+  const premiums = activePolicies
+    .map((p) => Number(p.premium) || 0)
+    .filter((v) => v > 0)
+    .sort((a, b) => a - b);
+
+  const barCount = 14;
+  const bookValueBars: number[] = Array.from({ length: barCount }, (_, i) => {
+    if (!premiums.length) return 0.2;
+    const step  = Math.ceil(premiums.length / barCount);
+    const slice = premiums.slice(i * step, i * step + step);
+    if (!slice.length) return 0.1;
+    return Math.max(...slice) / premiums[premiums.length - 1];
+  });
+
   const summaryStatus =
     stalledCount > 0
       ? `${stalledCount} stalled ${stalledCount === 1 ? "policy" : "policies"} need attention.`
       : upcomingCount > 0
       ? "Keep an eye on upcoming renewals."
-      : "Things are looking good.";
+      : "Nothing needs attention today.";
 
   const activityLevel =
     recentLogs.length > 15 ? "high" : recentLogs.length > 6 ? "steady" : "light";
@@ -270,125 +238,43 @@ export default async function DashboardPage() {
         style={{ borderBottom: "1px solid #181818" }}
       >
         <div className="flex items-center gap-2 text-[13px]" style={{ color: "#555555" }}>
-          <Search size={14} />
-          Find anything
+          Overview
         </div>
+
+        {/* Overview / Metrics tabs */}
         <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold select-none"
-          style={{ background: "#1C1C1C", color: "#888888" }}
+          className="flex items-center h-8 rounded-lg overflow-hidden"
+          style={{ border: "1px solid #222222", background: "#111111" }}
         >
-          {initials}
+          <Link
+            href="/overview"
+            className="px-3 h-full flex items-center text-[12px] font-medium"
+            style={{ color: "#FAFAFA", background: "#1C1C1C" }}
+          >
+            Overview
+          </Link>
+          <Link
+            href="/activity"
+            className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#9e9e9e]"
+            style={{ color: "#444444" }}
+          >
+            Metrics
+          </Link>
         </div>
       </header>
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 px-8 pt-8">
 
-        {/* Greeting + controls */}
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <h1 className="text-[26px] leading-tight tracking-tight">
-              <span style={{ fontWeight: 300 }}>{greeting} </span>
-              <span style={{ fontWeight: 600 }}>{firstName ?? "there"}</span>
-            </h1>
-            <p className="mt-1 text-[13px]" style={{ color: "#666666" }}>
-              here&apos;s a quick look at how things are going.
-            </p>
-          </div>
-
-          {/* Controls row */}
-          <div className="flex items-center gap-2 mt-1">
-            {/* Grid / List toggle */}
-            <div
-              className="flex items-center h-8 rounded-lg overflow-hidden"
-              style={{ border: "1px solid #222222", background: "#111111" }}
-            >
-              <button
-                className="w-8 h-full flex items-center justify-center"
-                style={{ color: "#FAFAFA", background: "#1C1C1C" }}
-                aria-label="Grid view"
-              >
-                <svg viewBox="0 0 14 14" width="13" height="13" fill="currentColor">
-                  <rect x="0" y="0" width="6" height="6" rx="1.2" />
-                  <rect x="8" y="0" width="6" height="6" rx="1.2" />
-                  <rect x="0" y="8" width="6" height="6" rx="1.2" />
-                  <rect x="8" y="8" width="6" height="6" rx="1.2" />
-                </svg>
-              </button>
-              <button
-                className="w-8 h-full flex items-center justify-center"
-                style={{ color: "#3A3A3A" }}
-                aria-label="List view"
-              >
-                <svg
-                  viewBox="0 0 14 12"
-                  width="13"
-                  height="12"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                >
-                  <line x1="0" y1="2"  x2="14" y2="2"  />
-                  <line x1="0" y1="6"  x2="14" y2="6"  />
-                  <line x1="0" y1="10" x2="14" y2="10" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Time filter */}
-            <button
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium"
-              style={{ background: "#111111", border: "1px solid #222222", color: "#888888" }}
-            >
-              <svg
-                viewBox="0 0 12 12"
-                width="11"
-                height="11"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <rect x="1" y="1" width="10" height="10" rx="2" />
-                <line x1="1" y1="4.5" x2="11" y2="4.5" />
-                <line x1="4" y1="1"   x2="4"  y2="4.5" />
-                <line x1="8" y1="1"   x2="8"  y2="4.5" />
-              </svg>
-              60 days
-              <svg
-                viewBox="0 0 10 6"
-                width="9"
-                height="6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              >
-                <polyline points="1,1 5,5 9,1" />
-              </svg>
-            </button>
-
-            {/* Overview / Metrics tabs */}
-            <div
-              className="flex items-center h-8 rounded-lg overflow-hidden"
-              style={{ border: "1px solid #222222", background: "#111111" }}
-            >
-              <Link
-                href="/overview"
-                className="px-3 h-full flex items-center text-[12px] font-medium"
-                style={{ color: "#FAFAFA", background: "#1C1C1C" }}
-              >
-                Overview
-              </Link>
-              <Link
-                href="/activity"
-                className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#9e9e9e]"
-                style={{ color: "#444444" }}
-              >
-                Metrics
-              </Link>
-            </div>
-          </div>
+        {/* Greeting */}
+        <div className="mb-2">
+          <h1 className="text-[42px] leading-tight tracking-tight">
+            <span style={{ fontWeight: 300 }}>{greeting}, </span>
+            <span style={{ fontWeight: 600 }}>{firstName ?? "there"}</span>
+          </h1>
+          <p className="mt-1 text-[13px]" style={{ color: "#666666" }}>
+            here&apos;s a quick look at how things are going.
+          </p>
         </div>
 
         {/* Import banner (client component — localStorage-driven) */}
@@ -399,19 +285,35 @@ export default async function DashboardPage() {
 
           {/* ─── Row 1 ─────────────────────────────────────── */}
 
-          {/* Card 1 — Weekly Summary */}
+          {/* Card 1 — Daily Insights */}
           <Card>
             <CardHead
               icon={<CalendarDays size={12} style={{ color: "#555555" }} />}
-              label="Weekly Summary"
-              badge="Just now"
+              label="Daily Insights"
+              badge={todayBadge}
             />
-            <div className="flex-1">
-              <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
-                {summaryText}{" "}
-                <span style={{ color: stalledCount > 0 ? "#FAFAFA" : "#888888" }}>
-                  {summaryStatus}
-                </span>
+            <div className="flex-1 flex flex-col gap-1.5">
+              {bookValue > 0 && (
+                <p className="text-[13px] leading-relaxed" style={{ color: "#888888" }}>
+                  Book value{" "}
+                  <span style={{ color: "#FAFAFA", fontWeight: 600 }}>{formatBookValue(bookValue)}</span>
+                </p>
+              )}
+              {activeCount > 0 && (
+                <p className="text-[13px] leading-relaxed" style={{ color: "#888888" }}>
+                  <span style={{ color: "#FAFAFA", fontWeight: 600 }}>{activeCount}</span> active {activeCount === 1 ? "policy" : "policies"}
+                </p>
+              )}
+              {upcomingCount > 0 && (
+                <p className="text-[13px] leading-relaxed" style={{ color: "#888888" }}>
+                  <span style={{ color: upcomingCount > 5 ? "#FF6B6B" : "#FAFAFA", fontWeight: 600 }}>{upcomingCount}</span> renewing in 60 days
+                </p>
+              )}
+              {activeCount === 0 && bookValue === 0 && (
+                <p className="text-[13px]" style={{ color: "#666" }}>No data yet.</p>
+              )}
+              <p className="text-[13px] mt-1" style={{ color: stalledCount > 0 ? "#FAFAFA" : "#555" }}>
+                {summaryStatus}
               </p>
             </div>
             <div className="mt-auto pt-4 flex items-center justify-between">
@@ -434,8 +336,8 @@ export default async function DashboardPage() {
             </div>
           </Card>
 
-          {/* Card 2 — Book Value */}
-          <Card>
+          {/* Card 2 — Book Value (white outline) */}
+          <Card style={{ border: "1px solid rgba(250,250,250,0.14)", background: "#161616" }}>
             <CardHead
               icon={<BarChart2 size={12} style={{ color: "#555555" }} />}
               label="Book Value"
@@ -448,7 +350,7 @@ export default async function DashboardPage() {
                 </span>
               </p>
               <div className="mt-3">
-                <MiniBarChart />
+                <MiniBarChart bars={bookValueBars} />
               </div>
             </div>
             <SeeLink label="See detailed view" href="/renewals" />
@@ -620,19 +522,13 @@ export default async function DashboardPage() {
                 )}
               </p>
               <div className="mt-3">
-                <Sparkline />
+                <Sparkline pts={sparklineData} />
               </div>
             </div>
             <SeeLink label="See activity" href="/activity" />
           </Card>
 
         </div>
-
-        {/* ── Feed input section ── */}
-        <div className="mt-10">
-          <FeedInput />
-        </div>
-
       </div>
     </div>
   );

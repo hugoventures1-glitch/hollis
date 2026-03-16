@@ -43,6 +43,7 @@ export function EmailSection({ profile }: Props) {
   });
 
   const signature = useWatch({ control, name: "email_signature" });
+  const senderName = useWatch({ control, name: "email_from_name" });
   const cc = useWatch({ control, name: "cc_self_on_client_emails" });
 
   const onSave = handleSubmit(async (values) => {
@@ -65,13 +66,17 @@ export function EmailSection({ profile }: Props) {
       </div>
 
       <SettingsField
-        label="From name"
-        hint="The name clients see when they receive emails from Hollis. E.g. 'Sarah Chen — Pinnacle Insurance'"
+        label="Sender Display Name"
+        hint={
+          senderName
+            ? `Your clients will see: ${senderName} <hugo@hollisai.com.au>`
+            : "The display name clients see on emails. E.g. 'Smith Insurance'"
+        }
         error={errors.email_from_name?.message}
       >
         <SettingsInput
           {...register("email_from_name")}
-          placeholder="Sarah Chen — Pinnacle Insurance"
+          placeholder="Smith Insurance"
           error={!!errors.email_from_name}
         />
       </SettingsField>

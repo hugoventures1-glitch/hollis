@@ -41,6 +41,17 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   const finalSubject = subject?.trim() || draft.subject;
   const finalBody = body?.trim() || draft.body;
 
+  const { data: agentProfile } = await supabase
+    .from("agent_profiles")
+    .select("email_from_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+  const from = agentProfile?.email_from_name
+    ? `${agentProfile.email_from_name} <${baseFrom}>`
+    : baseFrom;
+
   const policyData = Array.isArray(draft.policies)
     ? draft.policies[0]
     : draft.policies;
@@ -48,7 +59,7 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   if (clientEmail) {
     const resend = getResendClient();
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? "outbox@hollis.ai",
+      from,
       to: clientEmail,
       subject: finalSubject,
       text: finalBody,

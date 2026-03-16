@@ -166,9 +166,19 @@ export async function POST(
       subject = generated.subject;
       content = generated.body;
 
+      const { data: agentProfile } = await supabase
+        .from("agent_profiles")
+        .select("email_from_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+      const from = agentProfile?.email_from_name
+        ? `${agentProfile.email_from_name} <${baseFrom}>`
+        : baseFrom;
+
       const resend = getResendClient();
       const { data: sent } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+        from,
         to: policy.client_email,
         subject,
         text: content,

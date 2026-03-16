@@ -18,6 +18,7 @@ import type { BrokerNotification, TierDecision } from "@/types/agent";
 interface BrokerNotifierParams {
   brokerEmail: string;
   brokerName?: string;
+  senderName?: string;
   policyId: string;
   decision: TierDecision;
   appUrl?: string;
@@ -82,7 +83,7 @@ Hollis Renewal Intelligence`;
 }
 
 export async function sendBrokerAlert(params: BrokerNotifierParams): Promise<void> {
-  const { brokerEmail, brokerName = "there", policyId, decision, appUrl } = params;
+  const { brokerEmail, brokerName = "there", senderName, policyId, decision, appUrl } = params;
 
   if (!decision.broker_notification) {
     // Not a Tier 3 decision — nothing to send
@@ -101,8 +102,11 @@ export async function sendBrokerAlert(params: BrokerNotifierParams): Promise<voi
 
   const resend = getResendClient();
 
+  const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+  const from = senderName ? `${senderName} <${baseFrom}>` : baseFrom;
+
   const { error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "noreply@hollis.ai",
+    from,
     to: brokerEmail,
     subject,
     text,
@@ -133,7 +137,7 @@ export async function notifyBrokerTier3(
   const [profileRes, userRes] = await Promise.all([
     supabase
       .from("agent_profiles")
-      .select("first_name, last_name")
+      .select("first_name, last_name, email_from_name")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase.auth.admin.getUserById(userId),
@@ -143,6 +147,7 @@ export async function notifyBrokerTier3(
   const brokerName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "there"
     : "there";
+  const senderName = profile?.email_from_name ?? undefined;
 
   const brokerEmail = userRes?.data?.user?.email;
 
@@ -154,6 +159,7 @@ export async function notifyBrokerTier3(
   await sendBrokerAlert({
     brokerEmail,
     brokerName,
+    senderName,
     policyId,
     decision,
   });

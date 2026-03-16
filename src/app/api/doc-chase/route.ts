@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       client_name.trim(),
       document_type.trim(),
       resolvedAgentName || "Your Agent",
-      resolvedAgentEmail || (process.env.RESEND_FROM_EMAIL ?? "agent@hollis.ai"),
+      resolvedAgentEmail || (process.env.FROM_EMAIL ?? "hugo@hollisai.com.au"),
       notes ?? null,
       client_phone?.trim() || null
     );

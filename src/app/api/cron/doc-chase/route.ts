@@ -167,8 +167,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(results);
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL ?? "documents@hollis.ai";
+  const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
   const nowIso = new Date().toISOString();
+
+  // Build sender name cache for all unique broker IDs in this batch
+  const uniqueUserIds = [...new Set(active.map((m) => m.doc_chase_sequences.doc_chase_requests.user_id))];
+  const senderNameCache = new Map<string, string>();
+  if (uniqueUserIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("agent_profiles")
+      .select("user_id, email_from_name")
+      .in("user_id", uniqueUserIds);
+    for (const p of profiles ?? []) {
+      senderNameCache.set(
+        p.user_id,
+        p.email_from_name ? `${p.email_from_name} <${baseFrom}>` : baseFrom
+      );
+    }
+  }
 
   for (const msg of active) {
     const seq = msg.doc_chase_sequences;
@@ -299,7 +315,7 @@ export async function GET(request: NextRequest) {
         const { Resend } = await import("resend");
         const resend = new Resend(resendKey);
         await resend.emails.send({
-          from: fromEmail,
+          from: senderNameCache.get(req.user_id) ?? baseFrom,
           to: req.client_email,
           subject: msg.subject,
           text: msg.body,

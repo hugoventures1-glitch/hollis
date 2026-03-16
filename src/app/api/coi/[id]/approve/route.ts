@@ -80,6 +80,17 @@ export async function POST(request: NextRequest, { params }: PageParams) {
       .eq("user_id", user.id);
   }
 
+  const { data: agentProfile } = await supabase
+    .from("agent_profiles")
+    .select("email_from_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+  const from = agentProfile?.email_from_name
+    ? `${agentProfile.email_from_name} <${baseFrom}>`
+    : baseFrom;
+
   try {
     if (coiRequest.certificate_id) {
       const { data: certData, error: certErr } = await supabase
@@ -98,7 +109,7 @@ export async function POST(request: NextRequest, { params }: PageParams) {
         if (recipient) {
           const resend = getResendClient();
           await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL ?? "certs@hollis.ai",
+            from,
             to: recipient,
             subject: `Certificate of Insurance — ${cert.insured_name}`,
             text: `Please find your Certificate of Insurance attached.\n\nInsured: ${cert.insured_name}\nCertificate #: ${cert.certificate_number}`,
