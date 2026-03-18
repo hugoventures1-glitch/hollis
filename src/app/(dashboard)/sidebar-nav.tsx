@@ -41,7 +41,7 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
     <Link
       href={href}
       title={label}
-      className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
+      className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200"
       style={{
         color:      active ? "#FAFAFA" : "#484848",
         background: active ? "#1C1C1C" : "transparent",
@@ -57,7 +57,7 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
         el.style.transform = "scale(1)";
       }}
     >
-      <Icon size={17} strokeWidth={1.6} />
+      <Icon size={19} strokeWidth={1.6} />
       {!!badge && badge > 0 && (
         <span
           className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
@@ -135,7 +135,7 @@ export default function SidebarNav() {
 
   return (
     <aside
-      style={{ width: 68 }}
+      style={{ width: 72, background: "#0C0C0C", borderRight: "1px solid #181818" }}
       className="flex flex-col shrink-0"
       onMouseEnter={handleNavHover}
     >
@@ -149,7 +149,7 @@ export default function SidebarNav() {
             style={{
               fontFamily:    "var(--font-playfair)",
               fontWeight:    900,
-              fontSize:      16,
+              fontSize:      18,
               color:         "#FAFAFA",
               letterSpacing: "-0.02em",
               lineHeight:    1,
@@ -162,18 +162,11 @@ export default function SidebarNav() {
 
       {/* Icon nav rail */}
       <nav className="flex-1 flex flex-col items-center py-3 gap-1 overflow-y-auto">
-        <RailIcon href="/overview"     icon={LayoutDashboard} label="Overview"     pathname={pathname} />
-        <RailIcon href="/activity"     icon={Activity}        label="Activity"     pathname={pathname} />
-        <RailIcon href="/renewals"     icon={RefreshCcw}      label="Renewals"     pathname={pathname} badge={counts.renewals} />
-        <RailIcon href="/clients"      icon={Users}           label="Clients"      pathname={pathname} />
-        <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={counts.coi} />
-        <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={counts.review} />
-        <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={counts.docChase} />
         {/* Search — opens assistant panel */}
         <button
           onClick={openPanel}
           title="Search"
-          className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
+          className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200"
           style={{ color: "#484848" }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.color     = "#FAFAFA";
@@ -184,9 +177,16 @@ export default function SidebarNav() {
             (e.currentTarget as HTMLElement).style.transform = "scale(1)";
           }}
         >
-          <Search size={17} strokeWidth={1.6} />
+          <Search size={19} strokeWidth={1.6} />
         </button>
 
+        <RailIcon href="/overview"     icon={LayoutDashboard} label="Overview"     pathname={pathname} />
+        <RailIcon href="/activity"     icon={Activity}        label="Activity"     pathname={pathname} />
+        <RailIcon href="/renewals"     icon={RefreshCcw}      label="Renewals"     pathname={pathname} badge={counts.renewals} />
+        <RailIcon href="/clients"      icon={Users}           label="Clients"      pathname={pathname} />
+        <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={counts.coi} />
+        <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={counts.review} />
+        <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={counts.docChase} />
         <RailIcon href="/settings" icon={Settings} label="Settings" pathname={pathname} />
       </nav>
 
@@ -267,7 +267,7 @@ export default function SidebarNav() {
         <button
           onClick={() => setMenuOpen((o) => !o)}
           title={agencyName ?? "Account"}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold transition-colors"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors"
           style={{
             background: menuOpen ? "#2A2A2A" : "#1C1C1C",
             color:      menuOpen ? "#FAFAFA" : "#666666",

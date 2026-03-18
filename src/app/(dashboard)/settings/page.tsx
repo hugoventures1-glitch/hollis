@@ -5,7 +5,11 @@ import { SettingsShell } from "@/components/settings/SettingsShell";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Settings — Hollis" };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }> | { tab?: string };
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,12 +31,14 @@ export default async function SettingsPage() {
     .maybeSingle();
 
   const planName = agency?.plan ?? "Free Plan";
+  const params = await Promise.resolve(searchParams);
 
   return (
     <SettingsShell
       profile={profile ?? {}}
       userEmail={user.email ?? ""}
       planName={planName}
+      initialTab={params?.tab}
     />
   );
 }

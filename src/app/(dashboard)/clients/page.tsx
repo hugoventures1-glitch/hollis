@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Users, Plus, Loader2, Search } from "lucide-react";
+import { Users, Loader2, Search } from "lucide-react";
 import { ClientsTable } from "./_components/ClientsTable";
 import { useHollisData } from "@/hooks/useHollisData";
 
@@ -51,14 +51,6 @@ export default function ClientsPage() {
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: "rgba(250,250,250,0.2)" }} title="Syncing…" />
           )}
-          <Link
-            href="/import/clients"
-            className="h-8 px-3.5 rounded text-[13px] font-bold flex items-center gap-2 transition-colors"
-            style={{ background: "#FAFAFA", color: "#0C0C0C" }}
-          >
-            <Plus size={14} strokeWidth={3} />
-            Import
-          </Link>
         </div>
       </header>
 
@@ -141,14 +133,14 @@ export default function ClientsPage() {
             </div>
             <h2 className="text-[16px] font-semibold mb-1" style={{ color: "#FAFAFA" }}>No clients yet</h2>
             <p className="text-[13px] mb-6 max-w-xs" style={{ color: "#555555" }}>
-              Import a CSV or add clients manually to get started.
+              Drop your spreadsheet in Settings → Import Data and Hollis will map everything automatically.
             </p>
             <Link
-              href="/import/clients"
+              href="/settings?tab=import"
               className="h-9 px-5 rounded-md text-[13px] font-semibold transition-colors"
               style={{ background: "#FAFAFA", color: "#0C0C0C" }}
             >
-              Import CSV
+              Go to Import Data
             </Link>
           </div>
         ) : rows.length === 0 ? (

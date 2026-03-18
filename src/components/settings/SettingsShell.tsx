@@ -1,37 +1,55 @@
 "use client";
 
 import { useState } from "react";
-import { User, Building2, Mail, Bell, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { User, Building2, Mail, Bell, Settings, Upload } from "lucide-react";
 import type { AgentProfile } from "@/types/settings";
 import { ProfileSection } from "./ProfileSection";
 import { AgencySection } from "./AgencySection";
 import { EmailSection } from "./EmailSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { AccountSection } from "./AccountSection";
+import { ImportSection } from "./ImportSection";
 
-type Tab = "profile" | "agency" | "email" | "notifications" | "account";
+type Tab = "profile" | "agency" | "email" | "notifications" | "account" | "import";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "agency", label: "Agency", icon: Building2 },
-  { id: "email", label: "Email & Signatures", icon: Mail },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "account", label: "Account", icon: Settings },
+  { id: "profile",       label: "Profile",          icon: User      },
+  { id: "agency",        label: "Agency",            icon: Building2 },
+  { id: "email",         label: "Email & Signatures",icon: Mail      },
+  { id: "notifications", label: "Notifications",     icon: Bell      },
+  { id: "account",       label: "Account",           icon: Settings  },
+  { id: "import",        label: "Import Data",       icon: Upload    },
 ];
+
+const VALID_TABS: Tab[] = ["profile", "agency", "email", "notifications", "account", "import"];
 
 interface Props {
   profile: Partial<AgentProfile>;
   userEmail: string;
   planName: string;
+  initialTab?: string;
 }
 
-export function SettingsShell({ profile, userEmail, planName }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+export function SettingsShell({ profile, userEmail, planName, initialTab }: Props) {
+  const router = useRouter();
+
+  const startTab: Tab =
+    initialTab && VALID_TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "profile";
+
+  const [activeTab, setActiveTab] = useState<Tab>(startTab);
+
+  function handleTab(id: Tab) {
+    setActiveTab(id);
+    router.replace(`/settings?tab=${id}`, { scroll: false });
+  }
+
+  const isImport = activeTab === "import";
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#0f0f14]">
+    <div className="flex h-full overflow-hidden bg-[#0C0C0C]">
       {/* Left tab rail */}
-      <nav className="w-[200px] shrink-0 border-r border-[#1e1e2a] pt-8 pb-4 flex flex-col gap-0.5 px-2">
+      <nav className="w-[200px] shrink-0 border-r border-[#181818] pt-8 pb-4 flex flex-col gap-0.5 px-2">
         <p className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
@@ -39,10 +57,10 @@ export function SettingsShell({ profile, userEmail, planName }: Props) {
             <button
               key={id}
               type="button"
-              onClick={() => setActiveTab(id)}
+              onClick={() => handleTab(id)}
               className={`w-full flex items-center gap-2.5 px-2.5 py-[9px] rounded-[4px] text-left transition-colors text-[14px] font-medium ${
                 active
-                  ? "bg-[#111111] border-l-2 border-[#FAFAFA] text-[#0C0C0C] pl-[9px]"
+                  ? "bg-[#1C1C1C] border-l-2 border-[#FAFAFA] text-[#FAFAFA] pl-[9px]"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03] border-l-2 border-transparent"
               }`}
             >
@@ -57,26 +75,32 @@ export function SettingsShell({ profile, userEmail, planName }: Props) {
         })}
       </nav>
 
-      {/* Right content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[640px] px-10 py-10">
-          {activeTab === "profile" && (
-            <ProfileSection profile={profile} userEmail={userEmail} />
-          )}
-          {activeTab === "agency" && (
-            <AgencySection profile={profile} />
-          )}
-          {activeTab === "email" && (
-            <EmailSection profile={profile} />
-          )}
-          {activeTab === "notifications" && (
-            <NotificationsSection profile={profile} />
-          )}
-          {activeTab === "account" && (
-            <AccountSection planName={planName} />
-          )}
+      {/* Right content — full-width for import, constrained for everything else */}
+      {isImport ? (
+        <div className="flex-1 overflow-hidden">
+          <ImportSection />
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[640px] px-10 py-10">
+            {activeTab === "profile" && (
+              <ProfileSection profile={profile} userEmail={userEmail} />
+            )}
+            {activeTab === "agency" && (
+              <AgencySection profile={profile} />
+            )}
+            {activeTab === "email" && (
+              <EmailSection profile={profile} />
+            )}
+            {activeTab === "notifications" && (
+              <NotificationsSection profile={profile} />
+            )}
+            {activeTab === "account" && (
+              <AccountSection planName={planName} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

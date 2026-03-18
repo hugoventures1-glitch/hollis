@@ -13,7 +13,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CheckCircle2, X, Upload } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 
 const STORAGE_KEY = "hollis_import_counts";
 const DISMISSED_KEY = "hollis_import_banner_dismissed";
@@ -87,10 +87,9 @@ export function ImportBanner() {
             View Renewals
           </Link>
           <Link
-            href="/import"
+            href="/settings?tab=import"
             className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
           >
-            <Upload size={11} />
             Import more
           </Link>
         </div>

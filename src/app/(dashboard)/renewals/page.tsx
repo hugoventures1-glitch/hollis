@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Upload, Plus, Loader2, Search, ArrowRight } from "lucide-react";
+import { Plus, Loader2, Search } from "lucide-react";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignStage } from "@/types/renewals";
 import { RenewalsTable } from "./_components/RenewalsTable";
@@ -104,22 +104,6 @@ function RenewalsContent() {
             style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             Templates
-          </Link>
-          <Link
-            href="/renewals/upload"
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md text-[13px] transition-colors"
-            style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
-          >
-            <Upload size={13} />
-            Import
-          </Link>
-          <Link
-            href="/renewals/upload"
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md text-[13px] font-medium transition-colors"
-            style={{ background: "#1A1A1A", color: "#555", border: "1px solid #1A1A1A" }}
-          >
-            <Plus size={13} />
-            Add policies
           </Link>
         </div>
       </div>
@@ -348,12 +332,11 @@ function EmptyState({ view }: { view: ViewTab }) {
       </div>
       {view === "action" && (
         <Link
-          href="/renewals/upload"
+          href="/settings?tab=import"
           className="mt-6 h-9 px-5 flex items-center gap-2 rounded-md text-[13px] font-medium transition-colors"
           style={{ background: "#1A1A1A", color: "#888", border: "1px solid #2A2A2A" }}
         >
-          <Upload size={13} />
-          Import CSV
+          Import your book →
         </Link>
       )}
     </div>
