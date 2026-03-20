@@ -34,6 +34,9 @@ export interface AgentProfile {
   // Branding
   primary_color: string;
 
+  // Agent instructions
+  standing_orders: string | null;
+
   created_at: string;
   updated_at: string;
 }

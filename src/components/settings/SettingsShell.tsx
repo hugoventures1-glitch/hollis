@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Building2, Mail, Bell, Settings, Upload } from "lucide-react";
+import { User, Building2, Mail, Bell, Settings, Upload, Bot } from "lucide-react";
 import type { AgentProfile } from "@/types/settings";
 import { ProfileSection } from "./ProfileSection";
 import { AgencySection } from "./AgencySection";
@@ -10,19 +10,21 @@ import { EmailSection } from "./EmailSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { AccountSection } from "./AccountSection";
 import { ImportSection } from "./ImportSection";
+import { HollisSection } from "./HollisSection";
 
-type Tab = "profile" | "agency" | "email" | "notifications" | "account" | "import";
+type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "account" | "import";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "profile",       label: "Profile",          icon: User      },
-  { id: "agency",        label: "Agency",            icon: Building2 },
-  { id: "email",         label: "Email & Signatures",icon: Mail      },
-  { id: "notifications", label: "Notifications",     icon: Bell      },
-  { id: "account",       label: "Account",           icon: Settings  },
-  { id: "import",        label: "Import Data",       icon: Upload    },
+  { id: "hollis",        label: "Hollis",             icon: Bot       },
+  { id: "profile",       label: "Profile",            icon: User      },
+  { id: "agency",        label: "Agency",             icon: Building2 },
+  { id: "email",         label: "Email & Signatures", icon: Mail      },
+  { id: "notifications", label: "Notifications",      icon: Bell      },
+  { id: "account",       label: "Account",            icon: Settings  },
+  { id: "import",        label: "Import Data",        icon: Upload    },
 ];
 
-const VALID_TABS: Tab[] = ["profile", "agency", "email", "notifications", "account", "import"];
+const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "notifications", "account", "import"];
 
 interface Props {
   profile: Partial<AgentProfile>;
@@ -35,7 +37,7 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
   const router = useRouter();
 
   const startTab: Tab =
-    initialTab && VALID_TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "profile";
+    initialTab && VALID_TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "hollis";
 
   const [activeTab, setActiveTab] = useState<Tab>(startTab);
 
@@ -83,6 +85,9 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
       ) : (
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-[640px] px-10 py-10">
+            {activeTab === "hollis" && (
+              <HollisSection initialOrders={profile.standing_orders} />
+            )}
             {activeTab === "profile" && (
               <ProfileSection profile={profile} userEmail={userEmail} />
             )}

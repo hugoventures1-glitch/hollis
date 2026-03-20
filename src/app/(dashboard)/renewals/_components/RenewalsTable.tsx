@@ -2,9 +2,10 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, MessageSquare } from "lucide-react";
 import { ActionButton } from "@/components/actions/ActionButton";
 import { useToast } from "@/components/actions/MicroToast";
+import { SignalModal } from "@/components/renewals/SignalModal";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignStage, HealthLabel } from "@/types/renewals";
 
@@ -134,9 +135,10 @@ interface RowProps {
   optimisticStage: CampaignStage | null;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
+  onLogSignal: (policyId: string, clientName: string) => void;
 }
 
-function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert }: RowProps) {
+function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert, onLogSignal }: RowProps) {
   const { toast }          = useToast();
   const router             = useRouter();
   const [loading, setLoading] = useState(false);
@@ -288,12 +290,30 @@ function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert }: R
         </span>
       </div>
 
-      {/* Action — hover only, slides in from right */}
+      {/* Actions — hover only, slides in from right */}
       <div
-        className="shrink-0 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150"
+        className="shrink-0 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 flex items-center gap-2"
         onClick={(e) => e.stopPropagation()}
-        style={{ minWidth: 72 }}
+        style={{ minWidth: 112 }}
       >
+        {/* Log response button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onLogSignal(policy.id, policy.client_name); }}
+          title="Log client response"
+          className="flex items-center justify-center h-7 w-7 rounded-md transition-colors shrink-0"
+          style={{ background: "#141414", color: "#444", border: "1px solid #222" }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "#00d4aa";
+            (e.currentTarget as HTMLElement).style.borderColor = "#00d4aa33";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "#444";
+            (e.currentTarget as HTMLElement).style.borderColor = "#222";
+          }}
+        >
+          <MessageSquare size={12} />
+        </button>
+
         {canSend ? (
           <ActionButton
             label={SEND_LABEL[effectiveStage]}
@@ -327,11 +347,13 @@ function PolicyGroup({
   optimisticStages,
   onStageUpdate,
   onStageRevert,
+  onLogSignal,
 }: {
   group: Group;
   optimisticStages: Record<string, CampaignStage>;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
+  onLogSignal: (policyId: string, clientName: string) => void;
 }) {
   if (group.policies.length === 0) return null;
 
@@ -378,6 +400,7 @@ function PolicyGroup({
           optimisticStage={optimisticStages[p.id] ?? null}
           onStageUpdate={onStageUpdate}
           onStageRevert={onStageRevert}
+          onLogSignal={onLogSignal}
         />
       ))}
     </div>
@@ -394,6 +417,7 @@ interface RenewalsTableProps {
 
 export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProps) {
   const [optimisticStages, setOptimisticStages] = useState<Record<string, CampaignStage>>({});
+  const [signalPolicy, setSignalPolicy] = useState<{ id: string; clientName: string } | null>(null);
 
   const updateStage = useCallback((id: string, stage: CampaignStage) => {
     setOptimisticStages((prev) => ({ ...prev, [id]: stage }));
@@ -405,6 +429,10 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
       delete next[id];
       return next;
     });
+  }, []);
+
+  const openSignal = useCallback((policyId: string, clientName: string) => {
+    setSignalPolicy({ id: policyId, clientName });
   }, []);
 
   // Apply search/command filter
@@ -452,17 +480,29 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
   if (filtered.length === 0) return null;
 
   return (
-    <div className="pb-4">
-      {groups.map((g) => (
-        <PolicyGroup
-          key={g.title}
-          group={g}
-          optimisticStages={optimisticStages}
-          onStageUpdate={updateStage}
-          onStageRevert={revertStage}
+    <>
+      <div className="pb-4">
+        {groups.map((g) => (
+          <PolicyGroup
+            key={g.title}
+            group={g}
+            optimisticStages={optimisticStages}
+            onStageUpdate={updateStage}
+            onStageRevert={revertStage}
+            onLogSignal={openSignal}
+          />
+        ))}
+      </div>
+
+      {signalPolicy && (
+        <SignalModal
+          policyId={signalPolicy.id}
+          clientName={signalPolicy.clientName}
+          onClose={() => setSignalPolicy(null)}
+          onSignalLogged={() => setSignalPolicy(null)}
         />
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 

@@ -9,11 +9,30 @@ function premiumLine(policy: Policy) {
     : "";
 }
 
+export interface GenerateContext {
+  /** Broker's standing orders — read before every decision */
+  standingOrders?: string | null;
+  /** Agent notes on this specific client */
+  clientNotes?: string | null;
+}
+
+function standingOrdersBlock(ctx?: GenerateContext): string {
+  const parts: string[] = [];
+  if (ctx?.standingOrders?.trim()) {
+    parts.push(`Broker standing orders (always follow these):\n${ctx.standingOrders.trim()}`);
+  }
+  if (ctx?.clientNotes?.trim()) {
+    parts.push(`Notes on this client (factor these in):\n${ctx.clientNotes.trim()}`);
+  }
+  return parts.length ? `\n${parts.join("\n\n")}\n` : "";
+}
+
 // ── 90-day / 60-day email ────────────────────────────────────
 
 export async function generateRenewalEmail(
   policy: Policy,
-  type: "email_90" | "email_60"
+  type: "email_90" | "email_60",
+  ctx?: GenerateContext,
 ): Promise<{ subject: string; body: string }> {
   const client = getAnthropicClient();
   const days = type === "email_90" ? "90" : "60";
@@ -32,7 +51,7 @@ Policy details:
 ${premiumLine(policy)}
 - Agent name: ${policy.agent_name ?? ""}
 - Agent email: ${policy.agent_email ?? ""}
-
+${standingOrdersBlock(ctx)}
 Tone: ${tone}
 
 Rules:
@@ -41,6 +60,7 @@ Rules:
 - 2–3 short paragraphs, conversational but professional
 - Clear single call-to-action (reply to this email or call the agent)
 - No generic filler — make it feel personal
+- Follow the broker's standing orders above if any are provided
 - End the email with a real signature using the Agent name and Agent email above. Two line breaks, then the agent's name, then the agent's email on the next line. No placeholders like [Your Name] or [Contact Information].
 
 Respond with ONLY valid JSON: {"subject": "...", "body": "..."}
@@ -63,7 +83,7 @@ The body should be plain text (no HTML), with line breaks between paragraphs.`;
 
 // ── 30-day SMS ───────────────────────────────────────────────
 
-export async function generateSMSMessage(policy: Policy): Promise<string> {
+export async function generateSMSMessage(policy: Policy, ctx?: GenerateContext): Promise<string> {
   const client = getAnthropicClient();
 
   const prompt = `Write a brief SMS renewal reminder from an insurance agent to their client. Keep it under 160 characters, friendly and urgent.
@@ -71,7 +91,7 @@ export async function generateSMSMessage(policy: Policy): Promise<string> {
 Client: ${policy.client_name}
 Policy: ${policy.policy_name}
 Expiry: ${policy.expiration_date} (30 days away)
-
+${standingOrdersBlock(ctx)}
 Respond with ONLY the SMS text. No quotes, no explanation.`;
 
   const message = await client.messages.create({
@@ -87,7 +107,7 @@ Respond with ONLY the SMS text. No quotes, no explanation.`;
 
 // ── 14-day call script ───────────────────────────────────────
 
-export async function generateCallScript(policy: Policy): Promise<string> {
+export async function generateCallScript(policy: Policy, ctx?: GenerateContext): Promise<string> {
   const client = getAnthropicClient();
 
   const prompt = `Generate a concise call script for an insurance agent calling a client about an urgent policy renewal.
@@ -98,7 +118,7 @@ Policy details:
 - Carrier: ${policy.carrier}
 - Expiry: ${policy.expiration_date} (14 days away — URGENT)
 ${premiumLine(policy)}
-
+${standingOrdersBlock(ctx)}
 Structure the script with these sections:
 OPENING — personalized greeting, state purpose
 KEY POINTS — 2–3 bullets on urgency and what happens if it lapses

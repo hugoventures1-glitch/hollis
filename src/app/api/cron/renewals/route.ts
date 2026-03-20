@@ -19,6 +19,7 @@ import {
   generateRenewalEmail,
   generateSMSMessage,
   generateCallScript,
+  type GenerateContext,
 } from "@/lib/renewals/generate";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignTouchpoint, TouchpointType } from "@/types/renewals";
@@ -92,6 +93,35 @@ export async function GET(request: NextRequest) {
         .eq("id", runId);
     }
     return NextResponse.json({ error: policiesError.message }, { status: 500 });
+  }
+
+  // Build a per-broker context cache (standing_orders + client notes) so we
+  // don't re-fetch the same profile for every policy in the same broker's book.
+  const brokerContextCache = new Map<string, GenerateContext>();
+  async function getBrokerContext(userId: string, clientEmail: string | null): Promise<GenerateContext> {
+    const cached = brokerContextCache.get(userId);
+    if (cached) {
+      // Still need to fetch client-specific notes per policy
+    } else {
+      const { data: profile } = await supabase
+        .from("agent_profiles")
+        .select("standing_orders")
+        .eq("user_id", userId)
+        .maybeSingle();
+      brokerContextCache.set(userId, { standingOrders: profile?.standing_orders ?? null });
+    }
+    const base = brokerContextCache.get(userId) ?? {};
+    // Fetch client notes if there's an email to match on
+    let clientNotes: string | null = null;
+    if (clientEmail) {
+      const { data: clientRow } = await supabase
+        .from("clients")
+        .select("notes")
+        .eq("email", clientEmail)
+        .maybeSingle();
+      clientNotes = clientRow?.notes ?? null;
+    }
+    return { ...base, clientNotes };
   }
 
   const results = {
@@ -264,7 +294,8 @@ export async function GET(request: NextRequest) {
       }
 
       try {
-        await fireTouchpoint(supabase, resend, policy, touchpoint, type, today);
+        const ctx = await getBrokerContext(policy.user_id, policy.client_email ?? null);
+        await fireTouchpoint(supabase, resend, policy, touchpoint, type, today, ctx);
         results.sent++;
         await refreshPolicyHealthScore(policy.id, supabase);
       } catch (err) {
@@ -309,7 +340,8 @@ async function fireTouchpoint(
   policy: Policy,
   touchpoint: CampaignTouchpoint,
   type: TouchpointType,
-  today: string
+  today: string,
+  ctx?: GenerateContext,
 ) {
   let providerId: string | null = null;
   let subject: string | null = null;
@@ -327,7 +359,7 @@ async function fireTouchpoint(
       throw new Error("Email address has bounced — send suppressed");
     }
 
-    const generated = await generateRenewalEmail(policy, type);
+    const generated = await generateRenewalEmail(policy, type, ctx);
     subject = generated.subject;
     content = generated.body;
 
@@ -353,11 +385,11 @@ async function fireTouchpoint(
     if (!policy.client_phone) {
       throw new Error("No phone number on record");
     }
-    content = await generateSMSMessage(policy);
+    content = await generateSMSMessage(policy, ctx);
     providerId = await sendSMS(policy.client_phone, content);
     channel = "sms";
   } else if (type === "script_14") {
-    content = await generateCallScript(policy);
+    content = await generateCallScript(policy, ctx);
     channel = "email"; // logged as internal
   }
 
