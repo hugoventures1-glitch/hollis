@@ -231,20 +231,39 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    // Determine which touchpoint types are due today.
+    // Determine which single touchpoint type is due today.
     //
-    // Catch-up logic: when a policy is imported after an early-window touchpoint
-    // has already passed (e.g. email_90 skipped because it was imported at day 75),
-    // the stage stays "pending" even though later windows are now due. We therefore
-    // check BOTH the time window AND the set of stages that legitimately precede the
-    // current one — allowing the agent to fire the correct next touchpoint even if
-    // the chain was started mid-sequence.
+    // Two cases:
+    //
+    // 1. Catch-up (stage === "pending"): policy was imported after an early window
+    //    already passed. Fire ONLY the most appropriate touchpoint for where the
+    //    policy sits today — never the earlier template. A client 60 days out
+    //    should receive the 60-day email, not the 90-day email followed by the
+    //    60-day email in the same run.
+    //
+    // 2. Sequential (stage !== "pending"): policy is mid-sequence. Fire the next
+    //    logical touchpoint only once the prior stage has been recorded.
+    //    Uses else-if so only one touchpoint fires per policy per cron run,
+    //    preventing same-day email + SMS stacking.
     const dueTouchpointTypes: TouchpointType[] = [];
-    const pendingOrSkipped = ["pending", "email_90_sent"]; // stages that allow email_60 catch-up
-    if (days <= 90 && policy.campaign_stage === "pending")       dueTouchpointTypes.push("email_90");
-    if (days <= 60 && pendingOrSkipped.includes(policy.campaign_stage)) dueTouchpointTypes.push("email_60");
-    if (days <= 30 && ["email_60_sent", ...pendingOrSkipped].includes(policy.campaign_stage)) dueTouchpointTypes.push("sms_30");
-    if (days <= 14 && ["sms_30_sent", "email_60_sent", ...pendingOrSkipped].includes(policy.campaign_stage)) dueTouchpointTypes.push("script_14");
+
+    if (policy.campaign_stage === "pending") {
+      // Catch-up: pick the single best-fit touchpoint for today's window
+      if      (days <= 14) dueTouchpointTypes.push("script_14");
+      else if (days <= 30) dueTouchpointTypes.push("sms_30");
+      else if (days <= 60) dueTouchpointTypes.push("email_60");
+      else if (days <= 90) dueTouchpointTypes.push("email_90");
+      // > 90 days: nothing due yet
+    } else {
+      // Sequential: fire next due touchpoint in priority order (first match wins)
+      if (days <= 14 && ["email_90_sent", "email_60_sent", "sms_30_sent"].includes(policy.campaign_stage)) {
+        dueTouchpointTypes.push("script_14");
+      } else if (days <= 30 && ["email_90_sent", "email_60_sent"].includes(policy.campaign_stage)) {
+        dueTouchpointTypes.push("sms_30");
+      } else if (days <= 60 && policy.campaign_stage === "email_90_sent") {
+        dueTouchpointTypes.push("email_60");
+      }
+    }
 
     for (const type of dueTouchpointTypes) {
       // Find the pending touchpoint — only fire it if it's actually due today
