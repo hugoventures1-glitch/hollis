@@ -27,6 +27,7 @@ import { refreshPolicyHealthScore } from "@/lib/renewals/health-score";
 import { isSendThrottled } from "@/lib/cron/throttle";
 import { writeAuditLog } from "@/lib/audit/log";
 import { logAction, retainStandard } from "@/lib/logAction";
+import { resolveTierRouting } from "@/lib/renewals/tier-routing";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
@@ -327,8 +328,10 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // ── Tier routing: check renewal flags before firing ─────────────────────
-      const { tier, reason: tierReason } = checkTierRouting(policy, days);
+      // ── Tier routing: auto-detect flags + confidence-based routing ──────────
+      const { tier, reason: tierReason, mode: tierMode } = await resolveTierRouting(
+        supabase, policy, type, days
+      );
 
       if (tier === 3) {
         // Hard stop — mark skipped, write audit log, notify broker
@@ -440,7 +443,7 @@ export async function GET(request: NextRequest) {
           policy_id: policy.id,
           action_type: "renewal_email",
           tier: "2",
-          trigger_reason: `${tierReason} — ${type} to ${policy.client_name} drafted and queued for broker approval.`,
+          trigger_reason: `[${tierMode === "learning" ? "learning mode" : "flag detected"}] ${tierReason} — ${type} to ${policy.client_name} drafted and queued for broker approval.`,
           payload: {
             subject: draftSubject ?? null,
             body: draftBody ?? null,
@@ -510,42 +513,6 @@ const TOUCHPOINT_TYPE_LABELS: Record<TouchpointType, string> = {
   recommendation_30: "30-day recommendation",
   final_notice_7: "7-day final notice",
 };
-
-// ── Tier routing decision ─────────────────────────────────────────────────────
-//
-// Reads renewal_flags on the policy and returns the appropriate tier:
-//   Tier 3 — hard stop: active claim, insurer declined, business restructure
-//   Tier 2 — needs broker approval: silent client, third-party contact, large premium increase
-//   Tier 1 — autonomous send: no flags set
-
-function checkTierRouting(
-  policy: Policy,
-  _days: number,
-): { tier: 1 | 2 | 3; reason: string } {
-  const flags = policy.renewal_flags;
-  if (!flags) return { tier: 1, reason: "No flags" };
-
-  // Tier 3: hard stop — these flags indicate the sequence should NOT proceed
-  if (flags.active_claim)
-    return { tier: 3, reason: "Active claim on record — outbound halted" };
-  if (flags.insurer_declined)
-    return { tier: 3, reason: "Insurer has declined cover" };
-  if (flags.business_restructure)
-    return { tier: 3, reason: "Business restructure flagged — broker must review" };
-
-  // Tier 2: broker approval required before send
-  if (flags.silent_client)
-    return { tier: 2, reason: "Client has not engaged after multiple touchpoints" };
-  if (flags.third_party_contact)
-    return { tier: 2, reason: "Reply received from a non-policy contact" };
-  if (flags.premium_increase_pct !== null && flags.premium_increase_pct >= 25)
-    return {
-      tier: 2,
-      reason: `Premium increase of ${flags.premium_increase_pct}% detected — broker review required`,
-    };
-
-  return { tier: 1, reason: "No flags" };
-}
 
 // ── Fire a single touchpoint ──────────────────────────────────────────────────
 
