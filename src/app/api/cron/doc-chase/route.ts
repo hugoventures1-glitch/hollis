@@ -94,6 +94,13 @@ export async function GET(request: NextRequest) {
   const ids = (claimedIds ?? []).map((r) => r.id);
   if (ids.length === 0) {
     console.log("[cron/doc-chase] No messages due.");
+    // Always close the run record, even when there's nothing to do
+    if (runId) {
+      await supabase
+        .from("cron_job_runs")
+        .update({ status: "complete", finished_at: new Date().toISOString(), processed: 0, sent: 0, failed: 0 })
+        .eq("id", runId);
+    }
     return NextResponse.json({ processed: 0, sent: 0, failed: 0, errors: [] });
   }
 

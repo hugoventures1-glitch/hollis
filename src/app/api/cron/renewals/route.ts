@@ -199,21 +199,32 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    // Determine which touchpoint types are due today
+    // Determine which touchpoint types are due today.
+    //
+    // Catch-up logic: when a policy is imported after an early-window touchpoint
+    // has already passed (e.g. email_90 skipped because it was imported at day 75),
+    // the stage stays "pending" even though later windows are now due. We therefore
+    // check BOTH the time window AND the set of stages that legitimately precede the
+    // current one — allowing the agent to fire the correct next touchpoint even if
+    // the chain was started mid-sequence.
     const dueTouchpointTypes: TouchpointType[] = [];
+    const pendingOrSkipped = ["pending", "email_90_sent"]; // stages that allow email_60 catch-up
     if (days <= 90 && policy.campaign_stage === "pending")       dueTouchpointTypes.push("email_90");
-    if (days <= 60 && policy.campaign_stage === "email_90_sent") dueTouchpointTypes.push("email_60");
-    if (days <= 30 && policy.campaign_stage === "email_60_sent") dueTouchpointTypes.push("sms_30");
-    if (days <= 14 && policy.campaign_stage === "sms_30_sent")   dueTouchpointTypes.push("script_14");
+    if (days <= 60 && pendingOrSkipped.includes(policy.campaign_stage)) dueTouchpointTypes.push("email_60");
+    if (days <= 30 && ["email_60_sent", ...pendingOrSkipped].includes(policy.campaign_stage)) dueTouchpointTypes.push("sms_30");
+    if (days <= 14 && ["sms_30_sent", "email_60_sent", ...pendingOrSkipped].includes(policy.campaign_stage)) dueTouchpointTypes.push("script_14");
 
     for (const type of dueTouchpointTypes) {
-      // Find the pending touchpoint
+      // Find the pending touchpoint — only fire it if it's actually due today
+      // (scheduled_at <= today guards against firing future touchpoints that the
+      // expanded stage-catch-up logic would otherwise expose)
       const { data: touchpointRows } = await supabase
         .from("campaign_touchpoints")
         .select("*")
         .eq("policy_id", policy.id)
         .eq("type", type)
         .eq("status", "pending")
+        .lte("scheduled_at", today)
         .limit(1);
 
       const touchpoint = touchpointRows?.[0] as CampaignTouchpoint | undefined;
