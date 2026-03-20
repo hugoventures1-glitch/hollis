@@ -56,6 +56,34 @@ export function AccountSection({ planName }: Props) {
     }
   });
 
+  // Reset data
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetInput, setResetInput] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetDone, setResetDone] = useState(false);
+
+  const handleResetData = async () => {
+    if (resetInput !== "RESET") return;
+    setResetting(true);
+    setResetError(null);
+    const res = await fetch("/api/settings/bulk-delete", { method: "POST" });
+    if (res.ok) {
+      setResetDone(true);
+      setResetConfirm(false);
+      setResetInput("");
+      setResetting(false);
+      setTimeout(() => {
+        setResetDone(false);
+        router.push("/renewals");
+      }, 1800);
+    } else {
+      const { error } = await res.json();
+      setResetError(error ?? "Something went wrong.");
+      setResetting(false);
+    }
+  };
+
   // Danger zone
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
@@ -149,6 +177,85 @@ export function AccountSection({ planName }: Props) {
         )}
 
         <SaveButton saving={pwSaving} saved={pwSaved} onClick={onChangePassword} label="Update password" />
+      </div>
+
+      <hr className="border-[#1e1e2a]" />
+
+      {/* Dev tool — Reset account data */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Developer</p>
+          <span
+            className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+            style={{ background: "#1a1200", color: "#F59E0B", border: "1px solid #F59E0B33" }}
+          >
+            Dev only
+          </span>
+        </div>
+        <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: "#F59E0B22", background: "rgba(245,158,11,0.04)" }}>
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: "#F59E0B" }} />
+            <div>
+              <p className="text-[14px] font-semibold" style={{ color: "#F59E0B" }}>Reset account data</p>
+              <p className="text-[13px] text-zinc-500 mt-0.5 leading-snug">
+                Wipes all policies, renewals, clients, and activity. Keeps your account, profile, and settings intact — use this to start fresh as a new user.
+              </p>
+            </div>
+          </div>
+
+          {resetDone ? (
+            <div className="flex items-center gap-2 text-[13px]" style={{ color: "#F59E0B" }}>
+              <CheckCircle2 size={14} />
+              All data cleared — redirecting…
+            </div>
+          ) : !resetConfirm ? (
+            <button
+              type="button"
+              onClick={() => setResetConfirm(true)}
+              className="px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors"
+              style={{ border: "1px solid #F59E0B55", color: "#F59E0B", background: "transparent" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(245,158,11,0.08)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+            >
+              Reset all data
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[13px] text-zinc-400">
+                Type <span className="font-mono font-bold" style={{ color: "#F59E0B" }}>RESET</span> to confirm.
+              </p>
+              <input
+                type="text"
+                value={resetInput}
+                onChange={(e) => setResetInput(e.target.value)}
+                placeholder="RESET"
+                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#111111] text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] focus:outline-none transition-colors"
+                style={{ border: "1px solid #F59E0B33" }}
+                onFocus={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "#F59E0B88")}
+                onBlur={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "#F59E0B33")}
+              />
+              {resetError && <p className="text-[12px] text-red-400">{resetError}</p>}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={resetInput !== "RESET" || resetting}
+                  onClick={handleResetData}
+                  className="px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: "#F59E0B", color: "#0C0C0C" }}
+                >
+                  {resetting ? "Resetting…" : "Confirm reset"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setResetConfirm(false); setResetInput(""); }}
+                  className="px-3 py-1.5 rounded-md text-zinc-400 text-[13px] hover:text-zinc-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <hr className="border-[#1e1e2a]" />
