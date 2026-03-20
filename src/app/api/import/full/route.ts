@@ -195,28 +195,17 @@ async function processPolicies(
       }
 
       const clientName = row.client_name?.trim() || null;
+      const clientEmail = row.client_email?.trim().toLowerCase() || null;
       const policyName = row.policy_name?.trim() || (clientName ? `${clientName} Policy` : "Imported Policy");
 
-      // Try to link to client by name
-      let clientId: string | null = null;
+      // Deduplicate: same policy_name + client_name
       if (clientName) {
-        const { data: clientRow } = await supabase
-          .from("clients")
-          .select("id")
-          .eq("user_id", userId)
-          .ilike("name", clientName)
-          .maybeSingle();
-        clientId = clientRow?.id ?? null;
-      }
-
-      // Deduplicate: same policy_name + client_id
-      if (clientId) {
         const { data: existing } = await supabase
           .from("policies")
           .select("id")
           .eq("user_id", userId)
-          .eq("client_id", clientId)
-          .ilike("name", policyName)
+          .ilike("client_name", clientName)
+          .ilike("policy_name", policyName)
           .maybeSingle();
         if (existing) {
           duplicates++;
@@ -228,13 +217,13 @@ async function processPolicies(
 
       const { error: insertErr } = await supabase.from("policies").insert({
         user_id: userId,
-        client_id: clientId,
-        name: policyName,
+        client_name: clientName,
+        client_email: clientEmail,
+        policy_name: policyName,
         expiration_date: expDate || null,
         carrier: row.carrier?.trim() || null,
         premium: premium !== null ? premium : null,
         status: "active",
-        notes: null,
       });
 
       if (insertErr) {
