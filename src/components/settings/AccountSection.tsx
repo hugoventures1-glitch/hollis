@@ -87,12 +87,30 @@ export function AccountSection({ planName }: Props) {
       {/* Plan & Billing */}
       <div className="space-y-3">
         <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Plan &amp; Billing</p>
-        <div className="rounded-lg border border-[#2a2a36] bg-[#111118] px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-[14px] font-medium text-[#f5f5f7]">Current plan</p>
-            <p className="text-[13px] text-[#FAFAFA] mt-0.5 capitalize">{planName}</p>
+        <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] px-4 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[13px] text-[#888888]">Current plan</p>
+              <p className="text-[16px] font-semibold text-[#FAFAFA] mt-0.5 capitalize">{planName}</p>
+            </div>
+            <span
+              className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
+              style={{ background: "#0d2b1e", color: "#00d4aa", border: "1px solid #00d4aa33" }}
+            >
+              Active
+            </span>
           </div>
-          <span className="text-[12px] text-zinc-500">Billing management coming soon.</span>
+          <div className="pt-1" style={{ borderTop: "1px solid #1C1C1C" }}>
+            <a
+              href="mailto:support@hollis.ai?subject=Billing enquiry"
+              className="text-[13px] transition-colors"
+              style={{ color: "#666666" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#FAFAFA")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#666666")}
+            >
+              Contact us to change or cancel your plan →
+            </a>
+          </div>
         </div>
       </div>
 

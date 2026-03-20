@@ -17,6 +17,7 @@ import { Sparkline } from "./_components/Sparkline";
 import { MiniBarChart } from "./_components/MiniBarChart";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Overview — Hollis" };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ function CardHead({
         </span>
       </div>
       {badge && (
-        <span className="text-[11px]" style={{ color: "#555555" }}>
+        <span className="text-[11px]" style={{ color: "#666666" }}>
           {badge}
         </span>
       )}
@@ -89,7 +90,7 @@ function SeeLink({ label, href }: { label: string; href: string }) {
       <Link
         href={href}
         className="text-[12px] flex items-center gap-1 w-fit transition-opacity hover:opacity-60"
-        style={{ color: "#555555" }}
+        style={{ color: "#666666" }}
       >
         {label} <ArrowRight size={10} />
       </Link>

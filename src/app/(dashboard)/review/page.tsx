@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import ReviewQueueClient from "./ReviewQueueClient";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Review Queue — Hollis" };
 
 export default async function ReviewPage() {
   const supabase = await createClient();

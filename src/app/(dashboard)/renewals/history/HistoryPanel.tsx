@@ -274,17 +274,6 @@ function Inspector({
             Archive
           </button>
         )}
-        <button
-          onClick={() =>
-            toast("This feature is coming soon. Corrections will be used to improve Hollis's decision-making.", "info")
-          }
-          className="h-7 px-3 text-[12px] transition-colors rounded"
-          style={{ border: "1px solid #3f3f46", color: "#a1a1aa", background: "transparent" }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#71717a")}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#3f3f46")}
-        >
-          Correct Hollis
-        </button>
       </div>
 
       {/* Section A — Reasoning */}

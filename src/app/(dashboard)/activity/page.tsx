@@ -5,6 +5,7 @@ import ActivityClient from "./ActivityClient";
 import type { AuditRow } from "./ActivityClient";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Activity — Hollis" };
 
 export default async function ActivityPage() {
   const supabase = await createClient();

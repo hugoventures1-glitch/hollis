@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+
+export const metadata = { title: "Policy Checks — Hollis" };
 import Link from "next/link";
 import { Plus, ChevronRight, ShieldCheck, AlertTriangle, Clock } from "lucide-react";
 import {
