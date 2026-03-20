@@ -22,6 +22,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit/log";
+import { getResendClient } from "@/lib/resend/client";
+import { sendSMS } from "@/lib/twilio/client";
 
 const RequestSchema = z.object({
   action: z.enum(["approved", "rejected", "edited"]),
@@ -156,6 +158,132 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       },
       actor_type: "agent",
     });
+
+    // ── Execute the proposed action when broker approves or edits ────────────────
+    // For outbound renewal emails/SMS queued by the cron's Tier 2 routing,
+    // the proposed_action.payload contains the pre-generated draft content.
+    // We fire it now, exactly as the cron would have done autonomously.
+    if (
+      (action === "approved" || action === "edited") &&
+      (queueItem.proposed_action as { action_type?: string })?.action_type === "send_renewal_email"
+    ) {
+      const payload = (queueItem.proposed_action as { payload?: Record<string, unknown> })?.payload ?? {};
+      const touchpointId   = (payload.touchpoint_id   as string  | null) ?? null;
+      const touchpointType = (payload.touchpoint_type as string  | null) ?? null;
+      const channel        = (payload.channel         as string) ?? "email";
+      const subject        = (payload.subject         as string  | null) ?? null;
+      const body           = (payload.body            as string  | null) ?? null;
+      const recipientEmail = (payload.recipient_email as string  | null) ?? null;
+      const recipientPhone = (payload.recipient_phone as string  | null) ?? null;
+
+      const STAGE_MAP: Record<string, string> = {
+        email_90:  "email_90_sent",
+        email_60:  "email_60_sent",
+        sms_30:    "sms_30_sent",
+        script_14: "script_14_ready",
+      };
+
+      try {
+        if (channel === "email" && recipientEmail && body) {
+          const resend = getResendClient();
+
+          const { data: brokerProfile } = await admin
+            .from("agent_profiles")
+            .select("email_from_name")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+          const from = brokerProfile?.email_from_name
+            ? `${brokerProfile.email_from_name} <${baseFrom}>`
+            : baseFrom;
+
+          const { data: sent } = await resend.emails.send({
+            from,
+            to: recipientEmail,
+            subject: subject ?? "Renewal reminder",
+            text: body,
+          });
+
+          if (touchpointId) {
+            await admin
+              .from("campaign_touchpoints")
+              .update({ status: "sent", subject, content: body, sent_at: resolvedAt })
+              .eq("id", touchpointId);
+          }
+
+          await admin.from("send_logs").insert({
+            policy_id: queueItem.policy_id,
+            touchpoint_id: touchpointId,
+            user_id: user.id,
+            channel: "email",
+            recipient: recipientEmail,
+            status: "sent",
+            provider_message_id: (sent as { id?: string } | null)?.id ?? null,
+            sent_at: resolvedAt,
+          });
+
+          if (touchpointType && STAGE_MAP[touchpointType]) {
+            await admin
+              .from("policies")
+              .update({
+                campaign_stage: STAGE_MAP[touchpointType],
+                last_contact_at: resolvedAt.slice(0, 10),
+              })
+              .eq("id", queueItem.policy_id as string);
+          }
+        } else if (channel === "sms" && recipientPhone && body) {
+          await sendSMS(recipientPhone, body);
+
+          if (touchpointId) {
+            await admin
+              .from("campaign_touchpoints")
+              .update({ status: "sent", content: body, sent_at: resolvedAt })
+              .eq("id", touchpointId);
+          }
+
+          await admin.from("send_logs").insert({
+            policy_id: queueItem.policy_id,
+            touchpoint_id: touchpointId,
+            user_id: user.id,
+            channel: "sms",
+            recipient: recipientPhone,
+            status: "sent",
+            sent_at: resolvedAt,
+          });
+
+          if (touchpointType && STAGE_MAP[touchpointType]) {
+            await admin
+              .from("policies")
+              .update({
+                campaign_stage: STAGE_MAP[touchpointType],
+                last_contact_at: resolvedAt.slice(0, 10),
+              })
+              .eq("id", queueItem.policy_id as string);
+          }
+        }
+      } catch (sendErr) {
+        // Don't fail the resolution — queue item is already marked approved.
+        // Log the error and let the broker retry manually if needed.
+        console.error(
+          "[agent/review] Failed to execute approved send:",
+          sendErr instanceof Error ? sendErr.message : sendErr
+        );
+      }
+    }
+
+    // When broker rejects, mark the touchpoint skipped so the cron doesn't
+    // keep attempting to fire it on subsequent runs.
+    if (action === "rejected") {
+      const payload = (queueItem.proposed_action as { payload?: Record<string, unknown> })?.payload ?? {};
+      const touchpointId = (payload.touchpoint_id as string | null) ?? null;
+      if (touchpointId) {
+        await admin
+          .from("campaign_touchpoints")
+          .update({ status: "skipped" })
+          .eq("id", touchpointId);
+      }
+    }
 
     return NextResponse.json({
       id: queueItemId,

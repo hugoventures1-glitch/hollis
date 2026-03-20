@@ -127,6 +127,7 @@ export async function GET(request: NextRequest) {
   const results = {
     processed: 0,
     sent: 0,
+    queued: 0,
     skipped: 0,
     failed: 0,
     errors: [] as string[],
@@ -281,6 +282,21 @@ export async function GET(request: NextRequest) {
         touchpoint = created as CampaignTouchpoint;
       }
 
+      // If a Tier 2 approval queue item is already pending for this touchpoint type,
+      // leave the touchpoint in 'pending' and wait for broker decision.
+      const { data: pendingQueueItem } = await supabase
+        .from("approval_queue")
+        .select("id")
+        .eq("policy_id", policy.id)
+        .eq("status", "pending")
+        .eq("classified_intent", `send_${type}`)
+        .maybeSingle();
+
+      if (pendingQueueItem) {
+        results.skipped++;
+        continue;
+      }
+
       // Atomically claim: only proceeds if this worker wins the race
       const { data: claimed } = await supabase
         .from("campaign_touchpoints")
@@ -311,6 +327,139 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
+      // ── Tier routing: check renewal flags before firing ─────────────────────
+      const { tier, reason: tierReason } = checkTierRouting(policy, days);
+
+      if (tier === 3) {
+        // Hard stop — mark skipped, write audit log, notify broker
+        await supabase
+          .from("campaign_touchpoints")
+          .update({ status: "skipped" })
+          .eq("id", touchpoint.id);
+
+        await writeAuditLog({
+          supabase,
+          policy_id: policy.id,
+          user_id: policy.user_id,
+          event_type: "tier_3_escalated",
+          channel: "internal",
+          content_snapshot: `${tierReason} — auto-send halted for ${policy.client_name} / ${type}`,
+          metadata: { touchpoint_id: touchpoint.id, touchpoint_type: type, flag_reason: tierReason },
+          actor_type: "system",
+        });
+
+        void logAction({
+          broker_id: policy.user_id,
+          policy_id: policy.id,
+          action_type: "renewal_email",
+          tier: "3",
+          trigger_reason: `${tierReason} — outbound ${type} to ${policy.client_name} halted (Tier 3 escalation).`,
+          payload: { touchpoint_type: type, flag_reason: tierReason },
+          metadata: { carrier: policy.carrier ?? null, days_to_expiry: days, touchpoint_id: touchpoint.id },
+          outcome: "blocked",
+          retain_until: retainStandard(),
+        });
+
+        results.skipped++;
+        continue;
+      }
+
+      if (tier === 2) {
+        // Draft the outbound content, insert to approval_queue, release claim
+        const ctx = await getBrokerContext(policy.user_id, policy.client_email ?? null);
+        let draftSubject: string | null = null;
+        let draftBody: string | null = null;
+        const draftChannel: "email" | "sms" = type === "sms_30" ? "sms" : "email";
+
+        try {
+          if (type === "email_90" || type === "email_60") {
+            const generated = await generateRenewalEmail(policy, type, ctx);
+            draftSubject = generated.subject;
+            draftBody = generated.body;
+          } else if (type === "sms_30") {
+            draftBody = await generateSMSMessage(policy, ctx);
+          } else if (type === "script_14") {
+            draftBody = await generateCallScript(policy, ctx);
+          }
+        } catch (genErr) {
+          console.error("[cron/renewals] Draft generation failed for Tier 2:", genErr instanceof Error ? genErr.message : genErr);
+          // Fall back to a placeholder so the item still appears in the queue
+          draftBody = `[Draft content could not be generated — please compose manually]`;
+        }
+
+        const touchpointLabel = TOUCHPOINT_TYPE_LABELS[type] ?? type;
+
+        await supabase.from("approval_queue").insert({
+          policy_id: policy.id,
+          user_id: policy.user_id,
+          signal_id: null,
+          classified_intent: `send_${type}`,
+          confidence_score: 0.95,
+          raw_signal_snippet: tierReason,
+          proposed_action: {
+            description: `Send ${touchpointLabel} to ${policy.client_name} (${draftChannel === "sms" ? (policy.client_phone ?? "no phone") : (policy.client_email ?? "no email")}). Flagged: ${tierReason}.`,
+            action_type: "send_renewal_email",
+            payload: {
+              touchpoint_id: touchpoint.id,
+              touchpoint_type: type,
+              subject: draftSubject,
+              body: draftBody,
+              recipient_email: policy.client_email ?? null,
+              recipient_phone: policy.client_phone ?? null,
+              recipient_name: policy.client_name,
+              policy_id: policy.id,
+              user_id: policy.user_id,
+              channel: draftChannel,
+              flag_reason: tierReason,
+            },
+          },
+          status: "pending",
+        });
+
+        // Release the claim — the touchpoint stays 'pending' until broker approves
+        await supabase
+          .from("campaign_touchpoints")
+          .update({ status: "pending", processing_started_at: null })
+          .eq("id", touchpoint.id);
+
+        await writeAuditLog({
+          supabase,
+          policy_id: policy.id,
+          user_id: policy.user_id,
+          event_type: "tier_2_drafted",
+          channel: "internal",
+          content_snapshot: draftSubject
+            ? `Subject: ${draftSubject}\n\n${draftBody ?? ""}`
+            : (draftBody ?? ""),
+          metadata: { touchpoint_id: touchpoint.id, touchpoint_type: type, flag_reason: tierReason },
+          actor_type: "system",
+        });
+
+        void logAction({
+          broker_id: policy.user_id,
+          policy_id: policy.id,
+          action_type: "renewal_email",
+          tier: "2",
+          trigger_reason: `${tierReason} — ${type} to ${policy.client_name} drafted and queued for broker approval.`,
+          payload: {
+            subject: draftSubject ?? null,
+            body: draftBody ?? null,
+            recipient_email: policy.client_email ?? null,
+            recipient_name: policy.client_name,
+            channel: draftChannel,
+            template_used: type,
+            flag_reason: tierReason,
+          },
+          metadata: { carrier: policy.carrier ?? null, days_to_expiry: days, touchpoint_id: touchpoint.id },
+          outcome: "queued",
+          retain_until: retainStandard(),
+        });
+
+        results.queued++;
+        continue;
+      }
+
+      // ── Tier 1: autonomous send ──────────────────────────────────────────────
       try {
         const ctx = await getBrokerContext(policy.user_id, policy.client_email ?? null);
         await fireTouchpoint(supabase, resend, policy, touchpoint, type, today, ctx);
@@ -337,6 +486,7 @@ export async function GET(request: NextRequest) {
         finished_at: new Date().toISOString(),
         processed: results.processed,
         sent: results.sent,
+        queued: results.queued,
         skipped: results.skipped,
         failed: results.failed,
         error_summary: results.errors.length ? results.errors.join("; ") : null,
@@ -346,6 +496,55 @@ export async function GET(request: NextRequest) {
 
   console.log("[cron/renewals] Done:", results);
   return NextResponse.json(results);
+}
+
+// ── Touchpoint labels (human-readable for queue descriptions) ─────────────────
+
+const TOUCHPOINT_TYPE_LABELS: Record<TouchpointType, string> = {
+  email_90: "90-day renewal email",
+  email_60: "60-day follow-up email",
+  sms_30: "30-day renewal SMS",
+  script_14: "14-day call script",
+  questionnaire_90: "90-day questionnaire",
+  submission_60: "60-day insurer submission",
+  recommendation_30: "30-day recommendation",
+  final_notice_7: "7-day final notice",
+};
+
+// ── Tier routing decision ─────────────────────────────────────────────────────
+//
+// Reads renewal_flags on the policy and returns the appropriate tier:
+//   Tier 3 — hard stop: active claim, insurer declined, business restructure
+//   Tier 2 — needs broker approval: silent client, third-party contact, large premium increase
+//   Tier 1 — autonomous send: no flags set
+
+function checkTierRouting(
+  policy: Policy,
+  _days: number,
+): { tier: 1 | 2 | 3; reason: string } {
+  const flags = policy.renewal_flags;
+  if (!flags) return { tier: 1, reason: "No flags" };
+
+  // Tier 3: hard stop — these flags indicate the sequence should NOT proceed
+  if (flags.active_claim)
+    return { tier: 3, reason: "Active claim on record — outbound halted" };
+  if (flags.insurer_declined)
+    return { tier: 3, reason: "Insurer has declined cover" };
+  if (flags.business_restructure)
+    return { tier: 3, reason: "Business restructure flagged — broker must review" };
+
+  // Tier 2: broker approval required before send
+  if (flags.silent_client)
+    return { tier: 2, reason: "Client has not engaged after multiple touchpoints" };
+  if (flags.third_party_contact)
+    return { tier: 2, reason: "Reply received from a non-policy contact" };
+  if (flags.premium_increase_pct !== null && flags.premium_increase_pct >= 25)
+    return {
+      tier: 2,
+      reason: `Premium increase of ${flags.premium_increase_pct}% detected — broker review required`,
+    };
+
+  return { tier: 1, reason: "No flags" };
 }
 
 // ── Fire a single touchpoint ──────────────────────────────────────────────────
