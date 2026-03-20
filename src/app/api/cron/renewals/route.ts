@@ -257,10 +257,28 @@ export async function GET(request: NextRequest) {
         .lte("scheduled_at", today)
         .limit(1);
 
-      const touchpoint = touchpointRows?.[0] as CampaignTouchpoint | undefined;
+      let touchpoint = touchpointRows?.[0] as CampaignTouchpoint | undefined;
+
+      // Auto-create the touchpoint if it doesn't exist yet.
+      // This handles policies imported after the scheduled window has already
+      // opened — no manual seeding step required.
       if (!touchpoint) {
-        results.skipped++;
-        continue;
+        const { data: created } = await supabase
+          .from("campaign_touchpoints")
+          .insert({
+            policy_id: policy.id,
+            user_id: policy.user_id,
+            type,
+            status: "pending",
+            scheduled_at: today,
+          })
+          .select()
+          .single();
+        if (!created) {
+          results.skipped++;
+          continue;
+        }
+        touchpoint = created as CampaignTouchpoint;
       }
 
       // Atomically claim: only proceeds if this worker wins the race
