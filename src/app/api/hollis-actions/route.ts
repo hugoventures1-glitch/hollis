@@ -1,7 +1,7 @@
 /**
  * GET /api/hollis-actions
  * Returns all hollis_actions for the authenticated broker,
- * joined with client name and policy reference_number, ordered created_at desc.
+ * joined with policy_name and client_name from the policies table.
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -15,8 +15,7 @@ export async function GET() {
     .from("hollis_actions")
     .select(`
       *,
-      clients  ( name ),
-      policies ( reference_number )
+      policies ( policy_name, client_name )
     `)
     .eq("broker_id", user.id)
     .order("created_at", { ascending: false });

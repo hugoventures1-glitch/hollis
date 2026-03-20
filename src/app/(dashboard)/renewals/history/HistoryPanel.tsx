@@ -22,7 +22,7 @@ interface HollisAction {
   resolved_by: string | null;
   created_at: string;
   clients: { name: string } | null;
-  policies: { reference_number: string } | null;
+  policies: { policy_name: string; client_name: string } | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ function TierBadge({ tier }: { tier: string | null }) {
 // ── System log ─────────────────────────────────────────────────────────────────
 
 function SystemLog({ action }: { action: HollisAction }) {
-  const clientName = (action.clients?.name ?? "UNKNOWN").toUpperCase().replace(/\s+/g, "_");
+  const clientName = (action.policies?.client_name ?? action.clients?.name ?? "UNKNOWN").toUpperCase().replace(/\s+/g, "_");
   const lines: { time: string; label: string; value: string; colour?: string }[] = [
     { time: isoToHMS(action.created_at, 0), label: "INIT",    value: action.action_type.toUpperCase() },
     { time: isoToHMS(action.created_at, 1), label: "CLIENT",  value: clientName },
@@ -235,8 +235,8 @@ function Inspector({
 
   const p = action.payload as Record<string, unknown> | null;
   const m = action.metadata as Record<string, unknown> | null;
-  const clientName     = action.clients?.name ?? "—";
-  const policyRef      = action.policies?.reference_number ?? "—";
+  const clientName     = action.policies?.client_name ?? action.clients?.name ?? "—";
+  const policyRef      = action.policies?.policy_name ?? "—";
   const carrier        = (m?.carrier as string) ?? "—";
   const daysToExpiry   = m?.days_to_expiry != null ? String(m.days_to_expiry) : "—";
   const premium        = formatCurrency(m?.premium);
@@ -411,7 +411,7 @@ function EventRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="text-[13px] font-medium truncate" style={{ color: "#fafafa" }}>
-          {action.clients?.name ?? "Unknown client"}
+          {action.policies?.client_name ?? action.clients?.name ?? "Unknown client"}
         </div>
         <div className="text-[12px] truncate" style={{ color: "#71717a" }}>
           {actionLabel(action)}
@@ -544,8 +544,8 @@ export default function HistoryPanel() {
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      const clientMatch  = a.clients?.name?.toLowerCase().includes(q);
-      const policyMatch  = a.policies?.reference_number?.toLowerCase().includes(q);
+      const clientMatch  = (a.policies?.client_name ?? a.clients?.name ?? "").toLowerCase().includes(q);
+      const policyMatch  = (a.policies?.policy_name ?? "").toLowerCase().includes(q);
       if (!clientMatch && !policyMatch) return false;
     }
     return true;
