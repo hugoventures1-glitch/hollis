@@ -68,6 +68,21 @@ interface AmbiguousColumn {
   recommendation: string;
 }
 
+/** Extract the best matching possible_meaning from the AI recommendation text. */
+function resolveAISuggestion(col: AmbiguousColumn): string {
+  // Recommendation may be a direct key (e.g. "expiry_date")
+  if (col.possible_meanings.includes(col.recommendation)) return col.recommendation;
+  // Or a description mentioning one of the keys — try exact substring match first
+  const lower = col.recommendation.toLowerCase();
+  const exact = col.possible_meanings.find((m) => lower.includes(m.toLowerCase()));
+  if (exact) return exact;
+  // Fallback: match with underscores replaced by spaces (e.g. "expiry date")
+  const spaced = col.possible_meanings.find((m) =>
+    lower.includes(m.toLowerCase().replace(/_/g, " "))
+  );
+  return spaced ?? col.possible_meanings[0] ?? "";
+}
+
 interface AIAnalysis {
   confidence: "high" | "medium" | "low";
   detected_system: string;
@@ -489,12 +504,12 @@ export default function FullBookImportPage() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
-  // Pre-fill ambiguity choices with recommendations
+  // Pre-fill ambiguity choices with the resolved AI suggestion
   useEffect(() => {
     if (!aiAnalysis?.ambiguous_columns?.length) return;
     const defaults: Record<string, string> = {};
     for (const col of aiAnalysis.ambiguous_columns) {
-      defaults[col.header] = col.recommendation;
+      defaults[col.header] = resolveAISuggestion(col);
     }
     setAmbiguityChoices(defaults);
   }, [aiAnalysis]);
@@ -995,14 +1010,17 @@ export default function FullBookImportPage() {
                             [col.header]: e.target.value,
                           }))
                         }
-                        className="bg-[#1a1a24] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555] shrink-0"
+                        className="bg-[#141414] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555] shrink-0"
                       >
                         <option value="">— ignore this column —</option>
-                        {col.possible_meanings.map((m) => (
-                          <option key={m} value={m}>
-                            {HOLLIS_FIELD_LABELS[m] ?? m}
-                          </option>
-                        ))}
+                        {col.possible_meanings.map((m) => {
+                          const isAI = m === resolveAISuggestion(col);
+                          return (
+                            <option key={m} value={m}>
+                              {isAI ? "✓ " : ""}{HOLLIS_FIELD_LABELS[m] ?? m}{isAI ? " (AI suggestion)" : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   ))}
