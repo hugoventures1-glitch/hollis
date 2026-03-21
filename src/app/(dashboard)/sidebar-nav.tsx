@@ -8,6 +8,7 @@ import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
 import { daysUntilExpiry } from "@/types/renewals";
 import {
   LayoutDashboard,
+  Activity,
   RefreshCcw,
   Users,
   Settings,
@@ -163,8 +164,9 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
           <Search size={19} strokeWidth={1.6} />
         </button>
 
-        <RailIcon href="/overview" icon={LayoutDashboard} label="Overview" pathname={pathname} />
-        <RailIcon href="/renewals" icon={RefreshCcw}      label="Renewals" pathname={pathname} badge={renewalCount + approvalQueueCount} />
+        <RailIcon href="/overview"  icon={LayoutDashboard} label="Overview" pathname={pathname} />
+        <RailIcon href="/activity"  icon={Activity}        label="Activity" pathname={pathname} />
+        <RailIcon href="/renewals"  icon={RefreshCcw}      label="Renewals" pathname={pathname} badge={renewalCount + approvalQueueCount} />
         <RailIcon href="/clients"  icon={Users}           label="Clients"  pathname={pathname} />
         <RailIcon href="/settings" icon={Settings}        label="Settings" pathname={pathname} />
       </nav>
