@@ -20,6 +20,7 @@ export interface ActivityStats {
   replyRate: number | null;
   totalSent: number;
   monitoringCount: number;
+  timeSavedToday: number;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -615,13 +616,8 @@ export default function ActivityClient({
     return out.slice(0, 12);
   }, [feed]);
 
-  // Time saved today
-  const timeSavedToday = useMemo(() => {
-    const today = new Date().toDateString();
-    return feed
-      .filter((e) => new Date(e.created_at).toDateString() === today)
-      .reduce((s, e) => s + (TIME_SAVED[e.event_type] ?? 0), 0);
-  }, [feed]);
+  // Time saved today — computed server-side from full day's audit log (not capped at 200)
+  const timeSavedToday = stats.timeSavedToday;
 
   const toggle = (id: string, set: Set<string>, setter: (s: Set<string>) => void) => {
     const next = new Set(set);
