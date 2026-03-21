@@ -19,15 +19,25 @@ let refreshIntervalId: ReturnType<typeof setInterval> | null = null;
 let consumerCount = 0;
 
 export function useHollisData() {
-  // Reactive subscription — component re-renders whenever store changes
-  const store = useHollisStore();
+  // Per-field selectors — each only re-renders when its own slice changes
+  const policies            = useHollisStore(s => s.policies);
+  const renewals            = useHollisStore(s => s.renewals);
+  const clients             = useHollisStore(s => s.clients);
+  const coiRequests         = useHollisStore(s => s.coiRequests);
+  const certificates        = useHollisStore(s => s.certificates);
+  const docChaseRequests    = useHollisStore(s => s.docChaseRequests);
+  const outboxDrafts        = useHollisStore(s => s.outboxDrafts);
+  const userId              = useHollisStore(s => s.userId);
+  const loading             = useHollisStore(s => s.loading);
+  const backgroundRefreshing = useHollisStore(s => s.backgroundRefreshing);
+  const lastFetched         = useHollisStore(s => s.lastFetched);
 
   useEffect(() => {
     consumerCount++;
 
     // Kick off a fetch if data is missing or stale
-    const { lastFetched, fetchAll } = useHollisStore.getState();
-    if (!lastFetched || Date.now() - lastFetched > HOLLIS_STALE_MS) {
+    const { lastFetched: lf, fetchAll } = useHollisStore.getState();
+    if (!lf || Date.now() - lf > HOLLIS_STALE_MS) {
       fetchAll();
     }
 
@@ -49,18 +59,18 @@ export function useHollisData() {
 
   return {
     // Data
-    policies: store.policies,
-    renewals: store.renewals,
-    clients: store.clients,
-    coiRequests: store.coiRequests,
-    certificates: store.certificates,
-    docChaseRequests: store.docChaseRequests,
-    outboxDrafts: store.outboxDrafts,
-    userId: store.userId,
+    policies,
+    renewals,
+    clients,
+    coiRequests,
+    certificates,
+    docChaseRequests,
+    outboxDrafts,
+    userId,
     // State
-    loading: store.loading,
-    backgroundRefreshing: store.backgroundRefreshing,
-    lastFetched: store.lastFetched,
+    loading,
+    backgroundRefreshing,
+    lastFetched,
     // Action
     refetch: () => useHollisStore.getState().fetchAll(),
   };

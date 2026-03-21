@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, MessageSquare } from "lucide-react";
 import { ActionButton } from "@/components/actions/ActionButton";
@@ -138,7 +138,7 @@ interface RowProps {
   onLogSignal: (policyId: string, clientName: string) => void;
 }
 
-function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert, onLogSignal }: RowProps) {
+const RenewalRow = memo(function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert, onLogSignal }: RowProps) {
   const { toast }          = useToast();
   const router             = useRouter();
   const [loading, setLoading] = useState(false);
@@ -332,7 +332,7 @@ function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert, onL
       </div>
     </div>
   );
-}
+});
 
 // ── Group section ─────────────────────────────────────────────────────────────
 
@@ -435,49 +435,73 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
     setSignalPolicy({ id: policyId, clientName });
   }, []);
 
-  // Apply search/command filter
-  const q = searchQuery.trim().toLowerCase();
-  const filtered = q
-    ? policies.filter(
-        (p) =>
-          p.client_name.toLowerCase().includes(q) ||
-          p.policy_name.toLowerCase().includes(q) ||
-          (p.carrier ?? "").toLowerCase().includes(q) ||
-          (p.client_email ?? "").toLowerCase().includes(q),
-      )
-    : policies;
+  // Build groups based on view tab — single pass per group set, memoized
+  const groups = useMemo<Group[]>(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = q
+      ? policies.filter(
+          (p) =>
+            p.client_name.toLowerCase().includes(q) ||
+            p.policy_name.toLowerCase().includes(q) ||
+            (p.carrier ?? "").toLowerCase().includes(q) ||
+            (p.client_email ?? "").toLowerCase().includes(q),
+        )
+      : policies;
 
-  // Build groups based on view tab
-  let groups: Group[];
+    if (view === "action") {
+      const buckets: [Group, Group, Group] = [
+        { title: "Expiring in < 30 Days", policies: [], urgent: true },
+        { title: "Expiring in 30–60 Days", policies: [] },
+        { title: "On Track", policies: [] },
+      ];
+      for (const p of filtered) {
+        const d = daysUntilExpiry(p.expiration_date);
+        if (d <= 30) buckets[0].policies.push(p);
+        else if (d <= 60) buckets[1].policies.push(p);
+        else buckets[2].policies.push(p);
+      }
+      return buckets;
+    }
 
-  if (view === "action") {
-    const critical = filtered.filter((p) => daysUntilExpiry(p.expiration_date) <= 30);
-    const upcoming = filtered.filter((p) => {
-      const d = daysUntilExpiry(p.expiration_date);
-      return d > 30 && d <= 60;
-    });
-    const onTrack  = filtered.filter((p) => daysUntilExpiry(p.expiration_date) > 60);
-    groups = [
-      { title: "Expiring in < 30 Days", policies: critical, urgent: true },
-      { title: "Expiring in 30–60 Days", policies: upcoming               },
-      { title: "On Track",               policies: onTrack                },
-    ];
-  } else if (view === "progress") {
-    groups = [
-      { title: "Questionnaire Pending", policies: filtered.filter((p) => p.campaign_stage === "questionnaire_sent")   },
-      { title: "Submission Out",        policies: filtered.filter((p) => p.campaign_stage === "submission_sent")      },
-      { title: "Recommendation Sent",   policies: filtered.filter((p) => p.campaign_stage === "recommendation_sent") },
-      { title: "Final Notice",          policies: filtered.filter((p) => p.campaign_stage === "final_notice_sent")    },
-    ];
-  } else {
-    groups = [
-      { title: "Confirmed", policies: filtered.filter((p) => p.campaign_stage === "confirmed") },
-      { title: "Complete",  policies: filtered.filter((p) => p.campaign_stage === "complete")  },
-      { title: "Lapsed",    policies: filtered.filter((p) => p.campaign_stage === "lapsed")    },
-    ];
-  }
+    if (view === "progress") {
+      const buckets: [Group, Group, Group, Group] = [
+        { title: "Questionnaire Pending", policies: [] },
+        { title: "Submission Out",        policies: [] },
+        { title: "Recommendation Sent",   policies: [] },
+        { title: "Final Notice",          policies: [] },
+      ];
+      const stageIndex: Partial<Record<string, number>> = {
+        questionnaire_sent:  0,
+        submission_sent:     1,
+        recommendation_sent: 2,
+        final_notice_sent:   3,
+      };
+      for (const p of filtered) {
+        const i = stageIndex[p.campaign_stage];
+        if (i !== undefined) buckets[i].policies.push(p);
+      }
+      return buckets;
+    }
 
-  if (filtered.length === 0) return null;
+    // "completed" tab
+    const buckets: [Group, Group, Group] = [
+      { title: "Confirmed", policies: [] },
+      { title: "Complete",  policies: [] },
+      { title: "Lapsed",    policies: [] },
+    ];
+    const stageIndex: Partial<Record<string, number>> = {
+      confirmed: 0,
+      complete:  1,
+      lapsed:    2,
+    };
+    for (const p of filtered) {
+      const i = stageIndex[p.campaign_stage];
+      if (i !== undefined) buckets[i].policies.push(p);
+    }
+    return buckets;
+  }, [policies, view, searchQuery]);
+
+  if (groups.every(g => g.policies.length === 0)) return null;
 
   return (
     <>

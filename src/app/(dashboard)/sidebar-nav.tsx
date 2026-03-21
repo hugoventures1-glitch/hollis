@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useSidebarCounts } from "@/hooks/useSidebarCounts";
 import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
+import { daysUntilExpiry } from "@/types/renewals";
 import {
   LayoutDashboard,
   Activity,
@@ -20,6 +20,13 @@ import {
   Search,
 } from "lucide-react";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
+
+interface SidebarProfile {
+  firstName:  string | null;
+  lastName:   string | null;
+  agencyName: string | null;
+  email:      string | null;
+}
 
 interface RailIconProps {
   href: string;
@@ -68,45 +75,29 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
   );
 }
 
-export default function SidebarNav() {
+export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
   const pathname   = usePathname();
   const router     = useRouter();
-  const counts     = useSidebarCounts();
   const { openPanel } = useUnifiedPanel();
 
-  const [initials,   setInitials]   = useState<string>("H");
-  const [agencyName, setAgencyName] = useState<string | null>(null);
-  const [email,      setEmail]      = useState<string | null>(null);
-  const [menuOpen,   setMenuOpen]   = useState(false);
+  // Derive sidebar counts from the cached store — no extra DB queries needed
+  const policies           = useHollisStore(s => s.policies);
+  const coiRequests        = useHollisStore(s => s.coiRequests);
+  const docChaseRequests   = useHollisStore(s => s.docChaseRequests);
+  const approvalQueueCount = useHollisStore(s => s.approvalQueueCount);
+
+  const renewalCount  = policies.filter(p => { const d = daysUntilExpiry(p.expiration_date); return d >= 0 && d <= 60; }).length;
+  const coiCount      = coiRequests.filter(r => r.status === "ready_for_approval" || r.status === "needs_review").length;
+  const docChaseCount = docChaseRequests.filter(r => r.status === "pending" || r.status === "active").length;
+
+  // Derive initials and agencyName from server-provided profile
+  const first    = profile.firstName?.[0] ?? "";
+  const last     = profile.lastName?.[0]  ?? "";
+  const initials = (first + last).toUpperCase() || "H";
+  const agencyName = profile.agencyName;
+
+  const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      setEmail(user.email ?? null);
-      Promise.all([
-        supabase
-          .from("agent_profiles")
-          .select("agency_name, first_name, last_name")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("agencies")
-          .select("name")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]).then(([profileRes, agencyRes]) => {
-        const name =
-          profileRes.data?.agency_name ?? agencyRes.data?.name ?? null;
-        setAgencyName(name);
-
-        const first = profileRes.data?.first_name?.[0] ?? "";
-        const last  = profileRes.data?.last_name?.[0]  ?? "";
-        setInitials((first + last).toUpperCase() || "H");
-      });
-    });
-  }, []);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -182,11 +173,11 @@ export default function SidebarNav() {
 
         <RailIcon href="/overview"     icon={LayoutDashboard} label="Overview"     pathname={pathname} />
         <RailIcon href="/activity"     icon={Activity}        label="Activity"     pathname={pathname} />
-        <RailIcon href="/renewals"     icon={RefreshCcw}      label="Renewals"     pathname={pathname} badge={counts.renewals} />
+        <RailIcon href="/renewals"     icon={RefreshCcw}      label="Renewals"     pathname={pathname} badge={renewalCount} />
         <RailIcon href="/clients"      icon={Users}           label="Clients"      pathname={pathname} />
-        <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={counts.coi} />
-        <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={counts.review} />
-        <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={counts.docChase} />
+        <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={coiCount} />
+        <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={approvalQueueCount} />
+        <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={docChaseCount} />
         <RailIcon href="/settings" icon={Settings} label="Settings" pathname={pathname} />
       </nav>
 
@@ -212,12 +203,12 @@ export default function SidebarNav() {
               <div className="text-[12px] font-semibold" style={{ color: "#FAFAFA" }}>
                 {agencyName ?? "My Agency"}
               </div>
-              {email && (
+              {profile.email && (
                 <div
                   className="text-[11px] mt-0.5 truncate"
                   style={{ color: "#555" }}
                 >
-                  {email}
+                  {profile.email}
                 </div>
               )}
             </div>

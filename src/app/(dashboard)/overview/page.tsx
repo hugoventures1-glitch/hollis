@@ -123,36 +123,17 @@ export default async function DashboardPage() {
 
   const [
     activePoliciesRes,
-    upcomingCountRes,
-    stalledCountRes,
     logsRes,
     profileRes,
     coiRes,
     reviewRes,
   ] = await Promise.all([
-    // All active policies — for count + premium sum + bar chart
+    // All active policies — for count + premium sum + upcoming/stalled counts + bar chart
     supabase
       .from("policies")
-      .select("premium")
+      .select("premium, expiration_date, health_label")
       .eq("user_id", user.id)
       .eq("status", "active"),
-
-    // Count expiring within 60 days
-    supabase
-      .from("policies")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .gte("expiration_date", today)
-      .lte("expiration_date", in60),
-
-    // Count stalled
-    supabase
-      .from("policies")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .eq("health_label", "stalled"),
 
     // Recent send logs — for activity sparkline (60 limit covers 12 days)
     supabase
@@ -187,8 +168,8 @@ export default async function DashboardPage() {
   const activePolicies = activePoliciesRes.data ?? [];
   const activeCount    = activePolicies.length;
   const bookValue      = activePolicies.reduce((s, p) => s + (Number(p.premium) || 0), 0);
-  const upcomingCount  = upcomingCountRes.count ?? 0;
-  const stalledCount   = stalledCountRes.count  ?? 0;
+  const upcomingCount  = activePolicies.filter(p => p.expiration_date >= today && p.expiration_date <= in60).length;
+  const stalledCount   = activePolicies.filter(p => p.health_label === "stalled").length;
   const recentLogs     = logsRes.data            ?? [];
   const firstName      = profileRes.data?.first_name ?? null;
   const coiCount       = coiRes.count    ?? 0;

@@ -33,7 +33,14 @@ export default async function DashboardLayout({
     <ToastProvider>
       <UnifiedPanelProvider>
         <div className="flex h-screen overflow-hidden">
-          <SidebarNav />
+          <SidebarNav
+            profile={{
+              firstName:  profile?.first_name  ?? null,
+              lastName:   profile?.last_name   ?? null,
+              agencyName: profile?.agency_name ?? null,
+              email:      user.email           ?? null,
+            }}
+          />
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             {profileIncomplete && <ProfileCompletionBanner />}
             <main className="flex-1 overflow-hidden">{children}</main>

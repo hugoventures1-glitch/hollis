@@ -30,7 +30,7 @@ export interface HollisClient {
 
 // ── Store staleness threshold ─────────────────────────────────────────────────
 
-export const HOLLIS_STALE_MS = 120_000; // 2 minutes
+export const HOLLIS_STALE_MS = 300_000; // 5 minutes
 
 // ── Store shape ───────────────────────────────────────────────────────────────
 
@@ -49,6 +49,8 @@ export interface HollisStoreState {
   docChaseRequests: DocChaseRequestSummary[];
   /** Pending outbox drafts with joined policy data */
   outboxDrafts: Draft[];
+  /** Count of pending items in the agent approval queue */
+  approvalQueueCount: number;
   /** Authenticated user ID — populated on first fetch */
   userId: string | null;
   /** Epoch ms of last successful full fetch, or null if never fetched */
@@ -71,6 +73,7 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
   certificates: [],
   docChaseRequests: [],
   outboxDrafts: [],
+  approvalQueueCount: 0,
   userId: null,
   lastFetched: null,
   loading: false,
@@ -97,6 +100,7 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
         certsRes,
         outboxRes,
         docChaseRes,
+        approvalQueueRes,
       ] = await Promise.all([
         supabase.auth.getUser(),
 
@@ -132,6 +136,11 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
         fetch("/api/doc-chase")
           .then((r) => (r.ok ? r.json() : { requests: [] }))
           .catch(() => ({ requests: [] })),
+
+        supabase
+          .from("approval_queue")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
       ]);
 
       const allPolicies = (policiesRes.data ?? []) as Policy[];
@@ -165,6 +174,7 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
         certificates: (certsRes.data ?? []) as CertWithSequences[],
         docChaseRequests: (docChaseRes.requests ?? []) as DocChaseRequestSummary[],
         outboxDrafts,
+        approvalQueueCount: approvalQueueRes.count ?? 0,
         lastFetched: Date.now(),
         loading: false,
         backgroundRefreshing: false,
