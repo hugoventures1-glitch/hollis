@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -540,6 +540,12 @@ function FlagGroup({
 export default function PolicyCheckDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const sp        = useSearchParams();
+  const backParam = sp.get("back");
+  const backId    = sp.get("backId");
+  const backName  = sp.get("backName");
+  const backHref  = backParam === "client" && backId   ? `/clients/${backId}`                   : "/policies";
+  const backLabel = backParam === "client" && backName ? decodeURIComponent(backName) : "Policy Audit";
 
   const [check, setCheck] = useState<PolicyCheckWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -749,11 +755,11 @@ export default function PolicyCheckDetailPage() {
       <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
         <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
           <Link
-            href="/policies"
+            href={backHref}
             className="flex items-center gap-1.5 hover:text-[#FAFAFA] transition-colors"
           >
             <ArrowLeft size={13} />
-            Policy Audit
+            {backLabel}
           </Link>
           <ChevronRight size={12} className="text-[#6b6b6b]" />
           <span className="text-[#FAFAFA]">{clientName}</span>

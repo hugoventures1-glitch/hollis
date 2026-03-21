@@ -8,12 +8,8 @@ import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
 import { daysUntilExpiry } from "@/types/renewals";
 import {
   LayoutDashboard,
-  Activity,
   RefreshCcw,
   Users,
-  Award,
-  ClipboardCheck,
-  FileText,
   Settings,
   LogOut,
   User,
@@ -82,13 +78,9 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
 
   // Derive sidebar counts from the cached store — no extra DB queries needed
   const policies           = useHollisStore(s => s.policies);
-  const coiRequests        = useHollisStore(s => s.coiRequests);
-  const docChaseRequests   = useHollisStore(s => s.docChaseRequests);
   const approvalQueueCount = useHollisStore(s => s.approvalQueueCount);
 
-  const renewalCount  = policies.filter(p => { const d = daysUntilExpiry(p.expiration_date); return d >= 0 && d <= 60; }).length;
-  const coiCount      = coiRequests.filter(r => r.status === "ready_for_approval" || r.status === "needs_review").length;
-  const docChaseCount = docChaseRequests.filter(r => r.status === "pending" || r.status === "active").length;
+  const renewalCount = policies.filter(p => { const d = daysUntilExpiry(p.expiration_date); return d >= 0 && d <= 60; }).length;
 
   // Derive initials and agencyName from server-provided profile
   const first    = profile.firstName?.[0] ?? "";
@@ -171,14 +163,10 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
           <Search size={19} strokeWidth={1.6} />
         </button>
 
-        <RailIcon href="/overview"     icon={LayoutDashboard} label="Overview"     pathname={pathname} />
-        <RailIcon href="/activity"     icon={Activity}        label="Activity"     pathname={pathname} />
-        <RailIcon href="/renewals"     icon={RefreshCcw}      label="Renewals"     pathname={pathname} badge={renewalCount} />
-        <RailIcon href="/clients"      icon={Users}           label="Clients"      pathname={pathname} />
-        <RailIcon href="/certificates" icon={Award}           label="Certificates" pathname={pathname} badge={coiCount} />
-        <RailIcon href="/review"       icon={ClipboardCheck}  label="Review"       pathname={pathname} badge={approvalQueueCount} />
-        <RailIcon href="/documents"    icon={FileText}        label="Documents"    pathname={pathname} badge={docChaseCount} />
-        <RailIcon href="/settings" icon={Settings} label="Settings" pathname={pathname} />
+        <RailIcon href="/overview" icon={LayoutDashboard} label="Overview" pathname={pathname} />
+        <RailIcon href="/renewals" icon={RefreshCcw}      label="Renewals" pathname={pathname} badge={renewalCount + approvalQueueCount} />
+        <RailIcon href="/clients"  icon={Users}           label="Clients"  pathname={pathname} />
+        <RailIcon href="/settings" icon={Settings}        label="Settings" pathname={pathname} />
       </nav>
 
       {/* User avatar / profile menu */}

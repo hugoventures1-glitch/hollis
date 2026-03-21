@@ -295,7 +295,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                 return (
                   <Link
                     key={policy.id}
-                    href={`/renewals/${policy.id}`}
+                    href={`/renewals/${policy.id}?back=client&backId=${client.id}&backName=${encodeURIComponent(client.name)}`}
                     className="flex items-center gap-4 px-5 py-4 rounded-xl bg-[#111111] border border-[#1C1C1C] hover:border-[#2a2a2a] transition-colors group"
                   >
                     {/* Health dot */}
@@ -370,7 +370,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                   day:   "numeric",
                 });
                 const href = req.certificate_id
-                  ? `/certificates/${req.certificate_id}`
+                  ? `/certificates/${req.certificate_id}?back=client&backId=${client.id}&backName=${encodeURIComponent(client.name)}`
                   : "/certificates";
                 return (
                   <Link
@@ -455,7 +455,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                 return (
                   <Link
                     key={check.id}
-                    href={`/policies/${check.id}`}
+                    href={`/policies/${check.id}?back=client&backId=${client.id}&backName=${encodeURIComponent(client.name)}`}
                     className="flex items-center gap-4 px-5 py-4 rounded-xl bg-[#111111] border border-[#1C1C1C] hover:border-[#2a2a2a] transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
@@ -498,7 +498,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
               {certificates.map((cert) => (
                 <Link
                   key={cert.id}
-                  href={`/certificates/${cert.id}`}
+                  href={`/certificates/${cert.id}?back=client&backId=${client.id}&backName=${encodeURIComponent(client.name)}`}
                   className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-[#111111] border border-[#1C1C1C] hover:border-[#2a2a2a] transition-colors group"
                 >
                   <div>

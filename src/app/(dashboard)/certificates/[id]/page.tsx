@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string; backId?: string; backName?: string }>;
 }
 
 const STATUS_STYLES = {
@@ -52,8 +53,11 @@ function CoverageSection({ label, enabled, rows }: { label: string; enabled: boo
   );
 }
 
-export default async function CertificateDetailPage({ params }: PageProps) {
+export default async function CertificateDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const sp = await searchParams;
+  const backHref  = sp.back === "client" && sp.backId   ? `/clients/${sp.backId}`                   : "/certificates";
+  const backLabel = sp.back === "client" && sp.backName ? decodeURIComponent(sp.backName) : "Certificates";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -74,8 +78,8 @@ export default async function CertificateDetailPage({ params }: PageProps) {
 
       {/* Header */}
       <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <Link href="/certificates" className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">
-          <ArrowLeft size={13} /> Certificates
+        <Link href={backHref} className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">
+          <ArrowLeft size={13} /> {backLabel}
         </Link>
         <ChevronRight size={12} className="text-[#6b6b6b]" />
         <span className="font-mono text-[12px] text-[#6b6b6b]">{cert.certificate_number}</span>

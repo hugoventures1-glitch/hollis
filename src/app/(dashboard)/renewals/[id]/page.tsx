@@ -32,6 +32,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string; backId?: string; backName?: string }>;
 }
 
 const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
@@ -61,8 +62,11 @@ const STATUS_LABEL_MAP: Record<TouchpointStatus, string> = {
   skipped:    "Skipped",
 };
 
-export default async function PolicyDetailPage({ params }: PageProps) {
+export default async function PolicyDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const sp = await searchParams;
+  const backHref  = sp.back === "client" && sp.backId  ? `/clients/${sp.backId}`                   : "/renewals";
+  const backLabel = sp.back === "client" && sp.backName ? decodeURIComponent(sp.backName) : "Renewals";
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -106,12 +110,12 @@ export default async function PolicyDetailPage({ params }: PageProps) {
       {/* Header */}
       <div className="flex items-center gap-3 px-10 h-[56px] shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
         <Link
-          href="/renewals"
+          href={backHref}
           className="flex items-center gap-1.5 text-[13px] transition-colors"
           style={{ color: "#555555" }}
         >
           <ArrowLeft size={13} />
-          Renewals
+          {backLabel}
         </Link>
         <ChevronRight size={12} style={{ color: "#333333" }} />
         <span className="text-[13px] truncate max-w-xs" style={{ color: "#FAFAFA" }}>{p.policy_name}</span>
