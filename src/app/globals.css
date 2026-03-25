@@ -18,26 +18,6 @@
   --hover-overlay:     rgba(255,255,255,0.05);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background:        #FAFAFA;
-    --surface:           #FFFFFF;
-    --surface-raised:    #F8F8F8;
-    --border:            #F3F4F6;
-    --border-subtle:     #F8F8F8;
-    --text-primary:      #111111;
-    --text-secondary:    #A0A0A0;
-    --text-tertiary:     #A0A0A0;
-    --text-inverse:      #FAFAFA;
-    --accent:            #111111;
-    --danger:            #FF4444;
-    --warning-text:      #6b6b6b;
-    --toggle-track-off:  #D1D5DB;
-    --hover-overlay:     rgba(0,0,0,0.05);
-  }
-  ::-webkit-scrollbar-thumb       { background: #E5E7EB; }
-  ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
-}
 
 @theme inline {
   /* Fonts */
