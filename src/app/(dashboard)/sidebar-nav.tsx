@@ -15,6 +15,7 @@ import {
   LogOut,
   User,
   Search,
+  Inbox,
 } from "lucide-react";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 
@@ -165,10 +166,11 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
         </button>
 
         <RailIcon href="/overview"  icon={LayoutDashboard} label="Overview" pathname={pathname} />
+        <RailIcon href="/inbox"     icon={Inbox}           label="Inbox"    pathname={pathname} badge={approvalQueueCount} />
         <RailIcon href="/activity"  icon={Activity}        label="Activity" pathname={pathname} />
-        <RailIcon href="/renewals"  icon={RefreshCcw}      label="Renewals" pathname={pathname} badge={renewalCount + approvalQueueCount} />
-        <RailIcon href="/clients"  icon={Users}           label="Clients"  pathname={pathname} />
-        <RailIcon href="/settings" icon={Settings}        label="Settings" pathname={pathname} />
+        <RailIcon href="/renewals"  icon={RefreshCcw}      label="Renewals" pathname={pathname} badge={renewalCount} />
+        <RailIcon href="/clients"   icon={Users}           label="Clients"  pathname={pathname} />
+        <RailIcon href="/settings"  icon={Settings}        label="Settings" pathname={pathname} />
       </nav>
 
       {/* User avatar / profile menu */}

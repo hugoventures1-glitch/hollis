@@ -48,7 +48,7 @@ function Card({
   return (
     <div
       className={`rounded-2xl p-6 flex flex-col ${className}`}
-      style={{ background: "#141414", border: "1px solid #252525", minHeight: 196, ...extraStyle }}
+      style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", minHeight: 196, ...extraStyle }}
     >
       {children}
     </div>
@@ -70,13 +70,13 @@ function CardHead({
         {icon}
         <span
           className="text-[11px] font-medium uppercase tracking-[0.08em]"
-          style={{ color: "#666666" }}
+          style={{ color: "var(--text-tertiary)" }}
         >
           {label}
         </span>
       </div>
       {badge && (
-        <span className="text-[11px]" style={{ color: "#666666" }}>
+        <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
           {badge}
         </span>
       )}
@@ -90,7 +90,7 @@ function SeeLink({ label, href }: { label: string; href: string }) {
       <Link
         href={href}
         className="text-[12px] flex items-center gap-1 w-fit transition-opacity hover:opacity-60"
-        style={{ color: "#666666" }}
+        style={{ color: "var(--text-tertiary)" }}
       >
         {label} <ArrowRight size={10} />
       </Link>
@@ -211,34 +211,34 @@ export default async function DashboardPage() {
   return (
     <div
       className="flex flex-col h-full antialiased overflow-y-auto"
-      style={{ background: "#0C0C0C", color: "#FAFAFA" }}
+      style={{ background: "var(--background)", color: "var(--text-primary)" }}
     >
 
       {/* ── Top bar ── */}
       <header
         className="h-14 shrink-0 flex items-center justify-between px-6"
-        style={{ borderBottom: "1px solid #181818" }}
+        style={{ borderBottom: "1px solid var(--border)" }}
       >
-        <div className="flex items-center gap-2 text-[13px]" style={{ color: "#555555" }}>
+        <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--text-tertiary)" }}>
           Overview
         </div>
 
         {/* Overview / Metrics tabs */}
         <div
           className="flex items-center h-8 rounded-lg overflow-hidden"
-          style={{ border: "1px solid #222222", background: "#111111" }}
+          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}
         >
           <Link
             href="/overview"
             className="px-3 h-full flex items-center text-[12px] font-medium"
-            style={{ color: "#FAFAFA", background: "#1C1C1C" }}
+            style={{ color: "var(--text-primary)", background: "var(--border)" }}
           >
             Overview
           </Link>
           <Link
             href="/activity"
             className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#9e9e9e]"
-            style={{ color: "#444444" }}
+            style={{ color: "var(--text-secondary)" }}
           >
             Metrics
           </Link>
@@ -254,7 +254,7 @@ export default async function DashboardPage() {
             <span style={{ fontWeight: 300 }}>{greeting}, </span>
             <span style={{ fontWeight: 600 }}>{firstName ?? "there"}</span>
           </h1>
-          <p className="mt-1 text-[13px]" style={{ color: "#666666" }}>
+          <p className="mt-1 text-[13px]" style={{ color: "var(--text-tertiary)" }}>
             here&apos;s a quick look at how things are going.
           </p>
         </div>
@@ -270,31 +270,31 @@ export default async function DashboardPage() {
           {/* Card 1 — Daily Insights */}
           <Card>
             <CardHead
-              icon={<CalendarDays size={12} style={{ color: "#555555" }} />}
+              icon={<CalendarDays size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Daily Insights"
               badge={todayBadge}
             />
             <div className="flex-1 flex flex-col gap-1.5">
               {bookValue > 0 && (
-                <p className="text-[13px] leading-relaxed" style={{ color: "#888888" }}>
+                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   Book value{" "}
-                  <span style={{ color: "#FAFAFA", fontWeight: 600 }}>{formatBookValue(bookValue)}</span>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{formatBookValue(bookValue)}</span>
                 </p>
               )}
               {activeCount > 0 && (
-                <p className="text-[13px] leading-relaxed" style={{ color: "#888888" }}>
-                  <span style={{ color: "#FAFAFA", fontWeight: 600 }}>{activeCount}</span> active {activeCount === 1 ? "policy" : "policies"}
+                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{activeCount}</span> active {activeCount === 1 ? "policy" : "policies"}
                 </p>
               )}
               {upcomingCount > 0 && (
-                <p className="text-[13px] leading-relaxed" style={{ color: "#888888" }}>
-                  <span style={{ color: upcomingCount > 5 ? "#FF6B6B" : "#FAFAFA", fontWeight: 600 }}>{upcomingCount}</span> renewing in 60 days
+                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  <span style={{ color: upcomingCount > 5 ? "#FF6B6B" : "var(--text-primary)", fontWeight: 600 }}>{upcomingCount}</span> renewing in 60 days
                 </p>
               )}
               {activeCount === 0 && bookValue === 0 && (
-                <p className="text-[13px]" style={{ color: "#666" }}>No data yet.</p>
+                <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No data yet.</p>
               )}
-              <p className="text-[13px] mt-1" style={{ color: stalledCount > 0 ? "#FAFAFA" : "#555" }}>
+              <p className="text-[13px] mt-1" style={{ color: stalledCount > 0 ? "var(--text-primary)" : "var(--text-tertiary)" }}>
                 {summaryStatus}
               </p>
             </div>
@@ -302,7 +302,7 @@ export default async function DashboardPage() {
               <Link
                 href="/activity"
                 className="text-[12px] flex items-center gap-1 transition-opacity hover:opacity-60"
-                style={{ color: "#555555" }}
+                style={{ color: "var(--text-tertiary)" }}
               >
                 Go to activity <ArrowRight size={10} />
               </Link>
@@ -310,7 +310,7 @@ export default async function DashboardPage() {
                 <Link
                   href="/renewals?filter=stalled"
                   className="text-[12px] transition-opacity hover:opacity-60"
-                  style={{ color: "#555555" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 >
                   Dismiss
                 </Link>
@@ -319,15 +319,15 @@ export default async function DashboardPage() {
           </Card>
 
           {/* Card 2 — Book Value (white outline) */}
-          <Card style={{ border: "1px solid rgba(250,250,250,0.14)", background: "#161616" }}>
+          <Card style={{ border: "1px solid var(--border)", background: "var(--surface-raised)" }}>
             <CardHead
-              icon={<BarChart2 size={12} style={{ color: "#555555" }} />}
+              icon={<BarChart2 size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Book Value"
             />
             <div className="flex-1 flex flex-col justify-between">
-              <p className="text-[12px] leading-[1.6]" style={{ color: "#777777" }}>
+              <p className="text-[12px] leading-[1.6]" style={{ color: "var(--text-secondary)" }}>
                 Total premium across your book is{" "}
-                <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                   {formatBookValue(bookValue)}
                 </span>
               </p>
@@ -341,30 +341,30 @@ export default async function DashboardPage() {
           {/* Card 3 — Expiring Soon */}
           <Card>
             <CardHead
-              icon={<Clock size={12} style={{ color: "#555555" }} />}
+              icon={<Clock size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Expiring Soon"
             />
             <div className="flex-1">
               {upcomingCount > 0 ? (
                 <>
-                  <p className="text-[12px]" style={{ color: "#777777" }}>
+                  <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
                     Your current upcoming renewals
                   </p>
                   <p
                     className="text-[42px] font-light leading-none mt-2 tracking-tight"
-                    style={{ color: upcomingCount > 5 ? "#FF6B6B" : "#FAFAFA" }}
+                    style={{ color: upcomingCount > 5 ? "#FF6B6B" : "var(--text-primary)" }}
                   >
                     {upcomingCount}
                     <span
                       className="text-[14px] ml-2"
-                      style={{ color: "#666666", fontWeight: 400 }}
+                      style={{ color: "var(--text-tertiary)", fontWeight: 400 }}
                     >
                       {upcomingCount === 1 ? "policy" : "policies"}
                     </span>
                   </p>
                 </>
               ) : (
-                <p className="text-[13px]" style={{ color: "#666666" }}>
+                <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>
                   No renewals in the next 60 days.
                 </p>
               )}
@@ -375,19 +375,19 @@ export default async function DashboardPage() {
           {/* Card 4 — Certificates */}
           <Card>
             <CardHead
-              icon={<FileText size={12} style={{ color: "#555555" }} />}
+              icon={<FileText size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Certificates"
             />
             <div className="flex-1">
               {coiCount > 0 ? (
-                <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
-                  <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                <p className="text-[13px] leading-[1.75]" style={{ color: "var(--text-secondary)" }}>
+                  <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                     {coiCount} new {coiCount === 1 ? "request" : "requests"}
                   </span>
                   {", "}automatically categorised as certificates
                 </p>
               ) : (
-                <p className="text-[13px] leading-[1.75]" style={{ color: "#666666" }}>
+                <p className="text-[13px] leading-[1.75]" style={{ color: "var(--text-tertiary)" }}>
                   No pending certificate requests.
                 </p>
               )}
@@ -400,16 +400,16 @@ export default async function DashboardPage() {
           {/* Card 5 — Active Policies */}
           <Card>
             <CardHead
-              icon={<Shield size={12} style={{ color: "#555555" }} />}
+              icon={<Shield size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Active Policies"
             />
             <div className="flex-1 flex flex-col justify-center">
-              <p className="text-[12px] mb-2" style={{ color: "#777777" }}>
+              <p className="text-[12px] mb-2" style={{ color: "var(--text-secondary)" }}>
                 Policies across your book
               </p>
               <p
                 className="text-[44px] font-light leading-none tracking-tight"
-                style={{ color: "#FAFAFA" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 {activeCount.toLocaleString()}
               </p>
@@ -420,21 +420,21 @@ export default async function DashboardPage() {
           {/* Card 6 — Stalled */}
           <Card>
             <CardHead
-              icon={<AlertTriangle size={12} style={{ color: "#555555" }} />}
+              icon={<AlertTriangle size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Stalled"
             />
             <div className="flex-1">
               {stalledCount > 0 ? (
-                <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
+                <p className="text-[13px] leading-[1.75]" style={{ color: "var(--text-secondary)" }}>
                   You currently have{" "}
-                  <span style={{ fontWeight: 600, color: "#FAFAFA" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                     {stalledCount} stalled
                   </span>{" "}
                   {stalledCount === 1 ? "policy" : "policies"} outstanding
                   in your renewals
                 </p>
               ) : (
-                <p className="text-[13px]" style={{ color: "#666666" }}>
+                <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>
                   No stalled policies right now.
                 </p>
               )}
@@ -445,21 +445,21 @@ export default async function DashboardPage() {
           {/* Card 7 — Review Queue */}
           <Card>
             <CardHead
-              icon={<ClipboardCheck size={12} style={{ color: "#555555" }} />}
+              icon={<ClipboardCheck size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Review Queue"
             />
             <div className="flex-1 flex items-start gap-3">
               {/* Hollis mark */}
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: "#1C1C1C" }}
+                style={{ background: "var(--border)" }}
               >
                 <span
                   style={{
                     fontFamily: "var(--font-playfair)",
                     fontWeight: 900,
                     fontSize: 14,
-                    color: "#FAFAFA",
+                    color: "var(--text-primary)",
                     letterSpacing: "-0.02em",
                     lineHeight: 1,
                   }}
@@ -467,10 +467,10 @@ export default async function DashboardPage() {
                   h
                 </span>
               </div>
-              <p className="text-[13px] leading-[1.75]" style={{ color: "#888888" }}>
+              <p className="text-[13px] leading-[1.75]" style={{ color: "var(--text-secondary)" }}>
                 {reviewCount > 0 ? (
                   <>
-                    <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                    <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                       {reviewCount} pending
                     </span>{" "}
                     {reviewCount === 1 ? "item" : "items"} awaiting your approval
@@ -486,15 +486,15 @@ export default async function DashboardPage() {
           {/* Card 8 — Activity */}
           <Card>
             <CardHead
-              icon={<Activity size={12} style={{ color: "#555555" }} />}
+              icon={<Activity size={12} style={{ color: "var(--text-tertiary)" }} />}
               label="Activity"
             />
             <div className="flex-1 flex flex-col justify-between">
-              <p className="text-[12px] leading-[1.6]" style={{ color: "#777777" }}>
+              <p className="text-[12px] leading-[1.6]" style={{ color: "var(--text-secondary)" }}>
                 {recentLogs.length > 0 ? (
                   <>
                     Your outreach activity is{" "}
-                    <span style={{ fontWeight: 500, color: "#FAFAFA" }}>
+                    <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                       {activityLevel}
                     </span>{" "}
                     this period

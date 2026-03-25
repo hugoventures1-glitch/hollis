@@ -1,20 +1,77 @@
-import { Inbox } from "lucide-react";
+/**
+ * /inbox — Hollis Agent Inbox
+ *
+ * Tier 2 decisions surface here as "messages from Hollis" awaiting broker action.
+ * Tier 3 alerts (coming) will appear as urgent escalations in the same view.
+ */
 
-export default function InboxPage() {
-  return (
-    <div className="flex flex-col h-full bg-[#0C0C0C] text-[#FAFAFA]">
-      <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center px-6">
-        <span className="text-[#8a8a8a] text-sm font-medium">Inbox</span>
-      </header>
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-        <div className="w-14 h-14 rounded-full bg-[#111111] border border-[#1C1C1C] flex items-center justify-center mb-4">
-          <Inbox size={22} className="text-[#6b6b6b]" />
-        </div>
-        <h2 className="text-[16px] font-semibold text-[#FAFAFA] mb-1">Inbox</h2>
-        <p className="text-[13px] text-[#6b6b6b] max-w-xs">
-          Notifications and messages will appear here. Coming soon.
-        </p>
-      </div>
-    </div>
-  );
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import InboxClient from "./InboxClient";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Inbox — Hollis" };
+
+export interface InboxItem {
+  id: string;
+  policy_id: string;
+  tier: 2 | 3;
+  classified_intent: string;
+  confidence_score: number;
+  raw_signal_snippet: string;
+  proposed_action: {
+    description: string;
+    action_type: string;
+    payload: Record<string, unknown>;
+  };
+  status: "pending" | "approved" | "rejected" | "edited";
+  created_at: string;
+  policies: {
+    id: string;
+    client_name: string;
+    policy_name: string;
+    expiration_date: string;
+    carrier: string | null;
+  } | null;
+}
+
+export default async function InboxPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: items } = await supabase
+    .from("approval_queue")
+    .select(
+      `
+      id,
+      policy_id,
+      classified_intent,
+      confidence_score,
+      raw_signal_snippet,
+      proposed_action,
+      status,
+      created_at,
+      policies (
+        id,
+        client_name,
+        policy_name,
+        expiration_date,
+        carrier
+      )
+    `
+    )
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  // Normalise — all approval_queue items are Tier 2 for now
+  const normalised: InboxItem[] = (items ?? []).map((item) => ({
+    ...(item as unknown as InboxItem),
+    tier: 2,
+  }));
+
+  return <InboxClient initialItems={normalised} />;
 }

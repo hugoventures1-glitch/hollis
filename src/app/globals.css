@@ -2,18 +2,41 @@
 
 /* ── Design tokens ─────────────────────────────────────────────── */
 :root {
-  --background:      #0C0C0C;
-  --surface:         #111111;
-  --surface-raised:  #161616;
-  --border:          #1C1C1C;
-  --border-subtle:   #161616;
-  --text-primary:    #FAFAFA;
-  --text-secondary:  #8a8a8a;
-  --text-tertiary:   #6b6b6b;
-  --text-inverse:    #0C0C0C;
-  --accent:          #FAFAFA;
-  --danger:          #FF4444;
-  --warning-text:    #9e9e9e;
+  --background:        #0C0C0C;
+  --surface:           #111111;
+  --surface-raised:    #161616;
+  --border:            #1C1C1C;
+  --border-subtle:     #161616;
+  --text-primary:      #FAFAFA;
+  --text-secondary:    #8a8a8a;
+  --text-tertiary:     #6b6b6b;
+  --text-inverse:      #0C0C0C;
+  --accent:            #FAFAFA;
+  --danger:            #FF4444;
+  --warning-text:      #9e9e9e;
+  --toggle-track-off:  #333333;
+  --hover-overlay:     rgba(255,255,255,0.05);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background:        #FAFAFA;
+    --surface:           #FFFFFF;
+    --surface-raised:    #F8F8F8;
+    --border:            #F3F4F6;
+    --border-subtle:     #F8F8F8;
+    --text-primary:      #111111;
+    --text-secondary:    #A0A0A0;
+    --text-tertiary:     #A0A0A0;
+    --text-inverse:      #FAFAFA;
+    --accent:            #111111;
+    --danger:            #FF4444;
+    --warning-text:      #6b6b6b;
+    --toggle-track-off:  #D1D5DB;
+    --hover-overlay:     rgba(0,0,0,0.05);
+  }
+  ::-webkit-scrollbar-thumb       { background: #E5E7EB; }
+  ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
 }
 
 @theme inline {

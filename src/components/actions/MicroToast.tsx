@@ -30,9 +30,9 @@ export function useToast(): ToastContextValue {
 // ── Text colour per type ──────────────────────────────────────────────────────
 
 const TEXT_COLOR: Record<ToastType, string> = {
-  success: "#FAFAFA",
-  error:   "#FF4444",
-  info:    "#FAFAFA",
+  success: "var(--text-primary)",
+  error:   "var(--danger)",
+  info:    "var(--text-primary)",
 };
 
 // ── Single toast UI ───────────────────────────────────────────────────────────
@@ -48,8 +48,8 @@ export function ToastCard({ item, onDismiss }: ToastCardProps) {
       style={{
         display: "flex",
         alignItems: "flex-start",
-        background: "#111111",
-        border: "1px solid #1C1C1C",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: 6,
         padding: "10px 16px",
         fontSize: 13,

@@ -10,7 +10,7 @@ export function StageBadge({ stage, className = "" }: StageBadgeProps) {
   return (
     <span
       className={`text-[11px] font-medium whitespace-nowrap ${className}`}
-      style={{ color: "#555555" }}
+      style={{ color: "var(--text-tertiary)" }}
     >
       {STAGE_LABELS[stage]}
     </span>

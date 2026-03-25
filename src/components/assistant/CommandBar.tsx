@@ -71,9 +71,9 @@ function detectIntent(query: string): "nav" | "ask" | "neutral" {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function IntentIcon({ intent, hasText }: { intent: "nav" | "ask" | "neutral"; hasText: boolean }) {
-  const dim = hasText ? "#666666" : "#333333";
-  if (intent === "nav") return <Compass size={13} style={{ color: "#FAFAFA", flexShrink: 0, transition: "color 0.15s" }} />;
-  if (intent === "ask") return <MessageCircle size={13} style={{ color: "#FAFAFA", flexShrink: 0, transition: "color 0.15s" }} />;
+  const dim = hasText ? "var(--text-tertiary)" : "var(--text-tertiary)";
+  if (intent === "nav") return <Compass size={13} style={{ color: "var(--text-primary)", flexShrink: 0, transition: "color 0.15s" }} />;
+  if (intent === "ask") return <MessageCircle size={13} style={{ color: "var(--text-primary)", flexShrink: 0, transition: "color 0.15s" }} />;
   return <Search size={13} style={{ color: dim, flexShrink: 0, transition: "color 0.15s" }} />;
 }
 
@@ -99,7 +99,7 @@ function SuggestionRow({
         alignItems: "center",
         gap: 10,
         padding: "9px 14px",
-        background: active ? "rgba(255,255,255,0.05)" : "transparent",
+        background: active ? "var(--hover-overlay)" : "transparent",
         border: "none",
         cursor: "pointer",
         textAlign: "left",
@@ -107,13 +107,13 @@ function SuggestionRow({
       }}
     >
       {suggestion.kind === "nav"
-        ? <ArrowRight size={12} style={{ color: "#444444", flexShrink: 0 }} />
-        : <MessageCircle size={12} style={{ color: "#444444", flexShrink: 0 }} />
+        ? <ArrowRight size={12} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+        : <MessageCircle size={12} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
       }
-      <span style={{ fontSize: 13, color: active ? "#FAFAFA" : "#888888", flex: 1 }}>
+      <span style={{ fontSize: 13, color: active ? "var(--text-primary)" : "var(--text-secondary)", flex: 1 }}>
         {suggestion.label}
       </span>
-      <span style={{ fontSize: 10, color: "#333333", fontFamily: "var(--font-mono)" }}>
+      <span style={{ fontSize: 10, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
         {suggestion.kind === "nav" ? "go" : "ask"}
       </span>
     </button>
@@ -215,8 +215,8 @@ export function CommandBar() {
         {/* Input bar */}
         <div
           style={{
-            background: "#111111",
-            border: `1px solid ${focused || value ? "#2A2A2A" : "#1C1C1C"}`,
+            background: "var(--surface)",
+            border: `1px solid var(--border)`,
             borderRadius: 8,
             height: 40,
             display: "flex",
@@ -243,8 +243,8 @@ export function CommandBar() {
               outline: "none",
               fontSize: 13,
               fontWeight: 500,
-              color: value ? "#FAFAFA" : "#333333",
-              caretColor: "#FAFAFA",
+              color: value ? "var(--text-primary)" : "var(--text-tertiary)",
+              caretColor: "var(--text-primary)",
             }}
           />
 
@@ -258,20 +258,20 @@ export function CommandBar() {
                 width: 22,
                 height: 22,
                 borderRadius: 5,
-                background: "#FAFAFA",
+                background: "var(--accent)",
                 border: "none",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
             >
-              <ArrowUp size={12} style={{ color: "#0C0C0C" }} />
+              <ArrowUp size={12} style={{ color: "var(--text-inverse)" }} />
             </button>
           ) : (
             <kbd
               style={{
                 fontSize: 10,
                 fontFamily: "var(--font-mono)",
-                color: "#333333",
+                color: "var(--text-tertiary)",
                 opacity: 0.6,
                 letterSpacing: "0.05em",
               }}
@@ -289,8 +289,8 @@ export function CommandBar() {
               top: "calc(100% + 6px)",
               left: 0,
               right: 0,
-              background: "rgba(13,13,13,0.97)",
-              border: "1px solid #222222",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
               borderRadius: 10,
               overflow: "hidden",
               boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
