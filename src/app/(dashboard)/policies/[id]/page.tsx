@@ -56,7 +56,7 @@ function VerdictIcon({ verdict }: { verdict: SummaryVerdict | null }) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -1047,7 +1047,7 @@ export default function PolicyCheckDetailPage() {
                         <div className="text-[10px] text-[#6b6b6b] mt-0.5">
                           Expires{" "}
                           {new Date(doc.extracted_expiry_date).toLocaleDateString(
-                            "en-US",
+                            "en-AU",
                             { month: "short", day: "numeric", year: "numeric" }
                           )}
                         </div>

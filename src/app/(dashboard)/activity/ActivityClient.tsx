@@ -20,7 +20,7 @@ export interface ActivityStats {
   replyRate: number | null;
   totalSent: number;
   monitoringCount: number;
-  timeSavedToday: number;
+  autonomousActionsToday: number;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -67,18 +67,6 @@ const EVENT_ICONS: Partial<Record<AuditEventType, string>> = {
   sequence_halted:         "‖",
 };
 
-const TIME_SAVED: Partial<Record<AuditEventType, number>> = {
-  email_sent:         3,
-  sms_sent:           2,
-  questionnaire_sent: 5,
-  submission_sent:    10,
-  recommendation_sent:8,
-  doc_requested:      3,
-  tier_1_action:      5,
-  tier_2_drafted:     7,
-  note_added:         2,
-  final_notice_sent:  4,
-};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -117,7 +105,6 @@ interface Session {
   startTime: Date;
   items: AuditRow[];        // most recent first
   label: string;
-  timeSaved: number;
 }
 
 function groupIntoSessions(feed: AuditRow[]): Session[] {
@@ -161,7 +148,6 @@ function groupIntoSessions(feed: AuditRow[]): Session[] {
         startTime: start,
         items: [...items].reverse(),
         label: `${dateStr} at ${timeStr} — Hollis processed ${n} action${n !== 1 ? "s" : ""}`,
-        timeSaved: items.reduce((s, e) => s + (TIME_SAVED[e.event_type] ?? 0), 0),
       };
     })
     .reverse(); // most recent session first
@@ -413,17 +399,6 @@ function SessionBlock({
           {session.label}
         </span>
         <div className="flex items-center gap-3 shrink-0">
-          {session.timeSaved > 0 && (
-            <span
-              className="text-[10px]"
-              style={{
-                color: "#B8F400",
-                textShadow: "0 0 10px rgba(184,244,0,0.4)",
-              }}
-            >
-              ~{session.timeSaved}m saved
-            </span>
-          )}
           <span
             className="text-[10px] transition-transform"
             style={{
@@ -616,8 +591,8 @@ export default function ActivityClient({
     return out.slice(0, 12);
   }, [feed]);
 
-  // Time saved today — computed server-side from full day's audit log (not capped at 200)
-  const timeSavedToday = stats.timeSavedToday;
+  // Autonomous actions today — Tier 1 events from hollis_actions
+  const autonomousActionsToday = stats.autonomousActionsToday;
 
   const toggle = (id: string, set: Set<string>, setter: (s: Set<string>) => void) => {
     const next = new Set(set);
@@ -712,9 +687,8 @@ export default function ActivityClient({
           {/* ── Bento Grid ── */}
           <div className="grid grid-cols-3 gap-3 mb-10">
             <BentoStat
-              label="Time Saved Today"
-              value={timeSavedToday > 0 ? `${timeSavedToday}m` : "—"}
-              sub="estimated minutes"
+              label="Autonomous Actions Today"
+              value={autonomousActionsToday > 0 ? autonomousActionsToday.toString() : "—"}
               lime
             />
             <BentoStat

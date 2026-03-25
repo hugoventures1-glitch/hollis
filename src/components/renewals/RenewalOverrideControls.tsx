@@ -138,7 +138,7 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
             {policy.renewal_paused_until && (
               <> until{" "}
                 <span className="text-[#FAFAFA]">
-                  {new Date(policy.renewal_paused_until + "T00:00:00").toLocaleDateString("en-US", {
+                  {new Date(policy.renewal_paused_until + "T00:00:00").toLocaleDateString("en-AU", {
                     month: "short", day: "numeric", year: "numeric",
                   })}
                 </span>

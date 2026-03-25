@@ -27,7 +27,7 @@ interface CommunicationTimelineProps {
 
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",

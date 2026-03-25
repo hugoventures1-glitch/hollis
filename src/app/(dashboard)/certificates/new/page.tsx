@@ -400,7 +400,7 @@ export default function NewCOIPage() {
                   <div className="text-[11px] text-[#6b6b6b] uppercase tracking-wider mb-0.5">Expires</div>
                   <div className="text-[13px] text-[#FAFAFA]">
                     {cert.expiration_date
-                      ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                      ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })
                       : "—"}
                   </div>
                 </div>

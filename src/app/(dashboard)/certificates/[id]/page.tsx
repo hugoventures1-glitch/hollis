@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, AlertTriangle, CheckCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, ChevronRight, AlertTriangle, CheckCircle } from "lucide-react";
 import type { Certificate } from "@/types/coi";
 import { formatLimit } from "@/types/coi";
 import { FollowUpSection } from "../_components/FollowUpSection";
@@ -93,14 +93,9 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${STATUS_STYLES[cert.status]}`}>
             {cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
           </span>
-          <a
-            href={`/api/coi/${cert.id}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
-          >
-            <ExternalLink size={12} /> View PDF
-          </a>
+          <span className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555]">
+            Certificate generation coming soon
+          </span>
           {cert.status === "draft" && (
             <SendCOIButton certId={cert.id} defaultEmail={cert.holder_email ?? ""} />
           )}
@@ -140,8 +135,8 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
                   <InfoBlock label="Holder Location" value={[cert.holder_city, cert.holder_state, cert.holder_zip].filter(Boolean).join(", ")} />
                   <InfoBlock label="Producer" value={cert.producer_name ?? ""} />
                   <InfoBlock label="Producer Contact" value={[cert.producer_phone, cert.producer_email].filter(Boolean).join(" · ")} />
-                  <InfoBlock label="Effective" value={cert.effective_date ? new Date(cert.effective_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""} />
-                  <InfoBlock label="Expires" value={cert.expiration_date ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""} />
+                  <InfoBlock label="Effective" value={cert.effective_date ? new Date(cert.effective_date + "T00:00:00").toLocaleDateString("en-AU", { month: "long", day: "numeric", year: "numeric" }) : ""} />
+                  <InfoBlock label="Expires" value={cert.expiration_date ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { month: "long", day: "numeric", year: "numeric" }) : ""} />
                 </div>
                 {cert.additional_insured_language && (
                   <div className="mt-4 pt-4 border-t border-[#1C1C1C]">
@@ -232,20 +227,15 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
                     </div>
                     <div className="text-[12px] text-[#8a8a8a]">{cert.sent_to_email}</div>
                     <div className="text-[11px] text-[#6b6b6b] mt-1">
-                      {cert.sent_at && new Date(cert.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {cert.sent_at && new Date(cert.sent_at).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })}
                     </div>
                   </div>
                 ) : (
                   <div>
                     <div className="text-[12px] text-[#8a8a8a] mb-3">Not yet sent</div>
-                    <a
-                      href={`/api/coi/${cert.id}/pdf`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full h-8 flex items-center justify-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors mb-2"
-                    >
-                      <ExternalLink size={11} /> Download PDF
-                    </a>
+                    <div className="w-full h-8 flex items-center justify-center rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] mb-2">
+                      Certificate generation coming soon
+                    </div>
                     <div className="w-full">
                       <SendCOIButton certId={cert.id} defaultEmail={cert.holder_email ?? ""} />
                     </div>
@@ -257,7 +247,7 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
               <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-3">
                 <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">Metadata</div>
                 <InfoBlock label="Certificate #" value={cert.certificate_number} />
-                <InfoBlock label="Created" value={new Date(cert.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} />
+                <InfoBlock label="Created" value={new Date(cert.created_at).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })} />
                 {cert.request_id && <InfoBlock label="Source Request" value={cert.request_id.slice(0, 8) + "…"} />}
               </div>
 

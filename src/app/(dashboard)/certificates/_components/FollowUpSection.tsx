@@ -44,7 +44,7 @@ interface Props {
 // ── Helpers ──────────────────────────────────────────────────
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -52,7 +52,7 @@ function fmtDate(iso: string) {
 }
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", {
+  return new Date(iso).toLocaleTimeString("en-AU", {
     hour: "numeric",
     minute: "2-digit",
   });
@@ -353,7 +353,7 @@ export function FollowUpSection({
             </div>
             <div className="text-[13px] text-[#FAFAFA]">
               {new Date(expirationDate + "T00:00:00").toLocaleDateString(
-                "en-US",
+                "en-AU",
                 { month: "long", day: "numeric", year: "numeric" }
               )}
             </div>

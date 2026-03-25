@@ -293,7 +293,7 @@ export default function TemplatesPage() {
                           {t?.is_approved && t?.approved_at && (
                             <div className="mt-3 text-[11px] text-[#6b6b6b]">
                               Approved{" "}
-                              {new Date(t.approved_at).toLocaleDateString("en-US", {
+                              {new Date(t.approved_at).toLocaleDateString("en-AU", {
                                 month: "short", day: "numeric", year: "numeric",
                               })}
                             </div>

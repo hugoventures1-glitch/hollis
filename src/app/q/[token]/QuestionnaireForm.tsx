@@ -13,16 +13,10 @@ interface Question {
 
 const QUESTIONS: Question[] = [
   {
-    id: "business_activities",
-    question: "Have there been any changes to your business activities or services in the past 12 months?",
+    id: "turnover_changed",
+    question: "Has your annual turnover changed significantly in the past 12 months, or do you anticipate a change this coming year?",
     type: "textarea",
-    placeholder: "Describe any changes to what your business does, new services, discontinued activities…",
-  },
-  {
-    id: "revenue",
-    question: "What is your estimated annual revenue for the current financial year?",
-    type: "text",
-    placeholder: "e.g. $850,000",
+    placeholder: "Describe any changes to your revenue, including new income streams or discontinued activities…",
   },
   {
     id: "staff_count",
@@ -37,19 +31,25 @@ const QUESTIONS: Question[] = [
     placeholder: "List any new or closed premises, or indicate no changes…",
   },
   {
+    id: "equipment",
+    question: "Have you acquired, disposed of, or significantly changed any plant, equipment, or vehicles used in the business?",
+    type: "textarea",
+    placeholder: "Describe any new or removed equipment or vehicles, or indicate no changes…",
+  },
+  {
     id: "major_contracts",
     question: "Do you have any new major contracts, projects, or clients that may affect your coverage needs?",
     type: "textarea",
     placeholder: "Describe any significant new contracts or projects…",
   },
   {
-    id: "claims_history",
+    id: "claims",
     question: "Have you had any incidents, claims, or near-misses in the past 12 months that have not yet been reported?",
     type: "textarea",
     placeholder: "Describe any incidents, or indicate none…",
   },
   {
-    id: "other_changes",
+    id: "additional_info",
     question: "Is there anything else that has changed or that you would like your broker to know before renewing?",
     type: "textarea",
     placeholder: "Any other relevant information…",

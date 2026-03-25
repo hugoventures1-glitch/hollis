@@ -189,7 +189,7 @@ const RenewalRow = memo(function RenewalRow({ policy, optimisticStage, onStageUp
   }, [canSend, loading, effectiveStage, policy, onStageUpdate, onStageRevert, toast]);
 
   const dColor = urgencyColor(days);
-  const expiry = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-US", {
+  const expiry = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", {
     month: "short",
     day:   "numeric",
   });

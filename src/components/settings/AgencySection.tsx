@@ -84,6 +84,7 @@ export function AgencySection({ profile }: Props) {
         </SettingsField>
         <SettingsField label="AFSL Number" hint="Australian Financial Services Licence" error={errors.agency_afsl?.message}>
           <SettingsInput {...register("agency_afsl")} placeholder="000000" error={!!errors.agency_afsl} />
+          <p className="text-[11px] text-amber-500/80 mt-1">Required for formal documents including submissions and recommendation packs.</p>
         </SettingsField>
       </div>
 

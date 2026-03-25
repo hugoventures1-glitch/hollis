@@ -1,21 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import type { AuditEventType } from "@/types/renewals";
 import ActivityClient from "./ActivityClient";
 import type { AuditRow } from "./ActivityClient";
-
-const TIME_SAVED: Partial<Record<AuditEventType, number>> = {
-  email_sent:          3,
-  sms_sent:            2,
-  questionnaire_sent:  5,
-  submission_sent:     10,
-  recommendation_sent: 8,
-  doc_requested:       3,
-  tier_1_action:       5,
-  tier_2_drafted:      7,
-  note_added:          2,
-  final_notice_sent:   4,
-};
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Activity — Hollis" };
@@ -27,12 +14,12 @@ export default async function ActivityPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const admin = createAdminClient();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  // Start of today in UTC (YYYY-MM-DD) — matches created_at timestamps
   const todayUtc = new Date().toISOString().slice(0, 10);
 
-  const [feedRes, sendCountRes, progressedRes, questionnaireRes, policyCountRes, todayEventsRes] =
+  const [feedRes, sendCountRes, progressedRes, questionnaireRes, policyCountRes, autonomousRes] =
     await Promise.all([
       // Full audit feed — last 200 entries
       supabase
@@ -70,11 +57,12 @@ export default async function ActivityPage() {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id),
 
-      // Today's events — unbounded, for accurate time-saved calculation
-      supabase
-        .from("renewal_audit_log")
-        .select("event_type")
-        .eq("user_id", user.id)
+      // Autonomous (Tier 1) actions today from hollis_actions
+      admin
+        .from("hollis_actions")
+        .select("id", { count: "exact", head: true })
+        .eq("broker_id", user.id)
+        .eq("tier", "1")
         .gte("created_at", todayUtc),
     ]);
 
@@ -88,10 +76,7 @@ export default async function ActivityPage() {
   const qResponded = questRows.filter((r) => r.event_type === "questionnaire_responded").length;
   const replyRate = qSent > 0 ? Math.round((qResponded / qSent) * 100) : null;
 
-  const timeSavedToday = (todayEventsRes.data ?? []).reduce(
-    (sum, row) => sum + (TIME_SAVED[row.event_type as AuditEventType] ?? 0),
-    0
-  );
+  const autonomousActionsToday = autonomousRes.count ?? 0;
 
   return (
     <ActivityClient
@@ -102,7 +87,7 @@ export default async function ActivityPage() {
         replyRate,
         totalSent: touchpoints,
         monitoringCount,
-        timeSavedToday,
+        autonomousActionsToday,
       }}
     />
   );

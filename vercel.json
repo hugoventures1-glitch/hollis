@@ -2,23 +2,23 @@
   "crons": [
     {
       "path": "/api/cron/silence-check",
-      "schedule": "0 7 * * *"
+      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/cron/final-notice",
-      "schedule": "0 8 * * *"
+      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/cron/renewals",
-      "schedule": "0 9 * * *"
+      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/holder-followup/process",
-      "schedule": "0 10 * * *"
+      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/cron/doc-chase",
-      "schedule": "0 9 * * *"
+      "schedule": "0 23 * * *"
     }
   ]
 }

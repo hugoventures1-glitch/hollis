@@ -210,7 +210,7 @@ function FlagCard({ flag }: { flag: PolicyCheckFlag }) {
           )}
           {flag.annotated_at && (
             <Text style={[S.flagAnnotationText, { marginLeft: "auto" }]}>
-              {new Date(flag.annotated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              {new Date(flag.annotated_at).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })}
             </Text>
           )}
         </View>
@@ -223,7 +223,7 @@ function FlagCard({ flag }: { flag: PolicyCheckFlag }) {
 
 function PolicyCheckReport({ check }: { check: PolicyCheckWithDetails }) {
   const clientName = check.clients?.name ?? "Ad-hoc Check";
-  const checkDate  = new Date(check.created_at).toLocaleDateString("en-US", {
+  const checkDate  = new Date(check.created_at).toLocaleDateString("en-AU", {
     month: "long", day: "numeric", year: "numeric",
   });
 

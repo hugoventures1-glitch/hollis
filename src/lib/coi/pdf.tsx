@@ -106,7 +106,7 @@ function fmt(n: number | null | undefined, dash = "—"): string {
 function fmtDate(d: string | null | undefined): string {
   if (!d) return "—";
   try {
-    return new Date(d + "T00:00:00").toLocaleDateString("en-US", {
+    return new Date(d + "T00:00:00").toLocaleDateString("en-AU", {
       month: "2-digit", day: "2-digit", year: "numeric",
     });
   } catch {
@@ -285,7 +285,7 @@ function WCRow({ wc }: { wc: WCCoverage | undefined }) {
 
 function ACORDDocument({ cert }: { cert: Certificate }) {
   const snap = cert.coverage_snapshot;
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date().toLocaleDateString("en-AU", {
     month: "2-digit", day: "2-digit", year: "numeric",
   });
 

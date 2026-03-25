@@ -216,7 +216,7 @@ export default async function PoliciesPage() {
                     {/* Date */}
                     <div className="col-span-2 flex items-center">
                       <span className="text-[12px] text-[#6b6b6b] tabular-nums">
-                        {new Date(check.created_at).toLocaleDateString("en-US", {
+                        {new Date(check.created_at).toLocaleDateString("en-AU", {
                           month: "short", day: "numeric", year: "numeric",
                         })}
                       </span>

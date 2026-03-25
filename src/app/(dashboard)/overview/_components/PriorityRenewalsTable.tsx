@@ -18,6 +18,7 @@ export interface PolicyRow {
   campaign_stage?: string | null;
   health_label?: HealthLabel | null;
   health_score?: number | null;
+  renewal_flags?: Record<string, unknown> | null;
 }
 
 interface PriorityRenewalsTableProps {
@@ -34,7 +35,7 @@ function daysUntil(dateStr: string): number {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
   });
@@ -120,7 +121,13 @@ function PolicyTableRow({
 
       {/* Health badge */}
       <div className="col-span-2 flex items-center">
-        <HealthBadge label={policy.health_label} />
+        <HealthBadge
+          label={policy.health_label}
+          stalledInQueue={
+            policy.health_label === "stalled" &&
+            !!(policy.renewal_flags?.silent_client)
+          }
+        />
       </div>
 
       {/* Priority dot */}

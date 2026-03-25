@@ -15,6 +15,7 @@ import {
 import { ImportBanner } from "./_components/ImportBanner";
 import { Sparkline } from "./_components/Sparkline";
 import { MiniBarChart } from "./_components/MiniBarChart";
+import { TodayActions } from "./_components/TodayActions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Overview — Hollis" };
@@ -261,6 +262,11 @@ export default async function DashboardPage() {
 
         {/* Import banner (client component — localStorage-driven) */}
         <ImportBanner />
+
+        {/* Today's Actions */}
+        <div className="mt-6">
+          <TodayActions />
+        </div>
 
         {/* ── 4 × 2 card grid ── */}
         <div className="grid grid-cols-4 gap-3 mt-7">

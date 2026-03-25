@@ -20,7 +20,7 @@ export interface RecommendationPackOutput {
   body: string;
 }
 
-const SYSTEM_PROMPT = `You are a licensed insurance broker preparing a formal renewal recommendation document for a client. This document constitutes professional advice and must be precise, specific, and unambiguous.
+const SYSTEM_PROMPT = `You are a licensed insurance broker preparing a formal renewal recommendation document for a client. This document is a formal renewal recommendation prepared by a licensed Australian insurance broker. It must be precise, specific, and unambiguous.
 
 Structure the document with exactly these sections in this order:
 

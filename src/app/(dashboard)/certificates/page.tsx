@@ -450,7 +450,7 @@ function RequestRow({ req }: { req: COIRequest }) {
           <div className="flex items-center gap-3 mb-2">
             <StatusBadge status={req.status} table="request" />
             <span className="text-[11px] text-[#6b6b6b]">
-              {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              {new Date(req.created_at).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })}
             </span>
           </div>
 

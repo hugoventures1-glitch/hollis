@@ -29,7 +29,7 @@ interface SequenceRow {
 // ── Helpers ───────────────────────────────────────────────────
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",

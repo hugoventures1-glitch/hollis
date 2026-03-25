@@ -29,7 +29,7 @@ import type { RenewalFlags } from "@/types/agent";
 // ── Config ────────────────────────────────────────────────────────────────────
 
 /** Broker-approved send outcomes required before leaving learning mode. */
-const CONFIDENCE_THRESHOLD = 5;
+const CONFIDENCE_THRESHOLD = 20;
 
 /**
  * Days after a sent email with no client response before the client is
@@ -161,7 +161,6 @@ async function detectSilentClient(supabase: any, policy: Policy): Promise<boolea
     .from("send_logs")
     .select("sent_at")
     .eq("policy_id", policy.id)
-    .eq("channel", "email")
     .gte("sent_at", cutoff)
     .order("sent_at", { ascending: false })
     .limit(1)

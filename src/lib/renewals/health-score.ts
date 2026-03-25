@@ -17,6 +17,7 @@ export interface HealthScoreResult {
   score: number;
   label: HealthLabel;
   stalled: boolean;
+  stalledInQueue: boolean;
 }
 
 /** Minimal policy shape accepted by computeHealthScore. */
@@ -24,6 +25,7 @@ export interface ScoredPolicyInput {
   campaign_stage: CampaignStage | string;
   expiration_date: string; // YYYY-MM-DD
   last_contact_at?: string | null;
+  renewal_flags?: Record<string, unknown> | null;
 }
 
 // ── Scoring tables ────────────────────────────────────────────────────────────
@@ -85,6 +87,8 @@ export function computeHealthScore(
     days <= 60 &&
     (lastContact === null || lastContact < twentyOneDaysAgo);
 
+  const stalledInQueue = stalled && !!policy.renewal_flags?.silent_client;
+
   let label: HealthLabel;
   if (stalled) {
     label = "stalled";
@@ -96,7 +100,7 @@ export function computeHealthScore(
     label = "critical";
   }
 
-  return { score, label, stalled };
+  return { score, label, stalled, stalledInQueue };
 }
 
 // ── DB write helper ───────────────────────────────────────────────────────────
@@ -114,7 +118,7 @@ export async function refreshPolicyHealthScore(
 ): Promise<void> {
   const { data: policy } = await adminClient
     .from("policies")
-    .select("campaign_stage, expiration_date, last_contact_at, stalled_at")
+    .select("campaign_stage, expiration_date, last_contact_at, stalled_at, renewal_flags")
     .eq("id", policyId)
     .single();
 

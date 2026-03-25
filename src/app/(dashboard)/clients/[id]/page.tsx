@@ -9,6 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { CommunicationTimeline } from "@/components/clients/CommunicationTimeline";
+import { QuickActions } from "./QuickActions";
 
 export const dynamic = "force-dynamic";
 
@@ -265,6 +266,18 @@ export default async function ClientDetailPage({ params }: PageProps) {
           )}
         </div>
 
+        {/* ── Quick Actions ────────────────────────────────────────────────── */}
+        {activePolicies.length > 0 && (
+          <QuickActions
+            clientId={client.id}
+            policies={activePolicies.map((p) => ({
+              id: p.id,
+              policy_name: p.policy_name,
+              campaign_stage: p.campaign_stage ?? null,
+            }))}
+          />
+        )}
+
         {/* ── Active Policies ─────────────────────────────────────────────── */}
         <div>
           <SectionHeader label="Active Policies" href="/renewals" linkLabel="All renewals" />
@@ -287,7 +300,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                 const dColor = urgencyColor(days);
                 const hColor = HEALTH_COLOR[policy.health_label ?? ""] ?? "#3A3A3A";
                 const stageLabel = STAGE_LABEL[policy.campaign_stage ?? ""] ?? policy.campaign_stage ?? "—";
-                const expStr = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-US", {
+                const expStr = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", {
                   month: "short",
                   day:   "numeric",
                   year:  "numeric",
@@ -365,7 +378,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
               {openCois.map((req) => {
                 const statusStyle = COI_STATUS_COLORS[req.status] ?? COI_STATUS_COLORS.pending;
                 const statusLabel = req.status.replace(/_/g, " ");
-                const createdStr  = new Date(req.created_at).toLocaleDateString("en-US", {
+                const createdStr  = new Date(req.created_at).toLocaleDateString("en-AU", {
                   month: "short",
                   day:   "numeric",
                 });
@@ -444,7 +457,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
                 const vs           = VERDICT_STYLES[verdict] ?? VERDICT_STYLES.issues_found;
                 const openFlags    = check.policy_check_flags.filter(f => f.resolution_status !== "dismissed");
                 const criticalCount = openFlags.filter(f => f.severity === "critical").length;
-                const dateStr      = new Date(check.created_at).toLocaleDateString("en-US", {
+                const dateStr      = new Date(check.created_at).toLocaleDateString("en-AU", {
                   month: "short",
                   day:   "numeric",
                   year:  "numeric",

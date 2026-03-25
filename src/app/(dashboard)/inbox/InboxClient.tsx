@@ -38,11 +38,27 @@ function intentLabel(intent: string): string {
   return intent.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function confidenceBadge(score: number): { label: string; color: string } {
+function confidenceBadge(score: number): { label: string; color: string; showSuffix: boolean } {
   const pct = Math.round(score * 100);
-  if (score >= 0.85) return { label: `${pct}%`, color: "text-[#4ade80] bg-[#16a34a]/10 border-[#16a34a]/20" };
-  if (score >= 0.60) return { label: `${pct}%`, color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20" };
-  return { label: `${pct}%`, color: "text-[#f87171] bg-[#dc2626]/10 border-[#dc2626]/20" };
+  if (score >= 0.85) return { label: `${pct}%`, color: "text-[#4ade80] bg-[#16a34a]/10 border-[#16a34a]/20", showSuffix: true };
+  if (score >= 0.60) return { label: `${pct}%`, color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20", showSuffix: true };
+  return { label: `${pct}%`, color: "text-[#f87171] bg-[#dc2626]/10 border-[#dc2626]/20", showSuffix: true };
+}
+
+function sourceBadge(item: InboxItem): { label: string; color: string; showSuffix: boolean } {
+  if (item.signal_id === null) {
+    // Cron-generated item
+    const flagReason = item.proposed_action?.payload?.flag_reason as string | undefined;
+    const snippet = item.raw_signal_snippet ?? "";
+    const isLearning =
+      (typeof flagReason === "string" && flagReason.toLowerCase().includes("learning")) ||
+      snippet.toLowerCase().includes("learning");
+    if (isLearning) {
+      return { label: "Learning", color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20", showSuffix: false };
+    }
+    return { label: "Scheduled", color: "text-white/40 bg-white/5 border-white/10", showSuffix: false };
+  }
+  return confidenceBadge(item.confidence_score);
 }
 
 // ── Tier pill ─────────────────────────────────────────────────────────────────
@@ -175,7 +191,7 @@ function DetailPanel({
 }: DetailPanelProps) {
   const policy    = item.policies;
   const days      = policy ? daysUntil(policy.expiration_date) : null;
-  const confidence = confidenceBadge(item.confidence_score);
+  const confidence = sourceBadge(item);
   const isUrgent  = item.tier === 3;
 
   const expiryColor =
@@ -249,7 +265,7 @@ function DetailPanel({
               </span>
             </div>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${confidence.color}`}>
-              {confidence.label} conf.
+              {confidence.label}{confidence.showSuffix ? " conf." : ""}
             </span>
           </div>
 

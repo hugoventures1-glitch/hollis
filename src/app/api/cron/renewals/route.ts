@@ -28,6 +28,7 @@ import { isSendThrottled } from "@/lib/cron/throttle";
 import { writeAuditLog } from "@/lib/audit/log";
 import { logAction, retainStandard } from "@/lib/logAction";
 import { resolveTierRouting } from "@/lib/renewals/tier-routing";
+import { draftDocumentChaseSequence } from "@/lib/doc-chase/generate";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
@@ -118,6 +119,7 @@ export async function GET(request: NextRequest) {
       const { data: clientRow } = await supabase
         .from("clients")
         .select("notes")
+        .eq("user_id", userId)
         .eq("email", clientEmail)
         .maybeSingle();
       clientNotes = clientRow?.notes ?? null;
@@ -151,10 +153,10 @@ export async function GET(request: NextRequest) {
 
         const { data: lapseProfile } = await supabase
           .from("agent_profiles")
-          .select("email_from_name")
+          .select("email_from_name, email")
           .eq("user_id", policy.user_id)
           .maybeSingle();
-        const lapseBaseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+        const lapseBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
         const lapseFrom = lapseProfile?.email_from_name
           ? `${lapseProfile.email_from_name} <${lapseBaseFrom}>`
           : lapseBaseFrom;
@@ -165,6 +167,7 @@ export async function GET(request: NextRequest) {
             to: policy.client_email,
             subject: lapseSubject,
             text: lapseBody,
+            replyTo: lapseProfile?.email ?? undefined,
           });
           await supabase.from("send_logs").insert({
             policy_id: policy.id,
@@ -262,6 +265,8 @@ export async function GET(request: NextRequest) {
         dueTouchpointTypes.push("sms_30");
       } else if (days <= 60 && policy.campaign_stage === "email_90_sent") {
         dueTouchpointTypes.push("email_60");
+      } else if (policy.campaign_stage === "script_14_ready") {
+        dueTouchpointTypes.push("questionnaire_90");
       }
     }
 
@@ -568,10 +573,10 @@ async function fireTouchpoint(
 
     const { data: brokerProfile } = await supabase
       .from("agent_profiles")
-      .select("email_from_name")
+      .select("email_from_name, email")
       .eq("user_id", policy.user_id)
       .maybeSingle();
-    const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+    const baseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
     const from = brokerProfile?.email_from_name
       ? `${brokerProfile.email_from_name} <${baseFrom}>`
       : baseFrom;
@@ -581,9 +586,105 @@ async function fireTouchpoint(
       to: policy.client_email,
       subject,
       text: content,
+      replyTo: brokerProfile?.email ?? undefined,
     });
     providerId = sent?.id ?? null;
     channel = "email";
+
+    // Auto-trigger doc chase after 90-day email send (if not already active)
+    if (type === "email_90") {
+      try {
+        const { data: existingChase } = await supabase
+          .from("doc_chase_requests")
+          .select("id")
+          .eq("policy_id", policy.id)
+          .not("status", "in", '("cancelled")')
+          .limit(1)
+          .maybeSingle();
+
+        if (!existingChase) {
+          // Insert doc_chase_request
+          const { data: chaseReq } = await supabase
+            .from("doc_chase_requests")
+            .insert({
+              policy_id: policy.id,
+              user_id: policy.user_id,
+              client_name: policy.client_name,
+              client_email: policy.client_email,
+              document_type: "renewal documents",
+              status: "active",
+              escalation_level: "email",
+            })
+            .select("id")
+            .single();
+
+          if (chaseReq) {
+            // Insert doc_chase_sequence
+            const { data: chaseSeq } = await supabase
+              .from("doc_chase_sequences")
+              .insert({
+                request_id: chaseReq.id,
+                user_id: policy.user_id,
+                sequence_status: "active",
+              })
+              .select("id")
+              .single();
+
+            if (chaseSeq) {
+              // Draft messages with Claude
+              const agentName = brokerProfile?.email_from_name ?? policy.agent_name ?? "Your Agent";
+              const agentEmail = brokerProfile?.email ?? policy.agent_email ?? (process.env.FROM_EMAIL ?? "noreply@hollisai.com.au");
+              const touches = await draftDocumentChaseSequence(
+                policy.client_name,
+                "renewal documents",
+                agentName,
+                agentEmail,
+                null,
+                policy.client_phone ?? null
+              );
+
+              const TOUCH_DELAYS_DAYS = [0, 5, 10, 20];
+              const now = new Date();
+              const messageInserts = touches.map((touch, i) => {
+                const scheduledFor = new Date(now.getTime() + TOUCH_DELAYS_DAYS[i] * 86_400_000);
+                return {
+                  sequence_id: chaseSeq.id,
+                  touch_number: i + 1,
+                  scheduled_for: scheduledFor.toISOString(),
+                  status: "scheduled",
+                  subject: touch.subject ?? "",
+                  body: touch.body,
+                  channel: touch.channel,
+                  phone_script: touch.channel === "phone_script" ? touch.phone_script ?? null : null,
+                };
+              });
+
+              await supabase.from("doc_chase_messages").insert(messageInserts);
+
+              void logAction({
+                broker_id: policy.user_id,
+                policy_id: policy.id,
+                action_type: "renewal_email",
+                tier: "1",
+                trigger_reason: `Doc chase sequence auto-created for ${policy.client_name} after 90-day renewal email.`,
+                payload: {
+                  doc_chase_request_id: chaseReq.id,
+                  doc_chase_sequence_id: chaseSeq.id,
+                  document_type: "renewal documents",
+                  touches_scheduled: 4,
+                },
+                metadata: { carrier: policy.carrier ?? null },
+                outcome: "sent",
+                retain_until: retainStandard(),
+              });
+            }
+          }
+        }
+      } catch (docChaseErr) {
+        console.error("[cron/renewals] Doc chase auto-create failed for", policy.client_name, docChaseErr instanceof Error ? docChaseErr.message : docChaseErr);
+        // Non-fatal — email send already succeeded
+      }
+    }
   } else if (type === "sms_30") {
     if (!policy.client_phone) {
       throw new Error("No phone number on record");
@@ -594,6 +695,44 @@ async function fireTouchpoint(
   } else if (type === "script_14") {
     content = await generateCallScript(policy, ctx);
     channel = "email"; // logged as internal
+  } else if (type === "questionnaire_90") {
+    if (!policy.client_email) {
+      throw new Error("No client email on record for questionnaire");
+    }
+    // Generate a token and insert the questionnaire record
+    const token = crypto.randomUUID();
+    const expiryDate = new Date(Date.now() + 30 * 86_400_000).toISOString();
+    await supabase.from("renewal_questionnaires").insert({
+      policy_id: policy.id,
+      user_id: policy.user_id,
+      token,
+      expires_at: expiryDate,
+      status: "pending",
+    });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hollisai.com.au";
+    const questionnaireUrl = `${appUrl}/q/${token}`;
+    subject = `Your renewal questionnaire — ${policy.policy_name}`;
+    content = `Dear ${policy.client_name},\n\nAs your ${policy.policy_name} renewal is approaching on ${new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}, we would like to make sure your cover still matches your needs.\n\nPlease take a few minutes to complete the renewal questionnaire below:\n\n${questionnaireUrl}\n\nThis link will expire in 30 days. Your responses help us ensure we secure the right cover for you at the best available terms.\n\nIf you have any questions, please do not hesitate to get in touch.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
+
+    const { data: qBrokerProfile } = await supabase
+      .from("agent_profiles")
+      .select("email_from_name, email")
+      .eq("user_id", policy.user_id)
+      .maybeSingle();
+    const qBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
+    const qFrom = qBrokerProfile?.email_from_name
+      ? `${qBrokerProfile.email_from_name} <${qBaseFrom}>`
+      : qBaseFrom;
+
+    const { data: qSent } = await resend.emails.send({
+      from: qFrom,
+      to: policy.client_email,
+      subject,
+      text: content,
+      replyTo: qBrokerProfile?.email ?? undefined,
+    });
+    providerId = qSent?.id ?? null;
+    channel = "email";
   }
 
   // Mark touchpoint sent

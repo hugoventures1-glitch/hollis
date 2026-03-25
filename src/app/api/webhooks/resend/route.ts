@@ -7,9 +7,10 @@
  *   email.delivered  — email confirmed delivered
  *   email.bounced    — permanent bounce (invalid address, domain doesn't exist)
  *   email.complained — recipient marked as spam
+ *   email.opened     — recipient opened the email
  *
  * Protected by RESEND_WEBHOOK_SECRET (set in Resend dashboard → Webhooks).
- * Resend signs each request with the secret in the "Resend-Signature" header.
+ * Uses HMAC-SHA256 signature verification via the svix-signature header.
  * If the secret is not configured we log a warning but still process the event
  * so development/staging environments work without the signature.
  *
@@ -17,8 +18,10 @@
  *   1. Update the matching send_log row with bounced_at + delivery_error
  *   2. If the recipient matches a client email, mark client.email_bounced = true
  */
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { writeAuditLog } from "@/lib/audit/log";
 
 interface ResendEmailEvent {
   type:
@@ -42,11 +45,36 @@ interface ResendEmailEvent {
 }
 
 export async function POST(request: NextRequest) {
-  // Signature validation (optional — only enforced if RESEND_WEBHOOK_SECRET is set)
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+
+  // Must read raw body before JSON parsing for signature verification
+  const rawBody = await request.text();
+
   if (webhookSecret) {
-    const signature = request.headers.get("resend-signature") ?? request.headers.get("svix-signature");
-    if (!signature || !signature.includes(webhookSecret)) {
+    const sig = request.headers.get("svix-signature") ?? "";
+    const ts = request.headers.get("svix-timestamp") ?? "";
+
+    if (!sig || !ts) {
+      return NextResponse.json({ error: "Missing signature headers" }, { status: 401 });
+    }
+
+    const toSign = `${ts}.${rawBody}`;
+    const expected = crypto.createHmac("sha256", webhookSecret).update(toSign).digest("hex");
+
+    const valid = sig.split(" ").some((s) => {
+      if (!s.startsWith("v1,")) return false;
+      const sigHex = s.slice(3);
+      try {
+        return crypto.timingSafeEqual(
+          Buffer.from(sigHex, "hex"),
+          Buffer.from(expected, "hex")
+        );
+      } catch {
+        return false;
+      }
+    });
+
+    if (!valid) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
   } else {
@@ -55,7 +83,7 @@ export async function POST(request: NextRequest) {
 
   let event: ResendEmailEvent;
   try {
-    event = await request.json();
+    event = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -123,6 +151,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // All other events (opened, clicked, etc.) — acknowledge without action
+  // ── opened ──────────────────────────────────────────────────────────────────
+  if (type === "email.opened") {
+    // Look up send_logs to get policy_id and user_id
+    const { data: logRow } = await supabase
+      .from("send_logs")
+      .select("policy_id, user_id")
+      .eq("provider_message_id", emailId)
+      .maybeSingle();
+
+    if (logRow?.policy_id && logRow?.user_id) {
+      await writeAuditLog({
+        supabase,
+        policy_id: logRow.policy_id,
+        user_id: logRow.user_id,
+        event_type: "signal_received",
+        channel: "email",
+        recipient: recipient ?? null,
+        content_snapshot: null,
+        metadata: { trigger: "email_opened", email_id: emailId },
+        actor_type: "system",
+      });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  // All other events (clicked, etc.) — acknowledge without action
   return NextResponse.json({ ok: true });
 }

@@ -15,6 +15,7 @@ export const metadata = { title: "Inbox — Hollis" };
 export interface InboxItem {
   id: string;
   policy_id: string;
+  signal_id: string | null;
   tier: 2 | 3;
   classified_intent: string;
   confidence_score: number;
@@ -48,6 +49,7 @@ export default async function InboxPage() {
       `
       id,
       policy_id,
+      signal_id,
       classified_intent,
       confidence_score,
       raw_signal_snippet,

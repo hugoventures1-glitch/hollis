@@ -37,7 +37,7 @@ import { SearchResultActions } from "@/components/search/SearchResultActions";
 
 function fmtCtxDate(s: string | null | undefined): string {
   if (!s) return "unknown";
-  return new Date(s).toLocaleDateString("en-US", {
+  return new Date(s).toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -200,7 +200,7 @@ const COI_STATUS_LABELS: Record<string, string> = {
 
 function fmtDate(s?: string | null): string {
   if (!s) return "";
-  return new Date(s + "T00:00:00").toLocaleDateString("en-US", {
+  return new Date(s + "T00:00:00").toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -209,7 +209,7 @@ function fmtDate(s?: string | null): string {
 
 function fmtTimestamp(s?: string | null): string {
   if (!s) return "";
-  return new Date(s).toLocaleDateString("en-US", {
+  return new Date(s).toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",

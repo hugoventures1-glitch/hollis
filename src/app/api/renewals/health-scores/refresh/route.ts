@@ -29,7 +29,7 @@ export async function POST() {
   // Fetch all active policies for this user
   const { data: policies, error } = await admin
     .from("policies")
-    .select("id, campaign_stage, expiration_date, last_contact_at, stalled_at")
+    .select("id, campaign_stage, expiration_date, last_contact_at, stalled_at, renewal_flags")
     .eq("user_id", user.id)
     .eq("status", "active");
 

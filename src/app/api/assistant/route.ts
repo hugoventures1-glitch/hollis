@@ -17,7 +17,7 @@ function addDays(n: number): string {
 function formatDate(s: string | null | undefined): string {
   if (!s) return "unknown";
   const d = new Date(s);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" });
 }
 
 // ── Data Gathering ────────────────────────────────────────────────────────────
@@ -183,36 +183,6 @@ async function gatherContextData(
     };
   }
 
-  if (page === "outbox") {
-    const [pendingDrafts, recentSent] = await Promise.all([
-      admin
-        .from("outbox_drafts")
-        .select("subject, created_at")
-        .eq("user_id", userId)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(10),
-      admin
-        .from("outbox_drafts")
-        .select("subject, sent_at, status")
-        .eq("user_id", userId)
-        .eq("status", "sent")
-        .order("sent_at", { ascending: false })
-        .limit(5),
-    ]);
-
-    return {
-      pendingDrafts: (pendingDrafts.data ?? []).map((d) => ({
-        subject: d.subject,
-        createdOn: formatDate(d.created_at),
-      })),
-      recentlySent: (recentSent.data ?? []).map((d) => ({
-        subject: d.subject,
-        sentOn: formatDate(d.sent_at),
-      })),
-    };
-  }
-
   // 'other' — no pre-fetch
   return {};
 }
@@ -226,7 +196,7 @@ const PAGE_LABELS: Record<AssistantContext["page"], string> = {
   clients: "Clients CRM",
   documents: "Document Chasing — outstanding documents from clients",
   policies: "Policy Audit — coverage checks and flag review",
-  outbox: "Drafts — AI-generated email drafts awaiting review",
+  outbox: "Drafts",
   other: "General",
 };
 
@@ -242,7 +212,7 @@ function buildSystemPrompt(
   return `You are Hollis. You live inside this agent's book-of-business software and know every policy, client, and deadline on their desk. Speak like the sharpest person at the agency who has been here for years: concise, specific, no fluff, no hand-holding.
 
 Current page: ${PAGE_LABELS[page]}
-Today: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+Today: ${new Date().toLocaleDateString("en-AU", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
 ${dataSection}
 
@@ -263,7 +233,7 @@ Always include shortcuts when your answer mentions:
 - A specific certificate → {"label": "View certificate", "href": "/certificates/{certificate.id}"}
 - A specific client → {"label": "View [client name]", "href": "/clients/{client.id}"}
 
-For general navigation (no specific entity), use: /overview, /renewals, /certificates, /certificates/sequences, /policies, /clients, /documents, /outbox
+For general navigation (no specific entity), use: /overview, /renewals, /certificates, /certificates/sequences, /policies, /clients, /documents
 
 Use the id field from the context data when building entity-specific hrefs. Keep labels short (2-4 words).`;
 }

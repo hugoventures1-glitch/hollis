@@ -3,6 +3,7 @@
  *
  * Generates and sends a formal renewal recommendation pack to the client.
  * Requires at least one insurer_terms record for this policy.
+ * Requires AFSL number in agent_profiles.
  * Uses Claude Sonnet 4.6. Sends via Resend. Writes to audit log.
  */
 
@@ -47,12 +48,23 @@ export async function POST(
     );
   }
 
-  // Fetch agent profile for name/email/phone
+  // Fetch agent profile for name/email/phone/AFSL
   const { data: profile } = await supabase
     .from("agent_profiles")
-    .select("first_name, last_name, phone, agency_name, email_from_name")
+    .select("first_name, last_name, phone, agency_name, email_from_name, agency_afsl")
     .eq("user_id", user.id)
     .single();
+
+  // Guard: AFSL required for formal recommendation documents
+  if (!profile?.agency_afsl?.trim()) {
+    return NextResponse.json(
+      { error: "Please set your AFSL number in Settings → Agency before generating a recommendation" },
+      { status: 400 }
+    );
+  }
+
+  const agencyName = profile?.agency_name ?? "Your Broker";
+  const agencyAfsl = profile.agency_afsl;
 
   const agentName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || user.email!
@@ -75,10 +87,14 @@ export async function POST(
     return NextResponse.json({ error: `Generation failed: ${msg}` }, { status: 500 });
   }
 
+  // Append SOA disclosure
+  const disclosure = `\n\n---\n\nIMPORTANT DISCLOSURE\n\nThis recommendation has been prepared by ${agencyName} (AFSL ${agencyAfsl}) as general advice only. It does not take into account your individual objectives, financial situation or needs. Before acting on this advice, you should consider whether it is appropriate for your circumstances. You should read the relevant Product Disclosure Statement before making any decision.`;
+  pack.body = pack.body + disclosure;
+
   // Send via Resend
   let providerId: string | null = null;
   try {
-    const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+    const baseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
     const from = profile?.email_from_name
       ? `${profile.email_from_name} <${baseFrom}>`
       : baseFrom;
@@ -116,6 +132,7 @@ export async function POST(
       provider_id: providerId,
       insurer_count: terms.length,
       recommended_insurer: (terms as InsurerTerms[]).find((t) => t.is_recommended)?.insurer_name ?? null,
+      agency_afsl: agencyAfsl,
     },
     actor_type: "agent",
   });

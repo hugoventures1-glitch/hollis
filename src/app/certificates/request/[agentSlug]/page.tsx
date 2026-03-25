@@ -8,8 +8,8 @@ import { COVERAGE_TYPE_LABELS } from "@/types/coi";
 import { HolderAutofillInput } from "@/components/coi/HolderAutofillInput";
 
 const COVERAGE_OPTIONS: { value: CoverageType; label: string; desc: string }[] = [
-  { value: "gl",       label: "General Liability",        desc: "Bodily injury and property damage" },
-  { value: "auto",     label: "Automobile Liability",      desc: "Company-owned or hired vehicles" },
+  { value: "gl",       label: "Public Liability",          desc: "Bodily injury and property damage" },
+  { value: "auto",     label: "Motor Vehicle Liability",   desc: "Company-owned or hired vehicles" },
   { value: "umbrella", label: "Umbrella / Excess Liability", desc: "Above primary coverage limits" },
   { value: "wc",       label: "Workers Compensation",      desc: "Employee work-related injuries" },
 ];
@@ -72,7 +72,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
   const [holderAddress, setHolderAddress] = useState("");
   const [holderCity, setHolderCity] = useState("");
   const [holderState, setHolderState] = useState("");
-  const [holderZip, setHolderZip] = useState("");
+  const [holderPostcode, setHolderPostcode] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<CoverageType[]>([]);
   const [reqGlOcc, setReqGlOcc] = useState("");
   const [reqGlAgg, setReqGlAgg] = useState("");
@@ -120,7 +120,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
       holder_address: holderAddress || null,
       holder_city: holderCity || null,
       holder_state: holderState || null,
-      holder_zip: holderZip || null,
+      holder_zip: holderPostcode || null,
       coverage_types: selectedTypes,
       required_gl_per_occurrence: reqGlOcc ? parseFloat(reqGlOcc.replace(/[^0-9.]/g, "")) : null,
       required_gl_aggregate: reqGlAgg ? parseFloat(reqGlAgg.replace(/[^0-9.]/g, "")) : null,
@@ -151,7 +151,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
             holderAddress: holderAddress || undefined,
             holderCity: holderCity || undefined,
             holderState: holderState || undefined,
-            holderZip: holderZip || undefined,
+            holderZip: holderPostcode || undefined,
             insuredName,
             coverageTypes: selectedTypes,
             agentId,
@@ -264,7 +264,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
                     if (h.address !== undefined) setHolderAddress(h.address);
                     if (h.city !== undefined) setHolderCity(h.city);
                     if (h.state !== undefined) setHolderState(h.state);
-                    if (h.zip !== undefined) setHolderZip(h.zip);
+                    if (h.zip !== undefined) setHolderPostcode(h.zip);
                     // Pre-select coverage types based on holder history
                     const suggested = h.commonCoverageTypes as CoverageType[];
                     if (suggested.length > 0) {
@@ -288,7 +288,7 @@ export default function COIPortalPage({ params }: { params: Promise<{ agentSlug:
                 </div>
                 <Field label="State" value={holderState} onChange={setHolderState} placeholder="NY" />
               </div>
-              <Field label="ZIP Code" value={holderZip} onChange={setHolderZip} placeholder="10001" />
+              <Field label="Postcode" value={holderPostcode} onChange={setHolderPostcode} placeholder="3000" />
             </div>
           </div>
 

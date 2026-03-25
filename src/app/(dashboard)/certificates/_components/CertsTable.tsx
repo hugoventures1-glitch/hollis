@@ -161,7 +161,7 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
         )}
       </td>
       <td className="px-4 py-3 text-[12px] text-[#8a8a8a] tabular-nums">
-        {new Date(cert.created_at).toLocaleDateString("en-US", {
+        {new Date(cert.created_at).toLocaleDateString("en-AU", {
           month: "short",
           day: "numeric",
           year: "numeric",
@@ -170,7 +170,7 @@ function CertRow({ cert, hasActiveSequence, onSequenceStarted }: CertRowProps) {
       <td className="px-4 py-3 text-[12px] text-[#8a8a8a] tabular-nums">
         {cert.expiration_date
           ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString(
-              "en-US",
+              "en-AU",
               { month: "short", day: "numeric", year: "numeric" }
             )
           : "—"}

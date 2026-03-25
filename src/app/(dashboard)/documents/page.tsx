@@ -46,7 +46,7 @@ const STATUS_LABELS: Record<DocChaseRequestStatus, string> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
     year: "numeric",
