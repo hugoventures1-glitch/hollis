@@ -124,7 +124,20 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
       clientNotes = clientRow?.notes ?? null;
     }
-    return { ...base, clientNotes };
+    // Fetch recent body edits for style learning
+    const { data: bodyEdits } = await supabase
+      .from("parser_outcomes")
+      .select("original_body, edited_body")
+      .eq("user_id", userId)
+      .not("edited_body", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const recentBodyEdits = (bodyEdits ?? [])
+      .filter((r: { original_body: string | null; edited_body: string | null }) => r.original_body && r.edited_body)
+      .map((r: { original_body: string | null; edited_body: string | null }) => ({ original: r.original_body!, edited: r.edited_body! }));
+
+    return { ...base, clientNotes, recentBodyEdits };
   }
 
   const results = {

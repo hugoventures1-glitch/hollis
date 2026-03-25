@@ -169,8 +169,10 @@ interface DetailPanelProps {
   isEditing: boolean;
   editedIntent: string;
   editNotes: string;
+  editedBody: string;
   onEditedIntentChange: (v: string) => void;
   onEditNotesChange: (v: string) => void;
+  onEditedBodyChange: (v: string) => void;
   onConfirmEdit: () => void;
   onCancelEdit: () => void;
 }
@@ -184,8 +186,10 @@ function DetailPanel({
   isEditing,
   editedIntent,
   editNotes,
+  editedBody,
   onEditedIntentChange,
   onEditNotesChange,
+  onEditedBodyChange,
   onConfirmEdit,
   onCancelEdit,
 }: DetailPanelProps) {
@@ -310,6 +314,15 @@ function DetailPanel({
               {item.proposed_action.description}
             </p>
           </div>
+
+          {typeof item.proposed_action?.payload?.body === "string" && item.proposed_action.payload.body && (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-white/40 uppercase tracking-wide mb-2">Draft message</p>
+              <div className="rounded-md bg-white/5 border border-white/10 p-3 text-sm text-white/80 whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">
+                {item.proposed_action.payload.body}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Edit form */}
@@ -362,6 +375,16 @@ function DetailPanel({
                   border: "1px solid var(--border)",
                   color: "var(--text-primary)",
                 }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1">Edit message body</label>
+              <textarea
+                value={editedBody}
+                onChange={(e) => onEditedBodyChange(e.target.value)}
+                rows={8}
+                className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm text-white/90 font-mono placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 resize-y"
+                placeholder="Edit the message body..."
               />
             </div>
             <div className="flex gap-2 pt-1">
@@ -495,6 +518,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
   const [editingId,   setEditingId]   = useState<string | null>(null);
   const [editedIntent, setEditedIntent] = useState("");
   const [editNotes,   setEditNotes]   = useState("");
+  const [editedBody,  setEditedBody]  = useState("");
   const [busy,        setBusy]        = useState(false);
   const [errorMsg,    setErrorMsg]    = useState<string | null>(null);
 
@@ -503,7 +527,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
   async function resolve(
     id: string,
     action: "approved" | "rejected" | "edited",
-    extra?: { edited_intent?: string; notes?: string }
+    extra?: { edited_intent?: string; notes?: string; edited_body?: string }
   ) {
     setBusy(true);
     setErrorMsg(null);
@@ -532,6 +556,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
     setEditingId(item.id);
     setEditedIntent(item.classified_intent);
     setEditNotes("");
+    setEditedBody(typeof item.proposed_action?.payload?.body === "string" ? item.proposed_action.payload.body : "");
     setErrorMsg(null);
   }
 
@@ -539,6 +564,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
     setEditingId(null);
     setEditedIntent("");
     setEditNotes("");
+    setEditedBody("");
   }
 
   return (
@@ -663,12 +689,18 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
             isEditing={editingId === selectedItem.id}
             editedIntent={editedIntent}
             editNotes={editNotes}
+            editedBody={editedBody}
             onEditedIntentChange={setEditedIntent}
             onEditNotesChange={setEditNotes}
+            onEditedBodyChange={setEditedBody}
             onConfirmEdit={() =>
               resolve(selectedItem.id, "edited", {
                 edited_intent: editedIntent,
                 notes: editNotes || undefined,
+                edited_body:
+                  editedBody !== (typeof selectedItem.proposed_action?.payload?.body === "string" ? selectedItem.proposed_action.payload.body : "")
+                    ? editedBody
+                    : undefined,
               })
             }
             onCancelEdit={cancelEdit}

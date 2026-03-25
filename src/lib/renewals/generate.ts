@@ -14,6 +14,16 @@ export interface GenerateContext {
   standingOrders?: string | null;
   /** Agent notes on this specific client */
   clientNotes?: string | null;
+  /** Recent broker edits to past drafts — used to match writing style */
+  recentBodyEdits?: Array<{ original: string; edited: string }>;
+}
+
+function bodyEditsBlock(edits: Array<{ original: string; edited: string }>): string {
+  if (!edits.length) return "";
+  const examples = edits.slice(0, 3).map((e, i) =>
+    `Correction ${i + 1}:\nOriginal: "${e.original.slice(0, 400)}"\nBroker revised to: "${e.edited.slice(0, 400)}"`
+  ).join("\n\n");
+  return `\nThe broker has corrected past drafts. Match the revised style:\n\n${examples}\n`;
 }
 
 function standingOrdersBlock(ctx?: GenerateContext): string {
@@ -51,7 +61,7 @@ Policy details:
 ${premiumLine(policy)}
 - Agent name: ${policy.agent_name ?? ""}
 - Agent email: ${policy.agent_email ?? ""}
-${standingOrdersBlock(ctx)}
+${standingOrdersBlock(ctx)}${bodyEditsBlock(ctx?.recentBodyEdits ?? [])}
 Tone: ${tone}
 
 Rules:

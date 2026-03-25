@@ -29,6 +29,7 @@ const RequestSchema = z.object({
   action: z.enum(["approved", "rejected", "edited"]),
   edited_intent: z.string().optional(),   // required when action = 'edited'
   notes: z.string().max(1000).optional(),
+  edited_body: z.string().optional(),
 });
 
 interface RouteParams {
@@ -54,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { action, edited_intent, notes } = parsed.data;
+    const { action, edited_intent, notes, edited_body } = parsed.data;
 
     if (action === "edited" && !edited_intent) {
       return NextResponse.json(
@@ -108,6 +109,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           action,
           edited_intent: edited_intent ?? null,
           notes: notes ?? null,
+          edited_body: edited_body ?? null,
         },
         resolved_at: resolvedAt,
       })
@@ -129,6 +131,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         confidence_score: queueItem.confidence_score,
         broker_action: action,
         final_intent: finalIntent,
+        original_body: ((queueItem.proposed_action as { payload?: Record<string, unknown> })?.payload?.body as string | undefined) ?? null,
+        edited_body: edited_body ?? null,
       });
 
     // ── Step 10: Write audit log ─────────────────────────────────────────────────
@@ -173,6 +177,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       const channel        = (payload.channel         as string) ?? "email";
       const subject        = (payload.subject         as string  | null) ?? null;
       const body           = (payload.body            as string  | null) ?? null;
+      const finalBody      = edited_body ?? body;
       const recipientEmail = (payload.recipient_email as string  | null) ?? null;
       const recipientPhone = (payload.recipient_phone as string  | null) ?? null;
 
@@ -184,7 +189,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       };
 
       try {
-        if (channel === "email" && recipientEmail && body) {
+        if (channel === "email" && recipientEmail && finalBody) {
           const resend = getResendClient();
 
           const { data: brokerProfile } = await admin
@@ -202,13 +207,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             from,
             to: recipientEmail,
             subject: subject ?? "Renewal reminder",
-            text: body,
+            text: finalBody,
           });
 
           if (touchpointId) {
             await admin
               .from("campaign_touchpoints")
-              .update({ status: "sent", subject, content: body, sent_at: resolvedAt })
+              .update({ status: "sent", subject, content: finalBody, sent_at: resolvedAt })
               .eq("id", touchpointId);
           }
 
@@ -232,13 +237,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
               })
               .eq("id", queueItem.policy_id as string);
           }
-        } else if (channel === "sms" && recipientPhone && body) {
-          await sendSMS(recipientPhone, body);
+        } else if (channel === "sms" && recipientPhone && finalBody) {
+          await sendSMS(recipientPhone, finalBody);
 
           if (touchpointId) {
             await admin
               .from("campaign_touchpoints")
-              .update({ status: "sent", content: body, sent_at: resolvedAt })
+              .update({ status: "sent", content: finalBody, sent_at: resolvedAt })
               .eq("id", touchpointId);
           }
 
