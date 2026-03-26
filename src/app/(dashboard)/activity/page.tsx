@@ -17,8 +17,6 @@ export default async function ActivityPage() {
   const admin = createAdminClient();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const todayUtc = new Date().toISOString().slice(0, 10);
-
   const [feedRes, sendCountRes, progressedRes, questionnaireRes, policyCountRes, autonomousRes] =
     await Promise.all([
       // Full audit feed — last 200 entries
@@ -57,13 +55,12 @@ export default async function ActivityPage() {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id),
 
-      // Autonomous (Tier 1) actions today from hollis_actions
+      // Autonomous (Tier 1) actions — all time
       admin
         .from("hollis_actions")
         .select("id", { count: "exact", head: true })
         .eq("broker_id", user.id)
-        .eq("tier", "1")
-        .gte("created_at", todayUtc),
+        .eq("tier", "1"),
     ]);
 
   const feed = (feedRes.data ?? []) as AuditRow[];
@@ -76,7 +73,7 @@ export default async function ActivityPage() {
   const qResponded = questRows.filter((r) => r.event_type === "questionnaire_responded").length;
   const replyRate = qSent > 0 ? Math.round((qResponded / qSent) * 100) : null;
 
-  const autonomousActionsToday = autonomousRes.count ?? 0;
+  const autonomousActionsTotal = autonomousRes.count ?? 0;
 
   return (
     <ActivityClient
@@ -87,7 +84,7 @@ export default async function ActivityPage() {
         replyRate,
         totalSent: touchpoints,
         monitoringCount,
-        autonomousActionsToday,
+        autonomousActionsTotal,
       }}
     />
   );

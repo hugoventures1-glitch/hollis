@@ -163,6 +163,7 @@ function InboxRow({
 interface DetailPanelProps {
   item: InboxItem;
   busy: boolean;
+  sent: boolean;
   onApprove: () => void;
   onReject: () => void;
   onEdit: () => void;
@@ -180,6 +181,7 @@ interface DetailPanelProps {
 function DetailPanel({
   item,
   busy,
+  sent,
   onApprove,
   onReject,
   onEdit,
@@ -278,29 +280,29 @@ function DetailPanel({
             style={{ background: "var(--border)" }}
           />
 
-          {/* Client said */}
-          <div>
-            <div
-              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              Client said
-            </div>
-            <blockquote
-              className="text-[13px] italic leading-relaxed pl-3"
-              style={{
-                color: "var(--text-secondary)",
-                borderLeft: "2px solid var(--border)",
-              }}
-            >
-              &ldquo;{item.raw_signal_snippet}&rdquo;
-            </blockquote>
-          </div>
-
-          <div
-            className="h-px"
-            style={{ background: "var(--border)" }}
-          />
+          {/* Client said — only for inbound signals, not cron items */}
+          {item.signal_id !== null && item.raw_signal_snippet && (
+            <>
+              <div>
+                <div
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Client said
+                </div>
+                <blockquote
+                  className="text-[13px] italic leading-relaxed pl-3"
+                  style={{
+                    color: "var(--text-secondary)",
+                    borderLeft: "2px solid var(--border)",
+                  }}
+                >
+                  &ldquo;{item.raw_signal_snippet}&rdquo;
+                </blockquote>
+              </div>
+              <div className="h-px" style={{ background: "var(--border)" }} />
+            </>
+          )}
 
           {/* Proposed action */}
           <div>
@@ -315,13 +317,30 @@ function DetailPanel({
             </p>
           </div>
 
+          {/* Draft message body */}
           {typeof item.proposed_action?.payload?.body === "string" && item.proposed_action.payload.body && (
-            <div className="mt-4">
-              <p className="text-xs font-medium text-white/40 uppercase tracking-wide mb-2">Draft message</p>
-              <div className="rounded-md bg-white/5 border border-white/10 p-3 text-sm text-white/80 whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">
-                {item.proposed_action.payload.body}
+            <>
+              <div className="h-px" style={{ background: "var(--border)" }} />
+              <div>
+                <div
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Draft message
+                </div>
+                <div
+                  className="rounded-lg px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {item.proposed_action.payload.body}
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
 
@@ -395,7 +414,7 @@ function DetailPanel({
                 style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
               >
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                Confirm edit
+                Save &amp; Send
               </button>
               <button
                 onClick={onCancelEdit}
@@ -416,56 +435,68 @@ function DetailPanel({
       {/* Action bar */}
       {!isEditing && (
         <div
-          className="px-6 py-4 shrink-0 flex items-center gap-2"
-          style={{ borderTop: "1px solid var(--border)" }}
+          className="px-6 py-4 shrink-0 flex items-center gap-2 transition-colors"
+          style={{
+            borderTop: "1px solid var(--border)",
+            background: sent ? "rgba(184,244,0,0.06)" : undefined,
+          }}
         >
-          <button
-            onClick={onApprove}
-            disabled={busy}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
-            style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-          >
-            {busy ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <CheckCircle2 size={13} />
-            )}
-            Approve
-          </button>
-          <button
-            onClick={onEdit}
-            disabled={busy}
-            className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
-            style={{
-              border: "1px solid var(--border)",
-              color: "var(--text-secondary)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-          >
-            <Pencil size={13} />
-            Edit &amp; Approve
-          </button>
-          <button
-            onClick={onReject}
-            disabled={busy}
-            className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40 ml-auto"
-            style={{
-              border: "1px solid var(--border)",
-              color: "var(--text-tertiary)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#f87171";
-              e.currentTarget.style.borderColor = "rgba(220,38,38,0.3)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--text-tertiary)";
-              e.currentTarget.style.borderColor = "var(--border)";
-            }}
-          >
-            <XCircle size={13} />
-            Reject
-          </button>
+          {sent ? (
+            <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "#B8F400" }}>
+              <CheckCircle2 size={14} />
+              Sent
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={onApprove}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+                style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+              >
+                {busy ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={13} />
+                )}
+                Approve &amp; Send
+              </button>
+              <button
+                onClick={onEdit}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
+                style={{
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+              >
+                <Pencil size={13} />
+                Edit &amp; Send
+              </button>
+              <button
+                onClick={onReject}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40 ml-auto"
+                style={{
+                  border: "1px solid var(--border)",
+                  color: "var(--text-tertiary)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#f87171";
+                  e.currentTarget.style.borderColor = "rgba(220,38,38,0.3)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-tertiary)";
+                  e.currentTarget.style.borderColor = "var(--border)";
+                }}
+              >
+                <XCircle size={13} />
+                Reject
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -521,6 +552,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
   const [editedBody,  setEditedBody]  = useState("");
   const [busy,        setBusy]        = useState(false);
   const [errorMsg,    setErrorMsg]    = useState<string | null>(null);
+  const [sentId,      setSentId]      = useState<string | null>(null);
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
@@ -541,6 +573,10 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
         const data = await res.json();
         throw new Error(data.error ?? "Failed to resolve");
       }
+      // Flash success state briefly before removing
+      setSentId(id);
+      await new Promise((r) => setTimeout(r, 900));
+      setSentId(null);
       const remaining = items.filter((i) => i.id !== id);
       setItems(remaining);
       setSelectedId(remaining.length > 0 ? remaining[0].id : null);
@@ -683,6 +719,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
           <DetailPanel
             item={selectedItem}
             busy={busy}
+            sent={sentId === selectedItem.id}
             onApprove={() => resolve(selectedItem.id, "approved")}
             onReject={() => resolve(selectedItem.id, "rejected")}
             onEdit={() => startEdit(selectedItem)}

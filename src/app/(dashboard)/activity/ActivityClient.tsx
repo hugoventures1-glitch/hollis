@@ -20,7 +20,7 @@ export interface ActivityStats {
   replyRate: number | null;
   totalSent: number;
   monitoringCount: number;
-  autonomousActionsToday: number;
+  autonomousActionsTotal: number;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -591,8 +591,7 @@ export default function ActivityClient({
     return out.slice(0, 12);
   }, [feed]);
 
-  // Autonomous actions today — Tier 1 events from hollis_actions
-  const autonomousActionsToday = stats.autonomousActionsToday;
+  const autonomousActionsTotal = stats.autonomousActionsTotal;
 
   const toggle = (id: string, set: Set<string>, setter: (s: Set<string>) => void) => {
     const next = new Set(set);
@@ -687,8 +686,9 @@ export default function ActivityClient({
           {/* ── Bento Grid ── */}
           <div className="grid grid-cols-3 gap-3 mb-10">
             <BentoStat
-              label="Autonomous Actions Today"
-              value={autonomousActionsToday > 0 ? autonomousActionsToday.toString() : "—"}
+              label="Autonomous Actions"
+              value={autonomousActionsTotal > 0 ? autonomousActionsTotal.toString() : "—"}
+              sub="all time"
               lime
             />
             <BentoStat
