@@ -465,7 +465,7 @@ function DateGroup({
         {/* Continuous vertical line */}
         <div
           className="absolute top-0 bottom-0"
-          style={{ left: 19, width: 1, background: "#27272a" }}
+          style={{ left: 20, width: 1, background: "#27272a" }}
         />
         {actions.map((a) => (
           <EventRow

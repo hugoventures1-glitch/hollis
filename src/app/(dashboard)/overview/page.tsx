@@ -215,39 +215,8 @@ export default async function DashboardPage() {
       style={{ background: "var(--background)", color: "var(--text-primary)" }}
     >
 
-      {/* ── Top bar ── */}
-      <header
-        className="h-14 shrink-0 flex items-center justify-between px-6"
-        style={{ borderBottom: "1px solid var(--border)" }}
-      >
-        <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--text-tertiary)" }}>
-          Overview
-        </div>
-
-        {/* Overview / Metrics tabs */}
-        <div
-          className="flex items-center h-8 rounded-lg overflow-hidden"
-          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}
-        >
-          <Link
-            href="/overview"
-            className="px-3 h-full flex items-center text-[12px] font-medium"
-            style={{ color: "var(--text-primary)", background: "var(--border)" }}
-          >
-            Overview
-          </Link>
-          <Link
-            href="/activity"
-            className="px-3 h-full flex items-center text-[12px] font-medium transition-colors hover:text-[#9e9e9e]"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Metrics
-          </Link>
-        </div>
-      </header>
-
       {/* ── Scrollable body ── */}
-      <div className="flex-1 px-8 pt-8">
+      <div className="flex-1 px-8 pt-10">
 
         {/* Greeting */}
         <div className="mb-2">

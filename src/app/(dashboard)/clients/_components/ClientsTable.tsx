@@ -62,11 +62,19 @@ function ClientRow({ client }: { client: Client }) {
     <div
       onClick={() => router.push(`/clients/${client.id}`)}
       className="grid grid-cols-12 items-center px-4 py-3 rounded-lg transition-colors group border border-transparent cursor-pointer"
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#161616"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.background = "rgba(255,255,255,0.018)";
+        el.querySelectorAll<HTMLElement>("[data-dim]").forEach((d) => { d.style.color = "#777777"; });
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.background = "";
+        el.querySelectorAll<HTMLElement>("[data-dim]").forEach((d) => { d.style.color = ""; });
+      }}
     >
       {/* Name */}
-      <div className="col-span-4 flex items-center gap-3 min-w-0">
+      <div className="col-span-4 flex items-center gap-3 min-w-0 transition-transform duration-200 group-hover:scale-105">
         <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(250,250,250,0.06)", border: "1px solid #1C1C1C" }}>
           <span className="text-[12px] font-bold" style={{ color: "#FAFAFA" }}>
             {client.name.charAt(0).toUpperCase()}
@@ -80,13 +88,13 @@ function ClientRow({ client }: { client: Client }) {
       {/* Contact */}
       <div className="col-span-3 min-w-0">
         {client.email && (
-          <div className="flex items-center gap-1.5 text-[13px] truncate" style={{ color: "#555555" }}>
+          <div className="flex items-center gap-1.5 text-[13px] truncate transition-colors duration-200" style={{ color: "#555555" }} data-dim>
             <Mail size={11} className="shrink-0" style={{ color: "#333333" }} />
             {client.email}
           </div>
         )}
         {client.phone && (
-          <div className="flex items-center gap-1.5 text-[12px] mt-0.5" style={{ color: "#333333" }}>
+          <div className="flex items-center gap-1.5 text-[12px] mt-0.5 transition-colors duration-200" style={{ color: "#333333" }} data-dim>
             <Phone size={11} className="shrink-0" />
             {client.phone}
           </div>
@@ -96,7 +104,7 @@ function ClientRow({ client }: { client: Client }) {
       {/* Type */}
       <div className="col-span-2">
         {client.business_type && (
-          <span className="text-[12px] capitalize" style={{ color: "#333333" }}>
+          <span className="text-[12px] capitalize transition-colors duration-200" style={{ color: "#333333" }} data-dim>
             {client.business_type.replace(/_/g, " ")}
           </span>
         )}
@@ -104,7 +112,7 @@ function ClientRow({ client }: { client: Client }) {
 
       {/* State */}
       <div className="col-span-1">
-        <span className="text-[12px]" style={{ color: "#333333" }}>
+        <span className="text-[12px] transition-colors duration-200" style={{ color: "#333333" }} data-dim>
           {client.primary_state ?? "—"}
         </span>
       </div>

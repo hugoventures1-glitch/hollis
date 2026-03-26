@@ -9,6 +9,7 @@ import {
   Loader2,
   AlertTriangle,
   ChevronRight,
+  ChevronDown,
   ArrowUpRight,
 } from "lucide-react";
 import type { InboxItem } from "./page";
@@ -195,6 +196,8 @@ function DetailPanel({
   onConfirmEdit,
   onCancelEdit,
 }: DetailPanelProps) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
   const policy    = item.policies;
   const days      = policy ? daysUntil(policy.expiration_date) : null;
   const confidence = sourceBadge(item);
@@ -317,188 +320,192 @@ function DetailPanel({
             </p>
           </div>
 
-          {/* Draft message body */}
+          {/* Draft message body — read-only or inline editable */}
           {typeof item.proposed_action?.payload?.body === "string" && item.proposed_action.payload.body && (
             <>
               <div className="h-px" style={{ background: "var(--border)" }} />
-              <div>
+              <div className="space-y-2">
                 <div
-                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  className="text-[10px] font-semibold uppercase tracking-widest"
                   style={{ color: "var(--text-tertiary)" }}
                 >
                   Draft message
                 </div>
-                <div
-                  className="rounded-lg px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto"
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-secondary)",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {item.proposed_action.payload.body}
-                </div>
+                {isEditing ? (
+                  <textarea
+                    value={editedBody}
+                    onChange={(e) => onEditedBodyChange(e.target.value)}
+                    rows={10}
+                    className="w-full rounded-lg px-4 py-3 text-[13px] leading-relaxed focus:outline-none resize-none"
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-primary)",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="rounded-lg px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto"
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-secondary)",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {item.proposed_action.payload.body}
+                  </div>
+                )}
+
+                {/* Collapsible agent feedback — only shown when editing */}
+                {isEditing && (
+                  <div>
+                    <button
+                      onClick={() => setFeedbackOpen((v) => !v)}
+                      className="flex items-center gap-1.5 text-[11px] pt-1 transition-opacity hover:opacity-70"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      <ChevronDown
+                        size={11}
+                        style={{
+                          transform: feedbackOpen ? "rotate(180deg)" : "none",
+                          transition: "transform 150ms",
+                        }}
+                      />
+                      Feedback for agent (optional)
+                    </button>
+                    {feedbackOpen && (
+                      <div className="mt-3 space-y-3">
+                        <div>
+                          <label className="block text-[11px] mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                            Correct intent label
+                          </label>
+                          <input
+                            type="text"
+                            value={editedIntent}
+                            onChange={(e) => onEditedIntentChange(e.target.value)}
+                            placeholder="e.g. confirm_renewal"
+                            className="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none"
+                            style={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              color: "var(--text-primary)",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                            Notes
+                          </label>
+                          <textarea
+                            value={editNotes}
+                            onChange={(e) => onEditNotesChange(e.target.value)}
+                            placeholder="Why you changed it…"
+                            rows={2}
+                            className="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none resize-none"
+                            style={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              color: "var(--text-primary)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}
         </div>
-
-        {/* Edit form */}
-        {isEditing && (
-          <div
-            className="rounded-xl p-4 space-y-3"
-            style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
-          >
-            <div
-              className="text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              Correct the agent
-            </div>
-            <div>
-              <label
-                className="block text-[11px] mb-1.5"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                Correct intent label
-              </label>
-              <input
-                type="text"
-                value={editedIntent}
-                onChange={(e) => onEditedIntentChange(e.target.value)}
-                placeholder="e.g. confirm_renewal"
-                className="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none"
-                style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-primary)",
-                }}
-              />
-            </div>
-            <div>
-              <label
-                className="block text-[11px] mb-1.5"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                Notes (optional)
-              </label>
-              <textarea
-                value={editNotes}
-                onChange={(e) => onEditNotesChange(e.target.value)}
-                placeholder="Why you changed it…"
-                rows={2}
-                className="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none resize-none"
-                style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-primary)",
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-white/50 mb-1">Edit message body</label>
-              <textarea
-                value={editedBody}
-                onChange={(e) => onEditedBodyChange(e.target.value)}
-                rows={8}
-                className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm text-white/90 font-mono placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/20 resize-y"
-                placeholder="Edit the message body..."
-              />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={onConfirmEdit}
-                disabled={busy || !editedIntent.trim()}
-                className="h-8 flex items-center gap-1.5 px-3.5 rounded-lg text-[12px] font-semibold transition-opacity disabled:opacity-40"
-                style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-              >
-                {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                Save &amp; Send
-              </button>
-              <button
-                onClick={onCancelEdit}
-                disabled={busy}
-                className="h-8 flex items-center px-3 rounded-lg text-[12px] transition-colors disabled:opacity-40"
-                style={{
-                  border: "1px solid var(--border)",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Action bar */}
-      {!isEditing && (
-        <div
-          className="px-6 py-4 shrink-0 flex items-center gap-2 transition-colors"
-          style={{
-            borderTop: "1px solid var(--border)",
-            background: sent ? "rgba(184,244,0,0.06)" : undefined,
-          }}
-        >
-          {sent ? (
-            <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "#B8F400" }}>
-              <CheckCircle2 size={14} />
-              Sent
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={onApprove}
-                disabled={busy}
-                className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
-                style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-              >
-                {busy ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <CheckCircle2 size={13} />
-                )}
-                Approve &amp; Send
-              </button>
-              <button
-                onClick={onEdit}
-                disabled={busy}
-                className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
-                style={{
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-              >
-                <Pencil size={13} />
-                Edit &amp; Send
-              </button>
-              <button
-                onClick={onReject}
-                disabled={busy}
-                className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40 ml-auto"
-                style={{
-                  border: "1px solid var(--border)",
-                  color: "var(--text-tertiary)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#f87171";
-                  e.currentTarget.style.borderColor = "rgba(220,38,38,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-tertiary)";
-                  e.currentTarget.style.borderColor = "var(--border)";
-                }}
-              >
-                <XCircle size={13} />
-                Reject
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {/* Action bar — always visible */}
+      <div
+        className="px-6 py-4 shrink-0 flex items-center gap-2 transition-colors"
+        style={{
+          borderTop: "1px solid var(--border)",
+          background: sent ? "rgba(184,244,0,0.06)" : undefined,
+        }}
+      >
+        {sent ? (
+          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "#B8F400" }}>
+            <CheckCircle2 size={14} />
+            Sent
+          </div>
+        ) : isEditing ? (
+          <>
+            <button
+              onClick={onConfirmEdit}
+              disabled={busy}
+              className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+            >
+              {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+              Save &amp; Send
+            </button>
+            <button
+              onClick={onCancelEdit}
+              disabled={busy}
+              className="h-9 flex items-center px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
+              style={{ border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={onApprove}
+              disabled={busy}
+              className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+            >
+              {busy ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <CheckCircle2 size={13} />
+              )}
+              Approve &amp; Send
+            </button>
+            <button
+              onClick={onEdit}
+              disabled={busy}
+              className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
+              style={{
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+            >
+              <Pencil size={13} />
+              Edit &amp; Send
+            </button>
+            <button
+              onClick={onReject}
+              disabled={busy}
+              className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40 ml-auto"
+              style={{
+                border: "1px solid var(--border)",
+                color: "var(--text-tertiary)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#f87171";
+                e.currentTarget.style.borderColor = "rgba(220,38,38,0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-tertiary)";
+                e.currentTarget.style.borderColor = "var(--border)";
+              }}
+            >
+              <XCircle size={13} />
+              Reject
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

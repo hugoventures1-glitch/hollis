@@ -222,36 +222,36 @@ const RenewalRow = memo(function RenewalRow({ policy, optimisticStage, onStageUp
         }
       }}
     >
-      {/* Health indicator dot */}
-      <HealthDot label={policy.health_label} />
-
-      {/* Client name + policy ID — primary info */}
-      <div className="flex-1 min-w-0 py-4 transition-transform duration-200 group-hover:scale-105" data-client-info>
-        <div
-          className="truncate leading-snug transition-colors duration-200"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize:   15,
-            fontWeight: 600,
-            color:      "#FAFAFA",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {policy.client_name}
-        </div>
-        <div
-          className="truncate mt-0.5 flex items-center gap-2 transition-colors duration-200"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize:   11,
-            color:      "rgba(250,250,250,0.2)",
-          }}
-          data-policy-id
-        >
-          {policy.policy_name}
-          {policy.carrier && (
-            <span style={{ color: "rgba(250,250,250,0.1)" }}>· {policy.carrier}</span>
-          )}
+      {/* Client name + policy ID — primary info (health dot moves with expansion) */}
+      <div className="flex-1 min-w-0 flex items-center gap-3 py-4 transition-transform duration-200 group-hover:scale-105" data-client-info>
+        <HealthDot label={policy.health_label} />
+        <div className="min-w-0">
+          <div
+            className="truncate leading-snug transition-colors duration-200"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize:   15,
+              fontWeight: 600,
+              color:      "#FAFAFA",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {policy.client_name}
+          </div>
+          <div
+            className="truncate mt-0.5 flex items-center gap-2 transition-colors duration-200"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize:   11,
+              color:      "rgba(250,250,250,0.2)",
+            }}
+            data-policy-id
+          >
+            {policy.policy_name}
+            {policy.carrier && (
+              <span style={{ color: "rgba(250,250,250,0.1)" }}>· {policy.carrier}</span>
+            )}
+          </div>
         </div>
       </div>
 

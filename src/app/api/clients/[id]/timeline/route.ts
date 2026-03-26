@@ -97,9 +97,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     });
   }
 
-  // Sort by timestamp descending, limit 50
+  // Sort by timestamp ascending (oldest first), limit 50
   items.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
   return NextResponse.json({ items: items.slice(0, 50) });
