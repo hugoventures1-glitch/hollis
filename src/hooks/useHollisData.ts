@@ -22,11 +22,11 @@ export function useHollisData() {
   // Per-field selectors — each only re-renders when its own slice changes
   const policies            = useHollisStore(s => s.policies);
   const renewals            = useHollisStore(s => s.renewals);
+  const completedPolicies   = useHollisStore(s => s.completedPolicies);
   const clients             = useHollisStore(s => s.clients);
   const coiRequests         = useHollisStore(s => s.coiRequests);
   const certificates        = useHollisStore(s => s.certificates);
   const docChaseRequests    = useHollisStore(s => s.docChaseRequests);
-  const outboxDrafts        = useHollisStore(s => s.outboxDrafts);
   const userId              = useHollisStore(s => s.userId);
   const loading             = useHollisStore(s => s.loading);
   const backgroundRefreshing = useHollisStore(s => s.backgroundRefreshing);
@@ -61,11 +61,11 @@ export function useHollisData() {
     // Data
     policies,
     renewals,
+    completedPolicies,
     clients,
     coiRequests,
     certificates,
     docChaseRequests,
-    outboxDrafts,
     userId,
     // State
     loading,

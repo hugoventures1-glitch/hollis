@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Loader2, Search } from "lucide-react";
@@ -9,7 +9,6 @@ import type { Policy, CampaignStage } from "@/types/renewals";
 import { RenewalsTable } from "./_components/RenewalsTable";
 import type { ViewTab } from "./_components/RenewalsTable";
 import { useHollisData } from "@/hooks/useHollisData";
-import { createClient } from "@/lib/supabase/client";
 
 // Stages that belong to each view tab
 const ACTION_STAGES: CampaignStage[] = [
@@ -30,26 +29,7 @@ function RenewalsContent() {
   const viewParam = searchParams.get("view") as ViewTab | null;
   const view: ViewTab = viewParam === "progress" || viewParam === "completed" ? viewParam : "action";
 
-  const { policies: activePolicies, loading: storeLoading, backgroundRefreshing } = useHollisData();
-
-  // Completed tab may need expired/lapsed policies not in the active store
-  const [completedRows, setCompletedRows] = useState<Policy[]>([]);
-  const [completedLoading, setCompletedLoading] = useState(false);
-
-  useEffect(() => {
-    if (view !== "completed") return;
-    setCompletedLoading(true);
-    const supabase = createClient();
-    supabase
-      .from("policies")
-      .select("*")
-      .in("campaign_stage", COMPLETED_STAGES)
-      .order("expiration_date", { ascending: false })
-      .then(({ data }) => {
-        setCompletedRows((data ?? []) as Policy[]);
-        setCompletedLoading(false);
-      });
-  }, [view]);
+  const { policies: activePolicies, completedPolicies, loading: storeLoading, backgroundRefreshing } = useHollisData();
 
   // Hollis command bar state
   const [hollisQuery, setHollisQuery] = useState("");
@@ -62,11 +42,10 @@ function RenewalsContent() {
   } else if (view === "progress") {
     rows = activePolicies.filter((p) => PROGRESS_STAGES.includes(p.campaign_stage));
   } else {
-    rows = completedRows;
+    rows = completedPolicies;
   }
 
-  const isLoading =
-    (view === "action" || view === "progress") ? storeLoading : completedLoading;
+  const isLoading = storeLoading;
 
   // Summary stats (always from active store)
   const active       = activePolicies;

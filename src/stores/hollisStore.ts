@@ -2,7 +2,7 @@
  * hollisStore — global client-side data cache for the Hollis dashboard.
  *
  * All pages read from here instead of making their own Supabase calls.
- * The store is populated on first use and refreshed every 120 s in the
+ * The store is populated on first use and refreshed every 5 minutes in the
  * background so navigation feels instant.
  */
 
@@ -12,7 +12,6 @@ import type { Policy } from "@/types/renewals";
 import type { COIRequest } from "@/types/coi";
 import type { CertWithSequences } from "@/app/(dashboard)/certificates/_components/CertsTable";
 import type { DocChaseRequestSummary } from "@/types/doc-chase";
-import type { Draft } from "@/components/outbox/DraftEditDrawer";
 import { daysUntilExpiry } from "@/types/renewals";
 
 // ── Client row type (mirrors what ClientsTable expects) ────────────────────────
@@ -39,6 +38,8 @@ export interface HollisStoreState {
   policies: Policy[];
   /** Active policies expiring within 60 days */
   renewals: Policy[];
+  /** Completed/confirmed/lapsed policies, ordered by expiration_date desc */
+  completedPolicies: Policy[];
   /** All clients, ordered by name */
   clients: HollisClient[];
   /** All COI requests, ordered by created_at desc */
@@ -47,8 +48,6 @@ export interface HollisStoreState {
   certificates: CertWithSequences[];
   /** Document chase requests with aggregates (from /api/doc-chase) */
   docChaseRequests: DocChaseRequestSummary[];
-  /** Pending outbox drafts with joined policy data */
-  outboxDrafts: Draft[];
   /** Count of pending items in the agent approval queue */
   approvalQueueCount: number;
   /** Authenticated user ID — populated on first fetch */
@@ -68,11 +67,11 @@ export interface HollisStoreState {
 export const useHollisStore = create<HollisStoreState>((set, get) => ({
   policies: [],
   renewals: [],
+  completedPolicies: [],
   clients: [],
   coiRequests: [],
   certificates: [],
   docChaseRequests: [],
-  outboxDrafts: [],
   approvalQueueCount: 0,
   userId: null,
   lastFetched: null,
@@ -95,10 +94,10 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
       const [
         { data: { user } },
         policiesRes,
+        completedRes,
         clientsRes,
         coiRes,
         certsRes,
-        outboxRes,
         docChaseRes,
         approvalQueueRes,
       ] = await Promise.all([
@@ -110,6 +109,14 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
           .eq("status", "active")
           .order("expiration_date", { ascending: true }),
 
+        // Completed/terminal policies cached so the "Completed" tab is instant
+        supabase
+          .from("policies")
+          .select("id, policy_name, client_name, expiration_date, campaign_stage, health_label, premium, carrier, status, client_email, client_phone")
+          .in("campaign_stage", ["confirmed", "complete", "lapsed"])
+          .order("expiration_date", { ascending: false })
+          .limit(200),
+
         supabase
           .from("clients")
           .select("id, name, email, phone, business_type, industry, primary_state, created_at")
@@ -117,20 +124,12 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
 
         supabase
           .from("coi_requests")
-          .select("*")
+          .select("id, holder_name, insured_name, status, created_at, certificate_id, policy_id")
           .order("created_at", { ascending: false }),
 
         supabase
           .from("certificates")
           .select("*, holder_followup_sequences!left(id, sequence_status)")
-          .order("created_at", { ascending: false }),
-
-        supabase
-          .from("outbox_drafts")
-          .select(
-            "id, subject, body, policies(client_name, carrier, expiration_date, policy_name)"
-          )
-          .eq("status", "pending")
           .order("created_at", { ascending: false }),
 
         fetch("/api/doc-chase")
@@ -149,31 +148,15 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
         return days >= 0 && days <= 60;
       });
 
-      // Normalize outbox join (PostgREST may return array or object for FK)
-      const outboxDrafts: Draft[] = (outboxRes.data ?? []).map(
-        (row: Record<string, unknown>) => {
-          const raw = row.policies;
-          const policy = Array.isArray(raw)
-            ? (raw[0] as Draft["policies"]) ?? null
-            : (raw as Draft["policies"] | null);
-          return {
-            id: row.id as string,
-            subject: row.subject as string,
-            body: row.body as string,
-            policies: policy,
-          };
-        }
-      );
-
       set({
         userId: user?.id ?? null,
         policies: allPolicies,
         renewals,
+        completedPolicies: (completedRes.data ?? []) as Policy[],
         clients: (clientsRes.data ?? []) as HollisClient[],
-        coiRequests: (coiRes.data ?? []) as COIRequest[],
+        coiRequests: (coiRes.data ?? []) as unknown as COIRequest[],
         certificates: (certsRes.data ?? []) as CertWithSequences[],
         docChaseRequests: (docChaseRes.requests ?? []) as DocChaseRequestSummary[],
-        outboxDrafts,
         approvalQueueCount: approvalQueueRes.count ?? 0,
         lastFetched: Date.now(),
         loading: false,

@@ -54,7 +54,6 @@ function buildClientDataContext(
     coiRequests,
     certificates,
     docChaseRequests,
-    outboxDrafts,
   } = useHollisStore.getState();
 
   if (!lastFetched) return undefined;
@@ -136,14 +135,6 @@ function buildClientDataContext(
       };
       break;
     }
-
-    case "outbox":
-      data = {
-        pendingDrafts: outboxDrafts.slice(0, 10).map((d) => ({
-          subject: d.subject,
-        })),
-      };
-      break;
 
     case "overview":
       data = {
