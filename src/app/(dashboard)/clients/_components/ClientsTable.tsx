@@ -65,12 +65,14 @@ function ClientRow({ client }: { client: Client }) {
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
         el.style.background = "rgba(255,255,255,0.018)";
-        el.querySelectorAll<HTMLElement>("[data-dim]").forEach((d) => { d.style.color = "#777777"; });
+        el.querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "#AAAAAA"; });
+        el.querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "#777777"; });
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLElement;
         el.style.background = "";
-        el.querySelectorAll<HTMLElement>("[data-dim]").forEach((d) => { d.style.color = ""; });
+        el.querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "#555555"; });
+        el.querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "#333333"; });
       }}
     >
       {/* Name */}
@@ -86,15 +88,15 @@ function ClientRow({ client }: { client: Client }) {
       </div>
 
       {/* Contact */}
-      <div className="col-span-3 min-w-0">
+      <div className="col-span-3 min-w-0 transition-transform duration-200 group-hover:scale-105">
         {client.email && (
-          <div className="flex items-center gap-1.5 text-[13px] truncate transition-colors duration-200" style={{ color: "#555555" }} data-dim>
+          <div className="flex items-center gap-1.5 text-[13px] truncate transition-colors duration-200" style={{ color: "#555555" }} data-dim="bright">
             <Mail size={11} className="shrink-0" style={{ color: "#333333" }} />
             {client.email}
           </div>
         )}
         {client.phone && (
-          <div className="flex items-center gap-1.5 text-[12px] mt-0.5 transition-colors duration-200" style={{ color: "#333333" }} data-dim>
+          <div className="flex items-center gap-1.5 text-[12px] mt-0.5 transition-colors duration-200" style={{ color: "#333333" }} data-dim="meta">
             <Phone size={11} className="shrink-0" />
             {client.phone}
           </div>
@@ -104,7 +106,7 @@ function ClientRow({ client }: { client: Client }) {
       {/* Type */}
       <div className="col-span-2">
         {client.business_type && (
-          <span className="text-[12px] capitalize transition-colors duration-200" style={{ color: "#333333" }} data-dim>
+          <span className="text-[12px] capitalize transition-colors duration-200" style={{ color: "#333333" }} data-dim="meta">
             {client.business_type.replace(/_/g, " ")}
           </span>
         )}
@@ -112,7 +114,7 @@ function ClientRow({ client }: { client: Client }) {
 
       {/* State */}
       <div className="col-span-1">
-        <span className="text-[12px] transition-colors duration-200" style={{ color: "#333333" }} data-dim>
+        <span className="text-[12px] transition-colors duration-200" style={{ color: "#333333" }} data-dim="meta">
           {client.primary_state ?? "—"}
         </span>
       </div>
