@@ -330,7 +330,7 @@ function FormattedResponse({ content, compact, prominent }: { content: string; c
   const paragraphs = content.split(/\n\n+/).filter(Boolean);
   const sizeClass = compact ? "text-[13px]" : prominent ? "text-[15px]" : "text-[15px]";
   const lineClass = compact ? "leading-relaxed" : "leading-[1.65]";
-  const colorClass = prominent ? "text-[#0C0C0C]" : "text-zinc-300";
+  const colorClass = prominent ? "text-[#FAFAFA]" : "text-zinc-300";
   return (
     <div className={`${sizeClass} ${lineClass} ${colorClass} space-y-3`}>
       {paragraphs.map((p, i) => (
@@ -374,7 +374,7 @@ function MessageBubble({
           <span className="text-[11px] text-[#6b6b6b]">{formatTime(msg.timestamp)}</span>
         </div>
         {isUser ? (
-          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-[#0C0C0C] max-w-[85%] leading-relaxed">
+          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-[#FAFAFA] max-w-[85%] leading-relaxed">
             {msg.content}
           </div>
         ) : (
