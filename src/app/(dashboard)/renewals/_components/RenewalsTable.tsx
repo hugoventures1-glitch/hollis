@@ -8,6 +8,8 @@ import { useToast } from "@/components/actions/MicroToast";
 import { SignalModal } from "@/components/renewals/SignalModal";
 import { daysUntilExpiry } from "@/types/renewals";
 import type { Policy, CampaignStage, HealthLabel } from "@/types/renewals";
+import { useHollisStore } from "@/stores/hollisStore";
+import { buildTrailParam } from "@/lib/trail";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -132,13 +134,14 @@ function urgencyColor(days: number): string {
 
 interface RowProps {
   policy: Policy;
+  clientId: string | undefined;
   optimisticStage: CampaignStage | null;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
   onLogSignal: (policyId: string, clientName: string) => void;
 }
 
-const RenewalRow = memo(function RenewalRow({ policy, optimisticStage, onStageUpdate, onStageRevert, onLogSignal }: RowProps) {
+const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage, onStageUpdate, onStageRevert, onLogSignal }: RowProps) {
   const { toast }          = useToast();
   const router             = useRouter();
   const [loading, setLoading] = useState(false);
@@ -204,7 +207,11 @@ const RenewalRow = memo(function RenewalRow({ policy, optimisticStage, onStageUp
         backgroundSize: "100% 1px",
         backgroundPosition: "0 100%",
       }}
-      onClick={() => router.push(`/renewals/${policy.id}`)}
+      onClick={() => router.push(
+        clientId
+          ? `/clients/${clientId}?trail=${buildTrailParam([], "Renewals", "/renewals")}`
+          : `/renewals/${policy.id}`
+      )}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.018)";
         const clientInfo = (e.currentTarget as HTMLElement).querySelector('[data-client-info]') as HTMLElement;
@@ -345,12 +352,14 @@ interface Group {
 function PolicyGroup({
   group,
   optimisticStages,
+  clientIdByName,
   onStageUpdate,
   onStageRevert,
   onLogSignal,
 }: {
   group: Group;
   optimisticStages: Record<string, CampaignStage>;
+  clientIdByName: Map<string, string>;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
   onLogSignal: (policyId: string, clientName: string) => void;
@@ -397,6 +406,7 @@ function PolicyGroup({
         <RenewalRow
           key={p.id}
           policy={p}
+          clientId={clientIdByName.get(p.client_name)}
           optimisticStage={optimisticStages[p.id] ?? null}
           onStageUpdate={onStageUpdate}
           onStageRevert={onStageRevert}
@@ -418,6 +428,13 @@ interface RenewalsTableProps {
 export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProps) {
   const [optimisticStages, setOptimisticStages] = useState<Record<string, CampaignStage>>({});
   const [signalPolicy, setSignalPolicy] = useState<{ id: string; clientName: string } | null>(null);
+
+  const storeClients = useHollisStore(s => s.clients);
+  const clientIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of storeClients) map.set(c.name, c.id);
+    return map;
+  }, [storeClients]);
 
   const updateStage = useCallback((id: string, stage: CampaignStage) => {
     setOptimisticStages((prev) => ({ ...prev, [id]: stage }));
@@ -511,6 +528,7 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
             key={g.title}
             group={g}
             optimisticStages={optimisticStages}
+            clientIdByName={clientIdByName}
             onStageUpdate={updateStage}
             onStageRevert={revertStage}
             onLogSignal={openSignal}
@@ -534,10 +552,6 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
 
 export function RenewalsBreadcrumb() {
   return (
-    <div className="flex items-center gap-2 text-[13px]" style={{ color: "#555" }}>
-      <span>Hollis</span>
-      <ChevronRight size={11} />
-      <span style={{ color: "#FAFAFA" }}>Renewals</span>
-    </div>
+    <span className="text-[13px]" style={{ color: "#FAFAFA" }}>Renewals</span>
   );
 }

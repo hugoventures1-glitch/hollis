@@ -61,52 +61,76 @@ function ClientRow({ client }: { client: Client }) {
   return (
     <div
       onClick={() => router.push(`/clients/${client.id}`)}
-      className="grid grid-cols-12 items-center px-4 py-3 rounded-lg transition-colors group border border-transparent cursor-pointer"
+      className="group grid grid-cols-12 items-center px-4 cursor-pointer select-none transition-colors duration-100"
+      style={{
+        minHeight: 68,
+        backgroundImage: "linear-gradient(to right, transparent 0%, transparent 16px, #353535 16px, #353535 calc(100% - 16px), transparent calc(100% - 16px), transparent 100%)",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "100% 1px",
+        backgroundPosition: "0 100%",
+      }}
       onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.background = "rgba(255,255,255,0.018)";
-        el.querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "#AAAAAA"; });
-        el.querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "#777777"; });
+        (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.018)";
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "#FAFAFA"; });
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "rgba(250,250,250,0.25)"; });
       }}
       onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.background = "";
-        el.querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "#555555"; });
-        el.querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "#333333"; });
+        (e.currentTarget as HTMLElement).style.backgroundColor = "";
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "rgba(250,250,250,0.2)"; });
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "rgba(250,250,250,0.1)"; });
       }}
     >
-      {/* Name */}
-      <div className="col-span-4 flex items-center gap-3 min-w-0 transition-transform duration-200 group-hover:scale-105">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(250,250,250,0.06)", border: "1px solid #1C1C1C" }}>
-          <span className="text-[12px] font-bold" style={{ color: "#FAFAFA" }}>
+      {/* Name + Contact — single unified scale block */}
+      <div className="col-span-7 flex items-center gap-3 min-w-0 py-4 transition-transform duration-200 group-hover:scale-105">
+        <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(250,250,250,0.06)", border: "1px solid #1C1C1C" }}>
+          <span className="text-[11px] font-bold" style={{ color: "#FAFAFA" }}>
             {client.name.charAt(0).toUpperCase()}
           </span>
         </div>
-        <span className="text-[14px] font-medium truncate" style={{ color: "#FAFAFA" }}>
-          {client.name}
-        </span>
-      </div>
-
-      {/* Contact */}
-      <div className="col-span-3 min-w-0 transition-transform duration-200 group-hover:scale-105">
-        {client.email && (
-          <div className="flex items-center gap-1.5 text-[13px] truncate transition-colors duration-200" style={{ color: "#555555" }} data-dim="bright">
-            <Mail size={11} className="shrink-0" style={{ color: "#333333" }} />
-            {client.email}
+        <div className="min-w-0">
+          <div
+            className="truncate leading-snug"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 15,
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              color: "#FAFAFA",
+            }}
+          >
+            {client.name}
           </div>
-        )}
-        {client.phone && (
-          <div className="flex items-center gap-1.5 text-[12px] mt-0.5 transition-colors duration-200" style={{ color: "#333333" }} data-dim="meta">
-            <Phone size={11} className="shrink-0" />
-            {client.phone}
-          </div>
-        )}
+          {client.email && (
+            <div
+              className="flex items-center gap-1.5 mt-0.5 truncate transition-colors duration-200"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(250,250,250,0.2)" }}
+              data-dim="bright"
+            >
+              <Mail size={10} className="shrink-0" />
+              {client.email}
+            </div>
+          )}
+          {!client.email && client.phone && (
+            <div
+              className="flex items-center gap-1.5 mt-0.5 transition-colors duration-200"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(250,250,250,0.1)" }}
+              data-dim="meta"
+            >
+              <Phone size={10} className="shrink-0" />
+              {client.phone}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Type */}
       <div className="col-span-2">
         {client.business_type && (
-          <span className="text-[12px] capitalize transition-colors duration-200" style={{ color: "#333333" }} data-dim="meta">
+          <span
+            className="text-[11px] capitalize transition-colors duration-200"
+            style={{ fontFamily: "var(--font-mono)", color: "rgba(250,250,250,0.1)" }}
+            data-dim="meta"
+          >
             {client.business_type.replace(/_/g, " ")}
           </span>
         )}
@@ -114,14 +138,18 @@ function ClientRow({ client }: { client: Client }) {
 
       {/* State */}
       <div className="col-span-1">
-        <span className="text-[12px] transition-colors duration-200" style={{ color: "#333333" }} data-dim="meta">
+        <span
+          className="text-[11px] transition-colors duration-200"
+          style={{ fontFamily: "var(--font-mono)", color: "rgba(250,250,250,0.1)" }}
+          data-dim="meta"
+        >
           {client.primary_state ?? "—"}
         </span>
       </div>
 
-      {/* Actions — fade on hover, stop row-click propagation */}
+      {/* Actions — fade + slide in on hover */}
       <div
-        className="col-span-2 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        className="col-span-2 flex items-center justify-end gap-1 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         <ActionButton
@@ -133,7 +161,7 @@ function ClientRow({ client }: { client: Client }) {
         <Link
           href={`/clients/${client.id}`}
           className="inline-flex items-center h-7 px-2 transition-colors"
-          style={{ color: "#333333" }}
+          style={{ color: "#444" }}
           title="View client"
         >
           <ArrowRight size={13} />
@@ -149,12 +177,9 @@ export function ClientsTable({ clients }: ClientsTableProps) {
   return (
     <div className="px-6 py-4">
       {/* Column headers */}
-      <div className="grid grid-cols-12 px-4 pb-2 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
-        <div className="col-span-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
-          Name
-        </div>
-        <div className="col-span-3 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
-          Contact
+      <div className="grid grid-cols-12 px-4 pb-2 mb-1" style={{ borderBottom: "1px solid #353535" }}>
+        <div className="col-span-7 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
+          Client
         </div>
         <div className="col-span-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
           Type

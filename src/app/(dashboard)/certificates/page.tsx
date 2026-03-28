@@ -21,6 +21,8 @@ import { ApproveButton } from "./_components/ApproveButton";
 import { CertsTable, type CertWithSequences } from "./_components/CertsTable";
 import { SequencesTab } from "./_components/SequencesTab";
 import { useHollisData } from "@/hooks/useHollisData";
+import { Breadcrumb } from "@/components/nav/Breadcrumb";
+import { decodeCrumbs } from "@/lib/trail";
 
 // ── Status style maps ─────────────────────────────────────────────────────────
 
@@ -68,7 +70,8 @@ function StatusBadge({ status, table }: { status: string; table: "request" | "ce
 
 function CertificatesContent() {
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") ?? "requests";
+  const tab    = searchParams.get("tab") ?? "requests";
+  const crumbs = decodeCrumbs(searchParams.get("trail"));
 
   const { coiRequests: requests, certificates: certs, userId, loading, backgroundRefreshing } = useHollisData();
 
@@ -95,11 +98,7 @@ function CertificatesContent() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
-          <span>Hollis</span>
-          <ChevronRight size={12} />
-          <span className="text-[#FAFAFA]">Certificates</span>
-        </div>
+        <Breadcrumb crumbs={crumbs} current="Certificates" />
         <div className="flex items-center gap-3">
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full bg-[#FAFAFA]/40 animate-pulse shrink-0" title="Syncing…" />

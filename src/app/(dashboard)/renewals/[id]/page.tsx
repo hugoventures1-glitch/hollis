@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  ChevronRight,
   Mail,
   MessageSquare,
   Phone,
@@ -10,8 +9,9 @@ import {
   Clock,
   XCircle,
   SkipForward,
-  ArrowLeft,
 } from "lucide-react";
+import { Breadcrumb } from "@/components/nav/Breadcrumb";
+import { decodeCrumbs } from "@/lib/trail";
 import { StageBadge } from "@/components/renewals/stage-badge";
 import { DaysBadge } from "@/components/renewals/days-badge";
 import { daysUntilExpiry, TOUCHPOINT_LABELS } from "@/types/renewals";
@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ back?: string; backId?: string; backName?: string }>;
+  searchParams: Promise<{ trail?: string; back?: string; backId?: string; backName?: string }>;
 }
 
 const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
@@ -65,8 +65,12 @@ const STATUS_LABEL_MAP: Record<TouchpointStatus, string> = {
 export default async function PolicyDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const sp = await searchParams;
-  const backHref  = sp.back === "client" && sp.backId  ? `/clients/${sp.backId}`                   : "/renewals";
-  const backLabel = sp.back === "client" && sp.backName ? decodeURIComponent(sp.backName) : "Renewals";
+  // Trail-based breadcrumb (new). Backward compat: old ?back=client&backId=... still works.
+  const crumbs = sp.trail
+    ? decodeCrumbs(sp.trail)
+    : sp.back === "client" && sp.backId && sp.backName
+      ? [{ label: decodeURIComponent(sp.backName), href: `/clients/${sp.backId}` }]
+      : [];
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -109,17 +113,7 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
     <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-10 h-[56px] shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
-        <Link
-          href={backHref}
-          className="flex items-center gap-1.5 text-[13px] transition-colors"
-          style={{ color: "#555555" }}
-        >
-          <ArrowLeft size={13} />
-          {backLabel}
-        </Link>
-        <ChevronRight size={12} style={{ color: "#333333" }} />
-        <span className="text-[13px] truncate max-w-xs" style={{ color: "#FAFAFA" }}>{p.policy_name}</span>
-
+        <Breadcrumb crumbs={crumbs} current={p.policy_name} />
         <div className="ml-auto">
           <StageBadge stage={p.campaign_stage} />
         </div>

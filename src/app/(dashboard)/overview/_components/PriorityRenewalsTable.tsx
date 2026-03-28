@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/components/actions/MicroToast";
 import { HealthBadge } from "@/components/renewals/health-badge";
 import type { HealthLabel } from "@/types/renewals";
+import { useHollisStore } from "@/stores/hollisStore";
+import { buildTrailParam } from "@/lib/trail";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,9 +48,11 @@ function formatDate(dateStr: string): string {
 function PolicyTableRow({
   policy,
   idx,
+  clientId,
 }: {
   policy: PolicyRow;
   idx: number;
+  clientId: string | undefined;
 }) {
   const { toast } = useToast();
   const router = useRouter();
@@ -90,7 +94,11 @@ function PolicyTableRow({
 
   return (
     <div
-      onClick={() => router.push(`/renewals/${policy.id}`)}
+      onClick={() => router.push(
+        clientId
+          ? `/clients/${clientId}?trail=${buildTrailParam([], "Renewals", "/renewals")}`
+          : `/renewals/${policy.id}`
+      )}
       className="grid grid-cols-12 items-center px-6 py-[10px] border-b border-[#1C1C1C]/60 hover:bg-white/[0.015] group transition-colors cursor-pointer"
     >
       {/* ID */}
@@ -169,6 +177,13 @@ function PolicyTableRow({
 // ── Table ─────────────────────────────────────────────────────────────────────
 
 export function PriorityRenewalsTable({ policies }: PriorityRenewalsTableProps) {
+  const storeClients = useHollisStore(s => s.clients);
+  const clientIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of storeClients) map.set(c.name, c.id);
+    return map;
+  }, [storeClients]);
+
   // Stalled policies surface first so agents see the most at-risk rows immediately
   const sorted = [...policies].sort((a, b) => {
     const aStalled = a.health_label === "stalled" ? 0 : 1;
@@ -179,7 +194,12 @@ export function PriorityRenewalsTable({ policies }: PriorityRenewalsTableProps) 
   return (
     <div className="pb-20">
       {sorted.map((policy, idx) => (
-        <PolicyTableRow key={policy.id} policy={policy} idx={idx} />
+        <PolicyTableRow
+          key={policy.id}
+          policy={policy}
+          idx={idx}
+          clientId={clientIdByName.get(policy.client_name)}
+        />
       ))}
     </div>
   );

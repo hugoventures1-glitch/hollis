@@ -76,11 +76,7 @@ export default async function PoliciesPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
-          <span>Hollis</span>
-          <ChevronRight size={12} className="text-[#6b6b6b]" />
-          <span className="text-[#FAFAFA]">Policy Audit</span>
-        </div>
+        <span className="text-[13px]" style={{ color: "#FAFAFA" }}>Policy Audit</span>
         <Link
           href="/policies/new"
           className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"

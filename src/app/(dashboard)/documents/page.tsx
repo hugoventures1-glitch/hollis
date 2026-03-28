@@ -11,7 +11,7 @@
  * Calls refetch() after mutations to keep the store in sync.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import {
   FileText,
   Plus,
@@ -23,11 +23,22 @@ import {
   Search,
   Phone,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { PhoneScriptModal } from "@/components/doc-chase/PhoneScriptModal";
 import { DOCUMENT_TYPES } from "@/types/doc-chase";
 import type { DocChaseRequestSummary, DocChaseRequestStatus } from "@/types/doc-chase";
 import { useHollisData } from "@/hooks/useHollisData";
 import { useHollisStore } from "@/stores/hollisStore";
+import { Breadcrumb } from "@/components/nav/Breadcrumb";
+import { decodeCrumbs } from "@/lib/trail";
+
+// ── Trail breadcrumb (reads searchParams — wrapped in Suspense at usage site) ──
+
+function DocsBreadcrumb() {
+  const sp = useSearchParams();
+  const crumbs = decodeCrumbs(sp.get("trail"));
+  return <Breadcrumb crumbs={crumbs} current="Documents" />;
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -597,11 +608,9 @@ export default function DocumentsPage() {
 
       {/* Header */}
       <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center justify-between px-10">
-        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
-          <span>Hollis</span>
-          <ChevronRight size={12} />
-          <span className="text-[#FAFAFA]">Documents</span>
-        </div>
+        <Suspense fallback={<span className="text-[13px]" style={{ color: "#FAFAFA" }}>Documents</span>}>
+          <DocsBreadcrumb />
+        </Suspense>
         <div className="flex items-center gap-3">
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full bg-[#FAFAFA]/40 animate-pulse shrink-0" title="Syncing…" />
