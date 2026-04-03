@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, CheckCircle, AlertTriangle, Loader2, Send, ExternalLink } from "lucide-react";
 import { HolderAutofillInput } from "@/components/coi/HolderAutofillInput";
@@ -119,6 +120,7 @@ export default function NewCOIPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request");
+  const posthog = usePostHog();
 
   const [sourceRequest, setSourceRequest] = useState<COIRequest | null>(null);
   const [loadingRequest, setLoadingRequest] = useState(!!requestId);
@@ -275,6 +277,11 @@ export default function NewCOIPage() {
       if (auto.enabled) enabledCoverageTypes.push("auto");
       if (umbrella.enabled) enabledCoverageTypes.push("umbrella");
       if (wc.enabled) enabledCoverageTypes.push("wc");
+      posthog.capture("coi_created", {
+        cert_id: data.certificate?.id,
+        coverage_types: enabledCoverageTypes,
+        from_request: !!requestId,
+      });
 
       fetch("/api/coi/holders/record-usage", {
         method: "POST",
@@ -295,7 +302,7 @@ export default function NewCOIPage() {
     } finally {
       setGenerating(false);
     }
-  }, [insuredName, holderName, insuredAddress, producerName, producerAddress, producerPhone, producerEmail, holderAddress, holderCity, holderState, holderZip, holderEmail, additionalInsured, description, gl, auto, umbrella, wc, requestId, sourceRequest]);
+  }, [insuredName, holderName, insuredAddress, producerName, producerAddress, producerPhone, producerEmail, holderAddress, holderCity, holderState, holderZip, holderEmail, additionalInsured, description, gl, auto, umbrella, wc, requestId, sourceRequest, posthog]);
 
   const handleSend = async () => {
     if (!result || !sendEmail) return;

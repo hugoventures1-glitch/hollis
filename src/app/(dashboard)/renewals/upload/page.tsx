@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import Link from "next/link";
 import { ChevronRight, Upload, CheckCircle, AlertCircle, X, ArrowLeft } from "lucide-react";
 import type { CSVPolicyRow, ColumnMapping } from "@/types/renewals";
@@ -95,6 +96,7 @@ function mappingToRows(
 
 export default function UploadPage() {
   const router = useRouter();
+  const posthog = usePostHog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
   const [dragging, setDragging] = useState(false);
@@ -116,9 +118,10 @@ export default function UploadPage() {
       setCsvRows(rows);
       setMapping(autoMapColumns(headers));
       setStep("map");
+      posthog.capture("import_step_completed", { step: "upload", row_count: rows.length });
     };
     reader.readAsText(file);
-  }, []);
+  }, [posthog]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -135,6 +138,7 @@ export default function UploadPage() {
     const rows = mappingToRows(csvRows, csvHeaders, mapping);
     setPreviewRows(rows);
     setStep("preview");
+    posthog.capture("import_step_completed", { step: "map" });
   };
 
   const handleImport = async () => {
@@ -154,6 +158,10 @@ export default function UploadPage() {
       }
       setResult(data);
       setStep("done");
+      posthog.capture("policies_imported", {
+        count: data.inserted,
+        error_count: data.errors?.length ?? 0,
+      });
     } catch {
       setServerError("Network error — please try again");
     } finally {

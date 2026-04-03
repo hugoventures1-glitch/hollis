@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePostHog } from "posthog-js/react";
 import {
   CheckCircle2,
   XCircle,
@@ -560,6 +561,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
   const [busy,        setBusy]        = useState(false);
   const [errorMsg,    setErrorMsg]    = useState<string | null>(null);
   const [sentId,      setSentId]      = useState<string | null>(null);
+  const posthog = usePostHog();
 
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
@@ -580,6 +582,16 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
         const data = await res.json();
         throw new Error(data.error ?? "Failed to resolve");
       }
+      const item = items.find((i) => i.id === id);
+      posthog.capture("approval_queue_actioned", {
+        queue_item_id: id,
+        action,
+        classified_intent: item?.classified_intent,
+        confidence_score: item?.confidence_score,
+        tier: item?.tier,
+        body_edited: action === "edited" && !!extra?.edited_body,
+        source: "inbox",
+      });
       // Flash success state briefly before removing
       setSentId(id);
       await new Promise((r) => setTimeout(r, 900));

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePostHog } from "posthog-js/react";
 import {
   CheckCircle2,
   XCircle,
@@ -43,6 +44,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
   const [editNotes, setEditNotes] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const posthog = usePostHog();
 
   async function resolve(
     id: string,
@@ -61,6 +63,14 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
         const data = await res.json();
         throw new Error(data.error ?? "Failed to resolve");
       }
+      const item = items.find((i) => i.id === id);
+      posthog.capture("approval_queue_actioned", {
+        queue_item_id: id,
+        action,
+        classified_intent: item?.classified_intent,
+        confidence_score: item?.confidence_score,
+        source: "review_queue",
+      });
       // Remove resolved item from list
       setItems((prev) => prev.filter((i) => i.id !== id));
       setEditingId(null);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePostHog } from "posthog-js/react";
 import { SaveButton } from "./SaveButton";
 
 const MAX_CHARS = 2000;
@@ -18,6 +19,7 @@ export function HollisSection({ initialOrders }: { initialOrders?: string | null
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [error,  setError]  = useState<string | null>(null);
+  const posthog = usePostHog();
 
   // Keep local state in sync if parent re-renders
   useEffect(() => {
@@ -40,6 +42,7 @@ export function HollisSection({ initialOrders }: { initialOrders?: string | null
         throw new Error(d.error ?? "Save failed");
       }
       setSaved(true);
+      posthog.capture("settings_saved", { section: "hollis_instructions", char_count: value.length });
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");

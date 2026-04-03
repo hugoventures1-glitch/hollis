@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/actions/MicroToast";
+import { usePostHog } from "posthog-js/react";
 
 interface Props {
   certId: string;
@@ -17,6 +18,7 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const posthog = usePostHog();
 
   const handleOpen = () => {
     setShowForm(true);
@@ -37,6 +39,7 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
         throw new Error(data.error ?? "Failed to send certificate");
       }
       toast("Certificate sent successfully", "success");
+      posthog.capture("coi_sent", { cert_id: certId });
       setShowForm(false);
       router.refresh();
     } catch (err) {

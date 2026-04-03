@@ -12,7 +12,9 @@ import {
   ArrowRight,
   CalendarDays,
 } from "lucide-react";
+import { Suspense } from "react";
 import { ImportBanner } from "./_components/ImportBanner";
+import { LoginTracker } from "@/components/analytics/LoginTracker";
 import { Sparkline } from "./_components/Sparkline";
 import { MiniBarChart } from "./_components/MiniBarChart";
 import { TodayActions } from "./_components/TodayActions";
@@ -214,6 +216,7 @@ export default async function DashboardPage() {
       className="flex flex-col h-full antialiased overflow-y-auto"
       style={{ background: "var(--background)", color: "var(--text-primary)" }}
     >
+      <Suspense><LoginTracker /></Suspense>
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 px-8 pt-10">

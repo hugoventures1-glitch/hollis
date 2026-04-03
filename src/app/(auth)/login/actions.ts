@@ -18,5 +18,5 @@ export async function loginAction(formData: {
     return { error: error.message };
   }
 
-  redirect("/overview");
+  redirect("/overview?login=1");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePostHog } from "posthog-js/react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,6 +45,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 export function NotificationsSection({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const posthog = usePostHog();
 
   const { handleSubmit, setValue, control } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -67,6 +69,7 @@ export function NotificationsSection({ profile }: Props) {
     });
     setSaving(false);
     setSaved(true);
+    posthog.capture("settings_saved", { section: "notifications" });
     setTimeout(() => setSaved(false), 2000);
   });
 
