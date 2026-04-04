@@ -46,9 +46,15 @@ const CLASSIFY_TOOL = {
         type: "string",
         description: "One or two sentences explaining the classification for audit purposes",
       },
+      changes_requested: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "When intent is renewal_with_changes: a list of specific changes the client is requesting before they will renew (e.g. 'Update business address to 123 Main St'). Empty array for all other intents.",
+      },
     },
     // Mutable array required by Anthropic SDK types
-    required: ["intent", "confidence", "flags_detected", "premium_increase_pct", "reasoning"] as string[],
+    required: ["intent", "confidence", "flags_detected", "premium_increase_pct", "reasoning", "changes_requested"] as string[],
   },
 };
 
@@ -58,12 +64,15 @@ Your job is to analyse inbound signals (client emails, SMS replies, third-party 
 
 KNOWN INTENT TAXONOMY:
 Autonomous intents (can be handled without broker intervention if confidence is high):
-- confirm_renewal: Client confirms they want to proceed with renewal
+- confirm_renewal: Client confirms they want to proceed with renewal, with no conditions or change requests
 - request_callback: Client is asking to be called back
 - document_received: Client has sent or mentioned sending a document (certificate, invoice, financial statement)
 - questionnaire_submitted: Client has completed or submitted the renewal questionnaire
 - soft_query: Client has a general question that does not involve claims, disputes, or sensitive changes
 - out_of_office: Detected auto-reply or out-of-office response — no human intent present
+
+Broker action required intents (always Tier 2 — broker must complete real-world tasks):
+- renewal_with_changes: Client confirms they want to renew BUT requests specific changes first (e.g. update address, increase a coverage limit, add/remove an item). Use this whenever a renewal confirmation comes with any conditions or modification requests. Extract each change as a separate item in changes_requested.
 
 Escalation intents (ALWAYS require broker review regardless of confidence):
 - active_claim_mentioned: Signal contains ANY mention of a claim, incident, accident, loss, or damage — even historical
@@ -136,6 +145,7 @@ export async function classifyIntent(
     flags_detected: string[];
     premium_increase_pct: number | null;
     reasoning: string;
+    changes_requested?: string[];
   };
 
   // Validate and clamp
@@ -145,6 +155,9 @@ export async function classifyIntent(
     flags_detected: Array.isArray(raw.flags_detected) ? raw.flags_detected : [],
     premium_increase_pct: raw.premium_increase_pct ?? null,
     reasoning: raw.reasoning ?? "",
+    changes_requested: Array.isArray(raw.changes_requested) && raw.changes_requested.length > 0
+      ? raw.changes_requested
+      : undefined,
   };
 
   // Safety: if intent is in the escalation list, floor confidence to ensure

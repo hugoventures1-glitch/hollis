@@ -46,6 +46,13 @@ export const KNOWN_AUTONOMOUS_INTENTS = [
 
 export type AutonomousIntent = (typeof KNOWN_AUTONOMOUS_INTENTS)[number];
 
+// Intents that always require Tier 2 broker action (not escalation).
+// The broker must complete a real-world task before the renewal can proceed.
+// Learning cannot graduate these to Tier 1.
+export const ALWAYS_BROKER_REVIEW_INTENTS: string[] = [
+  "renewal_with_changes",
+];
+
 // Intents that ALWAYS escalate to Tier 3, regardless of confidence score.
 // This list is immutable — learning cannot graduate these to Tier 1.
 export const ALWAYS_ESCALATE_INTENTS: string[] = [
@@ -58,9 +65,10 @@ export const ALWAYS_ESCALATE_INTENTS: string[] = [
   "unverified_third_party",
 ];
 
-// Full set of known intents (autonomous + escalate)
+// Full set of known intents (autonomous + broker-review + escalate)
 export const ALL_KNOWN_INTENTS: string[] = [
   ...(KNOWN_AUTONOMOUS_INTENTS as readonly string[]),
+  ...ALWAYS_BROKER_REVIEW_INTENTS,
   ...ALWAYS_ESCALATE_INTENTS,
 ];
 
@@ -72,6 +80,7 @@ export interface ClassificationResult {
   flags_detected: string[];       // flag names detected in the signal
   premium_increase_pct: number | null;  // extracted value if a premium increase was detected
   reasoning: string;              // brief explanation for audit trail
+  changes_requested?: string[];   // populated when intent is renewal_with_changes
 }
 
 // ── Inbound Signals ────────────────────────────────────────────────────────────

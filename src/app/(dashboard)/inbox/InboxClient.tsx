@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ChevronDown,
   ArrowUpRight,
+  ListChecks,
 } from "lucide-react";
 import type { InboxItem } from "./page";
 
@@ -511,6 +512,227 @@ function DetailPanel({
   );
 }
 
+// ── To Do row (left panel) ────────────────────────────────────────────────────
+
+function TodoRow({
+  item,
+  selected,
+  onClick,
+}: {
+  item: InboxItem;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const changes = item.proposed_action?.payload?.changes as string[] | undefined;
+  const count = changes?.length ?? 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-4 py-3.5 transition-colors relative group"
+      style={{
+        background: selected ? "var(--surface-raised)" : "transparent",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      {!selected && (
+        <span
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full"
+          style={{ background: "var(--text-tertiary)" }}
+        />
+      )}
+      <div className="flex items-start justify-between gap-3 pl-1.5">
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-[12px] font-semibold truncate mb-0.5"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {item.policies?.client_name ?? "Unknown Client"}
+          </p>
+          <p className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>
+            {count} change{count !== 1 ? "s" : ""} needed · {item.policies?.policy_name}
+          </p>
+        </div>
+        <span className="text-[10px] shrink-0 mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+          {timeAgo(item.created_at)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// ── To Do detail panel ────────────────────────────────────────────────────────
+
+function TodoDetailPanel({
+  item,
+  busy,
+  done,
+  checked,
+  onToggle,
+  onComplete,
+}: {
+  item: InboxItem;
+  busy: boolean;
+  done: boolean;
+  checked: Set<number>;
+  onToggle: (idx: number) => void;
+  onComplete: () => void;
+}) {
+  const policy  = item.policies;
+  const days    = policy ? daysUntil(policy.expiration_date) : null;
+  const changes = (item.proposed_action?.payload?.changes as string[] | undefined) ?? [];
+  const allChecked = changes.length > 0 && checked.size === changes.length;
+
+  const expiryColor =
+    days !== null && days <= 14 ? "#FF4444" :
+    days !== null && days <= 30 ? "var(--text-secondary)" :
+    "var(--text-tertiary)";
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-6 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap mb-1">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                To Do
+              </span>
+              {days !== null && (
+                <span className="text-[11px] font-semibold" style={{ color: expiryColor }}>
+                  {days}d until expiry
+                </span>
+              )}
+            </div>
+            <h2 className="text-[18px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
+              {policy?.client_name ?? "Unknown Client"}
+            </h2>
+            {policy && (
+              <p className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                {policy.policy_name}
+                {policy.carrier && (
+                  <span style={{ color: "var(--text-tertiary)" }}> · {policy.carrier}</span>
+                )}
+              </p>
+            )}
+          </div>
+          {policy && (
+            <Link
+              href={`/renewals/${policy.id}`}
+              className="shrink-0 flex items-center gap-1 text-[11px] transition-opacity hover:opacity-70"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Open policy <ArrowUpRight size={11} />
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <div
+          className="rounded-xl p-4 space-y-4"
+          style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+        >
+          <div>
+            <div
+              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Client confirmed renewal — changes needed first
+            </div>
+            <div className="space-y-2">
+              {changes.map((change, idx) => (
+                <label
+                  key={idx}
+                  className="flex items-start gap-3 cursor-pointer group/check"
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div
+                      className="w-4 h-4 rounded flex items-center justify-center transition-colors"
+                      style={{
+                        background: checked.has(idx) ? "var(--accent)" : "var(--surface)",
+                        border: `1px solid ${checked.has(idx) ? "var(--accent)" : "var(--border)"}`,
+                      }}
+                      onClick={() => onToggle(idx)}
+                    >
+                      {checked.has(idx) && (
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                          <path d="M1 3L3 5L7 1" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    className="text-[13px] leading-snug transition-colors"
+                    style={{ color: checked.has(idx) ? "var(--text-tertiary)" : "var(--text-primary)" }}
+                    onClick={() => onToggle(idx)}
+                  >
+                    {change}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {item.signal_id !== null && item.raw_signal_snippet && (
+            <>
+              <div className="h-px" style={{ background: "var(--border)" }} />
+              <div>
+                <div
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Client said
+                </div>
+                <blockquote
+                  className="text-[13px] italic leading-relaxed pl-3"
+                  style={{ color: "var(--text-secondary)", borderLeft: "2px solid var(--border)" }}
+                >
+                  &ldquo;{item.raw_signal_snippet}&rdquo;
+                </blockquote>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Action bar */}
+      <div
+        className="px-6 py-4 shrink-0 flex items-center gap-2"
+        style={{
+          borderTop: "1px solid var(--border)",
+          background: done ? "rgba(184,244,0,0.06)" : undefined,
+        }}
+      >
+        {done ? (
+          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "#B8F400" }}>
+            <CheckCircle2 size={14} />
+            Done — renewal proceeding
+          </div>
+        ) : (
+          <button
+            onClick={onComplete}
+            disabled={busy || !allChecked}
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+            style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+            {allChecked ? "Done — proceed with renewal" : `${checked.size} / ${changes.length} changes made`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Empty states ──────────────────────────────────────────────────────────────
 
 function InboxZero() {
@@ -547,13 +769,31 @@ function NothingSelected() {
   );
 }
 
+function TodoZero() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 select-none">
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+      >
+        <ListChecks size={18} style={{ color: "var(--text-tertiary)" }} />
+      </div>
+      <p className="text-[14px] font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+        All clear
+      </p>
+      <p className="text-[12px] leading-relaxed max-w-[220px]" style={{ color: "var(--text-tertiary)" }}>
+        Client-requested changes will appear here when Hollis detects a conditional renewal.
+      </p>
+    </div>
+  );
+}
+
 // ── Main client component ─────────────────────────────────────────────────────
 
 export default function InboxClient({ initialItems }: { initialItems: InboxItem[] }) {
   const [items,       setItems]       = useState<InboxItem[]>(initialItems);
-  const [selectedId,  setSelectedId]  = useState<string | null>(
-    initialItems.length > 0 ? initialItems[0].id : null
-  );
+  const [tab,         setTab]         = useState<"inbox" | "todo">("inbox");
+  const [selectedId,  setSelectedId]  = useState<string | null>(null);
   const [editingId,   setEditingId]   = useState<string | null>(null);
   const [editedIntent, setEditedIntent] = useState("");
   const [editNotes,   setEditNotes]   = useState("");
@@ -561,9 +801,15 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
   const [busy,        setBusy]        = useState(false);
   const [errorMsg,    setErrorMsg]    = useState<string | null>(null);
   const [sentId,      setSentId]      = useState<string | null>(null);
+  const [checkedMap,  setCheckedMap]  = useState<Record<string, Set<number>>>({});
   const posthog = usePostHog();
 
-  const selectedItem = items.find((i) => i.id === selectedId) ?? null;
+  // Split items into inbox (normal review) and to-do (broker change required)
+  const inboxItems = items.filter((i) => i.proposed_action?.action_type !== "broker_change_required");
+  const todoItems  = items.filter((i) => i.proposed_action?.action_type === "broker_change_required");
+
+  const activeItems = tab === "inbox" ? inboxItems : todoItems;
+  const selectedItem = activeItems.find((i) => i.id === selectedId) ?? null;
 
   async function resolve(
     id: string,
@@ -590,7 +836,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
         confidence_score: item?.confidence_score,
         tier: item?.tier,
         body_edited: action === "edited" && !!extra?.edited_body,
-        source: "inbox",
+        source: tab === "todo" ? "inbox_todo" : "inbox",
       });
       // Flash success state briefly before removing
       setSentId(id);
@@ -598,13 +844,27 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
       setSentId(null);
       const remaining = items.filter((i) => i.id !== id);
       setItems(remaining);
-      setSelectedId(remaining.length > 0 ? remaining[0].id : null);
+      const remainingActive = remaining.filter((i) =>
+        tab === "inbox"
+          ? i.proposed_action?.action_type !== "broker_change_required"
+          : i.proposed_action?.action_type === "broker_change_required"
+      );
+      setSelectedId(remainingActive.length > 0 ? remainingActive[0].id : null);
       setEditingId(null);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
+  }
+
+  function toggleCheck(itemId: string, idx: number) {
+    setCheckedMap((prev) => {
+      const current = new Set(prev[itemId] ?? []);
+      if (current.has(idx)) current.delete(idx);
+      else current.add(idx);
+      return { ...prev, [itemId]: current };
+    });
   }
 
   function startEdit(item: InboxItem) {
@@ -635,89 +895,130 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
           borderRight: "1px solid var(--border)",
         }}
       >
-        {/* Header */}
+        {/* Header with tab bar */}
         <header
-          className="h-14 shrink-0 flex items-center justify-between px-4"
+          className="shrink-0 flex flex-col"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
-          <div className="flex items-center gap-2">
-            <span
-              className="text-[14px] font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              Inbox
+          {/* Title row */}
+          <div className="h-10 flex items-center justify-between px-4">
+            <span className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--text-tertiary)" }}>
+              from hollis
             </span>
-            {items.length > 0 && (
-              <span
-                className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums"
-                style={{
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                {items.length}
-              </span>
-            )}
           </div>
-          {/* From label */}
-          <span className="text-[10px] uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
-            from hollis
-          </span>
+          {/* Tabs */}
+          <div className="flex" style={{ borderTop: "1px solid var(--border)" }}>
+            {(["inbox", "todo"] as const).map((t) => {
+              const count = t === "inbox" ? inboxItems.length : todoItems.length;
+              const active = tab === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setTab(t);
+                    setSelectedId(null);
+                    setEditingId(null);
+                    setErrorMsg(null);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-medium transition-colors relative"
+                  style={{ color: active ? "var(--text-primary)" : "var(--text-tertiary)" }}
+                >
+                  {t === "inbox" ? "Inbox" : "To Do"}
+                  {count > 0 && (
+                    <span
+                      className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums"
+                      style={{
+                        background: active ? "var(--surface-raised)" : "transparent",
+                        border: "1px solid var(--border)",
+                        color: active ? "var(--text-tertiary)" : "var(--text-tertiary)",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                  {active && (
+                    <span
+                      className="absolute bottom-0 left-0 right-0 h-px"
+                      style={{ background: "var(--accent)" }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </header>
 
         {/* Message list */}
-        {items.length === 0 ? (
-          <InboxZero />
+        {tab === "inbox" ? (
+          inboxItems.length === 0 ? (
+            <InboxZero />
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              {inboxItems.map((item) => (
+                <InboxRow
+                  key={item.id}
+                  item={item}
+                  selected={item.id === selectedId}
+                  onClick={() => {
+                    setSelectedId(item.id);
+                    setEditingId(null);
+                  }}
+                />
+              ))}
+            </div>
+          )
         ) : (
-          <div className="flex-1 overflow-y-auto">
-            {items.map((item) => (
-              <InboxRow
-                key={item.id}
-                item={item}
-                selected={item.id === selectedId}
-                onClick={() => {
-                  setSelectedId(item.id);
-                  setEditingId(null);
-                }}
-              />
-            ))}
-          </div>
+          todoItems.length === 0 ? (
+            <TodoZero />
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              {todoItems.map((item) => (
+                <TodoRow
+                  key={item.id}
+                  item={item}
+                  selected={item.id === selectedId}
+                  onClick={() => setSelectedId(item.id)}
+                />
+              ))}
+            </div>
+          )
         )}
       </div>
 
       {/* ── Right: detail panel ────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Subheader */}
-        <header
-          className="h-14 shrink-0 flex items-center justify-between px-6"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <div className="flex items-center gap-2">
-            {selectedItem ? (
-              <>
-                <TierPill tier={selectedItem.tier} />
+        {/* Subheader — only shown for inbox tab */}
+        {tab === "inbox" && (
+          <header
+            className="h-14 shrink-0 flex items-center justify-between px-6"
+            style={{ borderBottom: "1px solid var(--border)" }}
+          >
+            <div className="flex items-center gap-2">
+              {selectedItem ? (
+                <>
+                  <TierPill tier={selectedItem.tier} />
+                  <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
+                    {selectedItem.policies?.policy_name}
+                  </span>
+                </>
+              ) : (
                 <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                  {selectedItem.policies?.policy_name}
+                  —
                 </span>
-              </>
-            ) : (
-              <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                —
-              </span>
+              )}
+            </div>
+            {selectedItem?.policies && (
+              <Link
+                href={`/renewals/${selectedItem.policies.id}`}
+                className="flex items-center gap-1 text-[11px] transition-opacity hover:opacity-60"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                {selectedItem.policies.client_name}
+                <ChevronRight size={11} />
+              </Link>
             )}
-          </div>
-          {selectedItem?.policies && (
-            <Link
-              href={`/renewals/${selectedItem.policies.id}`}
-              className="flex items-center gap-1 text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              {selectedItem.policies.client_name}
-              <ChevronRight size={11} />
-            </Link>
-          )}
-        </header>
+          </header>
+        )}
 
         {/* Error banner */}
         {errorMsg && (
@@ -734,7 +1035,20 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
           </div>
         )}
 
-        {selectedItem ? (
+        {tab === "todo" ? (
+          selectedItem ? (
+            <TodoDetailPanel
+              item={selectedItem}
+              busy={busy}
+              done={sentId === selectedItem.id}
+              checked={checkedMap[selectedItem.id] ?? new Set()}
+              onToggle={(idx) => toggleCheck(selectedItem.id, idx)}
+              onComplete={() => resolve(selectedItem.id, "approved")}
+            />
+          ) : (
+            <NothingSelected />
+          )
+        ) : selectedItem ? (
           <DetailPanel
             item={selectedItem}
             busy={busy}

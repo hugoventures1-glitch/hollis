@@ -26,7 +26,7 @@ import type {
   BrokerNotification,
   ProposedAction,
 } from "@/types/agent";
-import { ALWAYS_ESCALATE_INTENTS, KNOWN_AUTONOMOUS_INTENTS } from "@/types/agent";
+import { ALWAYS_BROKER_REVIEW_INTENTS, ALWAYS_ESCALATE_INTENTS, KNOWN_AUTONOMOUS_INTENTS } from "@/types/agent";
 
 // Policy fields needed by the tier router (minimal shape)
 export interface PolicyContext {
@@ -81,6 +81,10 @@ function buildProposedAction(intent: string, classification: ClassificationResul
       description: "Mark client as confirmed and advance campaign stage to 'confirmed'",
       action_type: "advance_stage",
     },
+    renewal_with_changes: {
+      description: "Client confirmed renewal but requested changes — update policy details before proceeding",
+      action_type: "broker_change_required",
+    },
     request_callback: {
       description: "Create broker callback task and pause the renewal sequence",
       action_type: "create_task_pause_sequence",
@@ -112,6 +116,9 @@ function buildProposedAction(intent: string, classification: ClassificationResul
       intent: classification.intent,
       confidence: classification.confidence,
       reasoning: classification.reasoning,
+      ...(intent === "renewal_with_changes" && classification.changes_requested?.length
+        ? { changes: classification.changes_requested }
+        : {}),
     },
   };
 }
@@ -229,6 +236,18 @@ export function routeTier(
       classification,
       policy,
       rawSignal
+    );
+  }
+
+  // ── TIER 2: Intents that always require broker action (not escalation) ───────
+  // e.g. renewal_with_changes — client confirmed renewal but broker must update
+  // policy details in the real world before the sequence can proceed.
+
+  if (ALWAYS_BROKER_REVIEW_INTENTS.includes(classification.intent)) {
+    return makeTier2(
+      `Intent "${classification.intent}" requires broker to complete real-world tasks before proceeding`,
+      flags,
+      classification
     );
   }
 
