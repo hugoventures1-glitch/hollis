@@ -20,7 +20,9 @@ import {
   generateCallScript,
 } from "@/lib/renewals/generate";
 import type { Policy, CampaignStage, TouchpointType } from "@/types/renewals";
+import { daysUntilExpiry } from "@/types/renewals";
 import { writeAuditLog } from "@/lib/audit/log";
+import { resolveTierRouting } from "@/lib/renewals/tier-routing";
 
 // Campaign stage → next touchpoint type mapping
 const STAGE_TO_TOUCHPOINT: Partial<Record<CampaignStage, TouchpointType>> = {
@@ -47,6 +49,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  const body = await _request.json().catch(() => ({}));
+  const override = body?.override === true;
 
   const supabase = await createClient();
   const {
@@ -109,6 +114,24 @@ export async function POST(
       { status: 400 }
     );
   }
+
+  // ── Tier routing gate ─────────────────────────────────────────────────────
+  const daysToExpiry = daysUntilExpiry(policy.expiration_date);
+  const tierResult = await resolveTierRouting(supabase, policy, touchpointType, daysToExpiry);
+
+  if (tierResult.tier === 3) {
+    return NextResponse.json(
+      { blocked: true, tier: 3, reason: tierResult.reason },
+      { status: 403 },
+    );
+  }
+  if (tierResult.tier === 2 && !override) {
+    return NextResponse.json(
+      { flagged: true, tier: 2, reason: tierResult.reason, mode: tierResult.mode },
+      { status: 200 },
+    );
+  }
+  // Tier 1, or Tier 2 with explicit override — proceed to send
 
   // ── Find or create the campaign touchpoint record ─────────────────────────
   const today = new Date().toISOString().split("T")[0];
@@ -245,7 +268,10 @@ export async function POST(
       touchpoint_type: touchpointType,
       subject: subject ?? null,
       provider_id: providerId,
-      triggered_by: "agent",
+      triggered_by: "manual",
+      tier: tierResult.tier,
+      tier_mode: tierResult.mode,
+      override_used: override,
     },
     actor_type: "agent",
   });
@@ -260,6 +286,20 @@ export async function POST(
     })
     .eq("id", policy.id)
     .eq("user_id", user.id);
+
+  // ── Record in parser_outcomes (contributes to learning-mode graduation) ──
+  void supabase.from("parser_outcomes").insert({
+    renewal_id: policy.id,
+    signal_id: null,
+    user_id: user.id,
+    raw_signal: `manual_send:${touchpointType}`,
+    classified_intent: "manual_send",
+    confidence_score: 1.0,
+    broker_action: "approved",
+    final_intent: "manual_send",
+    original_body: null,
+    edited_body: null,
+  });
 
   return NextResponse.json({
     success: true,

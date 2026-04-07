@@ -145,6 +145,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
   const { toast }          = useToast();
   const router             = useRouter();
   const [loading, setLoading] = useState(false);
+  const [pendingOverride, setPendingOverride] = useState<string | null>(null);
 
   const days           = daysUntilExpiry(policy.expiration_date);
   const effectiveStage = optimisticStage ?? policy.campaign_stage;
@@ -171,13 +172,42 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
     if (predictedStage) onStageUpdate(policy.id, predictedStage);
 
     try {
-      const res  = await fetch(`/api/actions/renew/${policy.id}`, { method: "POST" });
+      const hasOverride = pendingOverride !== null;
+      const res = await fetch(`/api/actions/renew/${policy.id}`, {
+        method: "POST",
+        ...(hasOverride && {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ override: true }),
+        }),
+      });
       const data = await res.json();
+
+      // Tier 3: hard block — no retry
+      if (data.blocked) {
+        onStageRevert(policy.id);
+        setPendingOverride(null);
+        toast(`Blocked — ${data.reason}`, "error");
+        return;
+      }
+
+      // Tier 2: surface flags, require re-click
+      if (data.flagged) {
+        onStageRevert(policy.id);
+        setPendingOverride(data.reason);
+        toast(`Review required — ${data.reason}. Click again to confirm.`, "info");
+        return;
+      }
+
+      // Generic error
       if (!res.ok || data.error) {
         onStageRevert(policy.id);
+        setPendingOverride(null);
         toast(data.error ?? "Action failed", "error");
         return;
       }
+
+      // Success (Tier 1 or Tier 2 override)
+      setPendingOverride(null);
       if (data.newStage) onStageUpdate(policy.id, data.newStage as CampaignStage);
       toast(
         toastMessageForAction(data.channel, data.recipient, data.newStage, policy.client_name),
@@ -185,11 +215,12 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
       );
     } catch {
       onStageRevert(policy.id);
+      setPendingOverride(null);
       toast("Connection error — please try again", "error");
     } finally {
       setLoading(false);
     }
-  }, [canSend, loading, effectiveStage, policy, onStageUpdate, onStageRevert, toast]);
+  }, [canSend, loading, pendingOverride, effectiveStage, policy, onStageUpdate, onStageRevert, toast]);
 
   const dColor = urgencyColor(days);
   const expiry = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", {
@@ -323,10 +354,10 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
 
         {canSend ? (
           <ActionButton
-            label={SEND_LABEL[effectiveStage]}
+            label={pendingOverride !== null ? `Confirm ${SEND_LABEL[effectiveStage]}` : SEND_LABEL[effectiveStage]}
             onClick={handleSendNow as unknown as () => void}
             loading={loading}
-            variant="default"
+            variant={pendingOverride !== null ? "ghost" : "default"}
           />
         ) : (
           <div

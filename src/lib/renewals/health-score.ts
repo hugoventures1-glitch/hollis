@@ -31,12 +31,18 @@ export interface ScoredPolicyInput {
 // ── Scoring tables ────────────────────────────────────────────────────────────
 
 const STAGE_PTS: Record<string, number> = {
-  complete:        40,
-  script_14_ready: 30,
-  sms_30_sent:     25,
-  email_60_sent:   15,
-  email_90_sent:    5,
-  pending:          0,
+  confirmed:           40,
+  complete:            40,
+  recommendation_sent: 35,
+  submission_sent:     30,
+  script_14_ready:     30,
+  questionnaire_sent:  28,
+  sms_30_sent:         25,
+  email_60_sent:       15,
+  final_notice_sent:   10,
+  email_90_sent:        5,
+  lapsed:               0,
+  pending:              0,
 };
 
 function expiryPoints(days: number): number {
@@ -83,7 +89,7 @@ export function computeHealthScore(
 
   const stalled =
     score <= 50 &&
-    policy.campaign_stage !== "complete" &&
+    !["complete", "confirmed", "lapsed"].includes(policy.campaign_stage) &&
     days <= 60 &&
     (lastContact === null || lastContact < twentyOneDaysAgo);
 

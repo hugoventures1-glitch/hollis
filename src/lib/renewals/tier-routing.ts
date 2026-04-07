@@ -25,17 +25,13 @@
 
 import type { Policy, TouchpointType } from "@/types/renewals";
 import type { RenewalFlags } from "@/types/agent";
-
-// ── Config ────────────────────────────────────────────────────────────────────
-
-/** Broker-approved send outcomes required before leaving learning mode. */
-const CONFIDENCE_THRESHOLD = 20;
-
-/**
- * Days after a sent email with no client response before the client is
- * automatically flagged as silent.
- */
-const SILENT_DAYS = 21;
+import {
+  LEARNING_MODE_THRESHOLD,
+  PREMIUM_INCREASE_TIER2_PCT,
+  PREMIUM_INCREASE_TIER3_PCT,
+  SILENT_CLIENT_DAYS,
+} from "@/lib/agent/tier-constants";
+import { getBrokerTrustLevel } from "@/lib/agent/broker-trust";
 
 // ── Return type ───────────────────────────────────────────────────────────────
 
@@ -73,6 +69,9 @@ export async function resolveTierRouting(
   if (flags.business_restructure)
     return tier(3, "Business restructure flagged — broker must review before any send", "autonomous", {});
 
+  if (flags.premium_increase_pct !== null && flags.premium_increase_pct !== undefined && flags.premium_increase_pct > PREMIUM_INCREASE_TIER3_PCT)
+    return tier(3, `Premium has increased ${flags.premium_increase_pct}% — exceeds ${PREMIUM_INCREASE_TIER3_PCT}% hard stop`, "autonomous", {});
+
   // ── Auto-detect flags from policy history ─────────────────────────────────
   const detected: Partial<RenewalFlags> = {};
 
@@ -95,22 +94,12 @@ export async function resolveTierRouting(
   const effective = { ...flags, ...detected };
 
   // ── Check broker confidence level ─────────────────────────────────────────
-  // Count how many outbound send decisions the broker has approved so far.
-  // "send_*" intents are the ones created by this cron (e.g. "send_email_90").
-  const { count: approvedCount } = await supabase
-    .from("parser_outcomes")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", policy.user_id)
-    .eq("broker_action", "approved")
-    .like("classified_intent", "send_%");
-
-  const approved = approvedCount ?? 0;
-  const isLearning = approved < CONFIDENCE_THRESHOLD;
+  const { isLearning, approvedCount: approved } = await getBrokerTrustLevel(supabase, policy.user_id);
 
   if (isLearning) {
     return tier(
       2,
-      `Learning mode — ${approved}/${CONFIDENCE_THRESHOLD} approvals recorded. ` +
+      `Learning mode — ${approved}/${LEARNING_MODE_THRESHOLD} approvals recorded. ` +
         `All sends routed for broker confirmation until the confidence baseline is established.`,
       "learning",
       detected,
@@ -124,7 +113,7 @@ export async function resolveTierRouting(
   if (effective.third_party_contact)
     return tier(2, "Reply received from a non-policy contact — verify before sending", "autonomous", detected);
 
-  if (effective.premium_increase_pct !== null && effective.premium_increase_pct !== undefined && effective.premium_increase_pct >= 25)
+  if (effective.premium_increase_pct !== null && effective.premium_increase_pct !== undefined && effective.premium_increase_pct >= PREMIUM_INCREASE_TIER2_PCT)
     return tier(
       2,
       `Premium increase of ${effective.premium_increase_pct}% detected — broker review required before client contact`,
@@ -171,7 +160,7 @@ async function detectSilentClient(supabase: any, policy: Policy): Promise<boolea
   const daysSince = Math.floor(
     (Date.now() - new Date(lastSend.sent_at).getTime()) / 86_400_000,
   );
-  if (daysSince < SILENT_DAYS) return false;
+  if (daysSince < SILENT_CLIENT_DAYS) return false;
 
   // Check for any client-side engagement event after the last send
   const { data: response } = await supabase

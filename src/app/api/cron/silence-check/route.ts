@@ -229,7 +229,9 @@ export async function GET(request: NextRequest) {
     });
 
     // 5. Send broker alert email via Tier 3 notification path
-    const silenceDecision = routeTier(
+    const silenceDecision = await routeTier(
+      supabase,
+      policy.user_id,
       updatedFlags,
       {
         intent: "silence_detected",

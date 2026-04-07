@@ -29,6 +29,9 @@ import { writeAuditLog } from "@/lib/audit/log";
 import { logAction, retainStandard } from "@/lib/logAction";
 import { resolveTierRouting } from "@/lib/renewals/tier-routing";
 import { draftDocumentChaseSequence } from "@/lib/doc-chase/generate";
+import { generateInsuranceSubmission } from "@/lib/renewals/submission";
+import { generateRecommendationPack } from "@/lib/renewals/recommendation-pack";
+import type { InsurerTerms } from "@/types/renewals";
 
 const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_90: "email_90_sent",
@@ -272,14 +275,19 @@ export async function GET(request: NextRequest) {
       // > 90 days: nothing due yet
     } else {
       // Sequential: fire next due touchpoint in priority order (first match wins)
-      if (days <= 14 && ["email_90_sent", "email_60_sent", "sms_30_sent"].includes(policy.campaign_stage)) {
+      if (days <= 14 && ["email_90_sent", "email_60_sent", "sms_30_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("script_14");
-      } else if (days <= 30 && ["email_90_sent", "email_60_sent"].includes(policy.campaign_stage)) {
+      } else if (days <= 30 && ["email_90_sent", "email_60_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("sms_30");
-      } else if (days <= 60 && policy.campaign_stage === "email_90_sent") {
+      } else if (days <= 60 && ["email_90_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("email_60");
-      } else if (policy.campaign_stage === "script_14_ready") {
+      } else if (policy.campaign_stage === "email_90_sent") {
+        // > 60 days out: questionnaire fires right after the 90-day intro email
         dueTouchpointTypes.push("questionnaire_90");
+      } else if (policy.campaign_stage === "script_14_ready") {
+        dueTouchpointTypes.push("submission_60");
+      } else if (policy.campaign_stage === "submission_sent") {
+        dueTouchpointTypes.push("recommendation_30");
       }
     }
 
@@ -420,6 +428,55 @@ export async function GET(request: NextRequest) {
             draftBody = await generateSMSMessage(policy, ctx);
           } else if (type === "script_14") {
             draftBody = await generateCallScript(policy, ctx);
+          } else if (type === "submission_60") {
+            const [
+              { data: t2Client },
+              { data: t2Questionnaires },
+              { data: t2LatestCheck },
+              { data: t2PriorTerms },
+              { data: t2SubProfile },
+            ] = await Promise.all([
+              supabase.from("clients").select("name, business_type, industry, num_employees, annual_revenue, owns_vehicles, num_locations, primary_state, notes").eq("user_id", policy.user_id).ilike("name", `%${policy.client_name}%`).maybeSingle(),
+              supabase.from("renewal_questionnaires").select("responses").eq("policy_id", policy.id).eq("user_id", policy.user_id).eq("status", "responded").order("responded_at", { ascending: false }).limit(1),
+              supabase.from("policy_checks").select("id").eq("user_id", policy.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+              supabase.from("insurer_terms").select("insurer_name, quoted_premium, payment_terms, new_exclusions, changed_conditions").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: false }),
+              supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, agency_afsl, email_from_name, email").eq("user_id", policy.user_id).maybeSingle(),
+            ]);
+            let t2AuditFlags: Array<{ severity: string; title: string; what_found: string; why_it_matters?: string | null }> = [];
+            if (t2LatestCheck) {
+              const { data: t2Flags } = await supabase.from("policy_check_flags").select("severity, title, what_found, why_it_matters").eq("policy_check_id", t2LatestCheck.id).in("severity", ["critical", "warning"]).order("severity");
+              t2AuditFlags = t2Flags ?? [];
+            }
+            const t2AgentName = t2SubProfile ? [t2SubProfile.first_name, t2SubProfile.last_name].filter(Boolean).join(" ") || "Your Broker" : "Your Broker";
+            const t2Generated = await generateInsuranceSubmission({
+              policy,
+              client: t2Client ?? null,
+              questionnaireResponses: (t2Questionnaires?.[0]?.responses ?? null) as Record<string, string> | null,
+              auditFlags: t2AuditFlags,
+              priorTerms: t2PriorTerms ?? [],
+              agentName: t2AgentName,
+              agentEmail: t2SubProfile?.email ?? policy.agent_email ?? "",
+              agentPhone: t2SubProfile?.phone ?? null,
+              agencyName: t2SubProfile?.agency_name ?? null,
+              agencyAfsl: t2SubProfile?.agency_afsl ?? null,
+            });
+            draftSubject = t2Generated.subject;
+            draftBody = t2Generated.body;
+          } else if (type === "recommendation_30") {
+            const [{ data: t2RecTerms }, { data: t2RecProfile }] = await Promise.all([
+              supabase.from("insurer_terms").select("*").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: true }),
+              supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, email_from_name, agency_afsl, email").eq("user_id", policy.user_id).maybeSingle(),
+            ]);
+            if (t2RecTerms && t2RecTerms.length > 0 && t2RecProfile?.agency_afsl?.trim()) {
+              const t2RecAgentName = [t2RecProfile.first_name, t2RecProfile.last_name].filter(Boolean).join(" ") || "Your Broker";
+              const t2Pack = await generateRecommendationPack(policy, t2RecTerms as InsurerTerms[], t2RecAgentName, t2RecProfile.email ?? policy.agent_email ?? "", t2RecProfile.phone ?? null);
+              const t2Disclosure = `\n\n---\n\nIMPORTANT DISCLOSURE\n\nThis recommendation has been prepared by ${t2RecProfile.agency_name ?? "Your Broker"} (AFSL ${t2RecProfile.agency_afsl}) as general advice only. It does not take into account your individual objectives, financial situation or needs. Before acting on this advice, you should consider whether it is appropriate for your circumstances.`;
+              draftSubject = t2Pack.subject;
+              draftBody = t2Pack.body + t2Disclosure;
+            } else {
+              const expiryFmt = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+              draftBody = `Dear ${policy.client_name},\n\nFollowing our renewal review for your ${policy.policy_name} due on ${expiryFmt}, we have prepared our recommendation for the upcoming renewal.\n\nPlease expect to hear from us shortly with the full recommendation pack.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
+            }
           }
         } catch (genErr) {
           console.error("[cron/renewals] Draft generation failed for Tier 2:", genErr instanceof Error ? genErr.message : genErr);
@@ -434,7 +491,7 @@ export async function GET(request: NextRequest) {
           user_id: policy.user_id,
           signal_id: null,
           classified_intent: `send_${type}`,
-          confidence_score: 0.95,
+          confidence_score: null,
           raw_signal_snippet: tierReason,
           proposed_action: {
             description: `Send ${touchpointLabel} to ${policy.client_name} (${draftChannel === "sms" ? (policy.client_phone ?? "no phone") : (policy.client_email ?? "no email")}). Flagged: ${tierReason}.`,
@@ -745,6 +802,70 @@ async function fireTouchpoint(
       replyTo: qBrokerProfile?.email ?? undefined,
     });
     providerId = qSent?.id ?? null;
+    channel = "email";
+  } else if (type === "submission_60") {
+    const [
+      { data: subClient },
+      { data: subQuestionnaires },
+      { data: subLatestCheck },
+      { data: subPriorTerms },
+      { data: subProfile },
+    ] = await Promise.all([
+      supabase.from("clients").select("name, business_type, industry, num_employees, annual_revenue, owns_vehicles, num_locations, primary_state, notes").eq("user_id", policy.user_id).ilike("name", `%${policy.client_name}%`).maybeSingle(),
+      supabase.from("renewal_questionnaires").select("responses").eq("policy_id", policy.id).eq("user_id", policy.user_id).eq("status", "responded").order("responded_at", { ascending: false }).limit(1),
+      supabase.from("policy_checks").select("id").eq("user_id", policy.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("insurer_terms").select("insurer_name, quoted_premium, payment_terms, new_exclusions, changed_conditions").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: false }),
+      supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, agency_afsl, email_from_name, email").eq("user_id", policy.user_id).maybeSingle(),
+    ]);
+    let subAuditFlags: Array<{ severity: string; title: string; what_found: string; why_it_matters?: string | null }> = [];
+    if (subLatestCheck) {
+      const { data: subFlags } = await supabase.from("policy_check_flags").select("severity, title, what_found, why_it_matters").eq("policy_check_id", subLatestCheck.id).in("severity", ["critical", "warning"]).order("severity");
+      subAuditFlags = subFlags ?? [];
+    }
+    const subAgentName = subProfile ? [subProfile.first_name, subProfile.last_name].filter(Boolean).join(" ") || "Your Broker" : "Your Broker";
+    const subAgentEmail = subProfile?.email ?? policy.agent_email ?? "";
+    if (!subAgentEmail) throw new Error("No broker email — cannot deliver submission");
+    const submission = await generateInsuranceSubmission({
+      policy,
+      client: subClient ?? null,
+      questionnaireResponses: (subQuestionnaires?.[0]?.responses ?? null) as Record<string, string> | null,
+      auditFlags: subAuditFlags,
+      priorTerms: subPriorTerms ?? [],
+      agentName: subAgentName,
+      agentEmail: subAgentEmail,
+      agentPhone: subProfile?.phone ?? null,
+      agencyName: subProfile?.agency_name ?? null,
+      agencyAfsl: subProfile?.agency_afsl ?? null,
+    });
+    subject = submission.subject;
+    content = submission.body;
+    const subBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
+    const subFrom = subProfile?.email_from_name ? `${subProfile.email_from_name} <${subBaseFrom}>` : subBaseFrom;
+    const { data: subSent } = await resend.emails.send({ from: subFrom, to: subAgentEmail, subject, text: content });
+    providerId = subSent?.id ?? null;
+    channel = "email";
+  } else if (type === "recommendation_30") {
+    if (!policy.client_email) throw new Error("No client email on record for recommendation");
+    const [{ data: recTerms }, { data: recProfile }] = await Promise.all([
+      supabase.from("insurer_terms").select("*").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: true }),
+      supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, email_from_name, agency_afsl, email").eq("user_id", policy.user_id).maybeSingle(),
+    ]);
+    const recBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
+    const recFrom = recProfile?.email_from_name ? `${recProfile.email_from_name} <${recBaseFrom}>` : recBaseFrom;
+    if (recTerms && recTerms.length > 0 && recProfile?.agency_afsl?.trim()) {
+      const recAgentName = [recProfile.first_name, recProfile.last_name].filter(Boolean).join(" ") || "Your Broker";
+      const pack = await generateRecommendationPack(policy, recTerms as InsurerTerms[], recAgentName, recProfile.email ?? policy.agent_email ?? "", recProfile.phone ?? null);
+      const disclosure = `\n\n---\n\nIMPORTANT DISCLOSURE\n\nThis recommendation has been prepared by ${recProfile.agency_name ?? "Your Broker"} (AFSL ${recProfile.agency_afsl}) as general advice only. It does not take into account your individual objectives, financial situation or needs. Before acting on this advice, you should consider whether it is appropriate for your circumstances.`;
+      subject = pack.subject;
+      content = pack.body + disclosure;
+    } else {
+      console.warn(`[cron/renewals] recommendation_30 fallback for policy ${policy.id}: terms=${recTerms?.length ?? 0}, afsl=${!!recProfile?.agency_afsl}`);
+      const recExpiry = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+      subject = `Your ${policy.policy_name} renewal recommendation`;
+      content = `Dear ${policy.client_name},\n\nFollowing our review of your ${policy.policy_name} due for renewal on ${recExpiry}, we have prepared our renewal recommendation for you.\n\nPlease review the recommendation and let us know if you have any questions or would like to proceed.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
+    }
+    const { data: recSent } = await resend.emails.send({ from: recFrom, to: policy.client_email, subject, text: content });
+    providerId = recSent?.id ?? null;
     channel = "email";
   }
 

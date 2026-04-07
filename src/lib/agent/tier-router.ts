@@ -27,6 +27,12 @@ import type {
   ProposedAction,
 } from "@/types/agent";
 import { ALWAYS_BROKER_REVIEW_INTENTS, ALWAYS_ESCALATE_INTENTS, KNOWN_AUTONOMOUS_INTENTS } from "@/types/agent";
+import {
+  LEARNING_MODE_THRESHOLD,
+  PREMIUM_INCREASE_TIER2_PCT,
+  PREMIUM_INCREASE_TIER3_PCT,
+} from "@/lib/agent/tier-constants";
+import { getBrokerTrustLevel } from "@/lib/agent/broker-trust";
 
 // Policy fields needed by the tier router (minimal shape)
 export interface PolicyContext {
@@ -165,12 +171,15 @@ function makeTier1(
 
 // ── Main router ────────────────────────────────────────────────────────────────
 
-export function routeTier(
+export async function routeTier(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
   flags: RenewalFlags,
   classification: ClassificationResult,
   policy: PolicyContext,
   rawSignal: string
-): TierDecision {
+): Promise<TierDecision> {
   // ── TIER 3: Hardcoded flag triggers ──────────────────────────────────────────
   // These checks are immutable. No amount of confidence can override them.
 
@@ -194,14 +203,23 @@ export function routeTier(
     );
   }
 
-  if (flags.premium_increase_pct !== null && flags.premium_increase_pct > 20) {
-    return makeTier3(
-      `Premium has increased ${flags.premium_increase_pct}% on ${policy.policy_name}. Client communication requires broker review.`,
-      flags,
-      classification,
-      policy,
-      rawSignal
-    );
+  if (flags.premium_increase_pct !== null) {
+    if (flags.premium_increase_pct > PREMIUM_INCREASE_TIER3_PCT) {
+      return makeTier3(
+        `Premium has increased ${flags.premium_increase_pct}% on ${policy.policy_name}. Exceeds ${PREMIUM_INCREASE_TIER3_PCT}% hard stop threshold.`,
+        flags,
+        classification,
+        policy,
+        rawSignal
+      );
+    }
+    if (flags.premium_increase_pct >= PREMIUM_INCREASE_TIER2_PCT) {
+      return makeTier2(
+        `Premium increase of ${flags.premium_increase_pct}% on ${policy.policy_name} — in review band (${PREMIUM_INCREASE_TIER2_PCT}–${PREMIUM_INCREASE_TIER3_PCT}%). Broker review required.`,
+        flags,
+        classification
+      );
+    }
   }
 
   if (flags.business_restructure) {
@@ -292,6 +310,18 @@ export function routeTier(
   if (classification.confidence < 0.6) {
     return makeTier2(
       `Confidence ${(classification.confidence * 100).toFixed(0)}% — below actionable threshold, broker decision required`,
+      flags,
+      classification
+    );
+  }
+
+  // ── Learning mode: hold Tier 1 candidates for broker review ──────────────────
+  // A broker in learning mode must review even high-confidence autonomous actions
+  // so the confidence baseline is built through real broker approvals.
+  const { isLearning, approvedCount } = await getBrokerTrustLevel(supabase, userId);
+  if (isLearning) {
+    return makeTier2(
+      `Learning mode — ${approvedCount}/${LEARNING_MODE_THRESHOLD} approvals recorded. Autonomous action held for broker confirmation until confidence baseline is established.`,
       flags,
       classification
     );
