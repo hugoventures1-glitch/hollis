@@ -189,6 +189,7 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
               renewal_paused: p.renewal_paused ?? false,
               renewal_paused_until: p.renewal_paused_until ?? null,
               renewal_manual_override: p.renewal_manual_override ?? null,
+              require_approval: p.require_approval ?? false,
               campaign_stage: p.campaign_stage,
             }}
           />

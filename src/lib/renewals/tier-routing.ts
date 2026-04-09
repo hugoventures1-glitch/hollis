@@ -72,6 +72,10 @@ export async function resolveTierRouting(
   if (flags.premium_increase_pct !== null && flags.premium_increase_pct !== undefined && flags.premium_increase_pct > PREMIUM_INCREASE_TIER3_PCT)
     return tier(3, `Premium has increased ${flags.premium_increase_pct}% — exceeds ${PREMIUM_INCREASE_TIER3_PCT}% hard stop`, "autonomous", {});
 
+  // ── High-touch client override — always queue, even in autonomous mode ────
+  if (policy.require_approval)
+    return tier(2, "High-touch client — broker sign-off required on all communications", "autonomous", {});
+
   // ── Auto-detect flags from policy history ─────────────────────────────────
   const detected: Partial<RenewalFlags> = {};
 

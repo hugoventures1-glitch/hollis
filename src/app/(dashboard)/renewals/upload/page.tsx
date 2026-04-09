@@ -19,6 +19,7 @@ const OPTIONAL_FIELDS: (keyof CSVPolicyRow)[] = [
   "carrier",
   "client_phone",
   "premium",
+  "policy_type",
 ];
 const ALL_FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
@@ -30,6 +31,7 @@ const FIELD_LABELS: Record<keyof CSVPolicyRow, string> = {
   carrier:         "Carrier",
   client_phone:    "Client Phone",
   premium:         "Premium ($)",
+  policy_type:     "Policy Type",
 };
 
 function parseCSV(text: string): { headers: string[]; rows: string[][] } {
@@ -53,6 +55,7 @@ function autoMapColumns(csvHeaders: string[]): ColumnMapping {
     carrier:         ["carrier", "insurance carrier", "insurer", "company", "insurance company", "provider", "underwriter"],
     client_phone:    ["client phone", "phone", "phone number", "mobile", "cell", "telephone", "contact number"],
     premium:         ["premium", "annual premium", "amount", "price", "total premium", "premium amount"],
+    policy_type:     ["policy type", "type", "cover type", "coverage type", "product type", "insurance type"],
   };
 
   for (const csvHeader of csvHeaders) {

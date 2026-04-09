@@ -71,6 +71,7 @@ export async function PATCH(
     "renewal_paused",
     "renewal_paused_until",
     "renewal_manual_override",
+    "require_approval",
   ];
   const updates: Record<string, unknown> = {};
   for (const field of allowedFields) {

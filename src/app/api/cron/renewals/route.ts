@@ -21,8 +21,8 @@ import {
   generateCallScript,
   type GenerateContext,
 } from "@/lib/renewals/generate";
-import { daysUntilExpiry } from "@/types/renewals";
-import type { Policy, CampaignTouchpoint, TouchpointType } from "@/types/renewals";
+import { daysUntilExpiry, resolveLeadTimes } from "@/types/renewals";
+import type { Policy, CampaignTouchpoint, TouchpointType, LeadTimeConfig, LeadTimes } from "@/types/renewals";
 import { refreshPolicyHealthScore } from "@/lib/renewals/health-score";
 import { isSendThrottled } from "@/lib/cron/throttle";
 import { writeAuditLog } from "@/lib/audit/log";
@@ -98,6 +98,24 @@ export async function GET(request: NextRequest) {
         .eq("id", runId);
     }
     return NextResponse.json({ error: policiesError.message }, { status: 500 });
+  }
+
+  // Pre-load all lead time configs across all brokers (service role bypasses RLS).
+  // Keyed by user_id → policy_type for O(1) lookup per policy.
+  const { data: allLeadTimeRows } = await supabase
+    .from("renewal_lead_time_configs")
+    .select("*");
+
+  const leadTimeConfigMap = new Map<string, Map<string, LeadTimeConfig>>();
+  for (const cfg of (allLeadTimeRows ?? []) as LeadTimeConfig[]) {
+    if (!leadTimeConfigMap.has(cfg.user_id)) {
+      leadTimeConfigMap.set(cfg.user_id, new Map());
+    }
+    leadTimeConfigMap.get(cfg.user_id)!.set(cfg.policy_type.toLowerCase(), cfg);
+  }
+
+  function getLeadTimes(policy: Policy): LeadTimes {
+    return resolveLeadTimes(policy.policy_type, leadTimeConfigMap.get(policy.user_id) ?? new Map());
   }
 
   // Build a per-broker context cache (standing_orders + client notes) so we
@@ -266,20 +284,22 @@ export async function GET(request: NextRequest) {
     //    preventing same-day email + SMS stacking.
     const dueTouchpointTypes: TouchpointType[] = [];
 
+    const lt = getLeadTimes(policy);
+
     if (policy.campaign_stage === "pending") {
       // Catch-up: pick the single best-fit touchpoint for today's window
-      if      (days <= 14) dueTouchpointTypes.push("script_14");
-      else if (days <= 30) dueTouchpointTypes.push("sms_30");
-      else if (days <= 60) dueTouchpointTypes.push("email_60");
-      else if (days <= 90) dueTouchpointTypes.push("email_90");
-      // > 90 days: nothing due yet
+      if      (days <= lt.offset_call)    dueTouchpointTypes.push("script_14");
+      else if (days <= lt.offset_sms)     dueTouchpointTypes.push("sms_30");
+      else if (days <= lt.offset_email_2) dueTouchpointTypes.push("email_60");
+      else if (days <= lt.offset_email_1) dueTouchpointTypes.push("email_90");
+      // > offset_email_1 days: nothing due yet
     } else {
       // Sequential: fire next due touchpoint in priority order (first match wins)
-      if (days <= 14 && ["email_90_sent", "email_60_sent", "sms_30_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
+      if (days <= lt.offset_call && ["email_90_sent", "email_60_sent", "sms_30_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("script_14");
-      } else if (days <= 30 && ["email_90_sent", "email_60_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
+      } else if (days <= lt.offset_sms && ["email_90_sent", "email_60_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("sms_30");
-      } else if (days <= 60 && ["email_90_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
+      } else if (days <= lt.offset_email_2 && ["email_90_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("email_60");
       } else if (policy.campaign_stage === "email_90_sent") {
         // > 60 days out: questionnaire fires right after the 90-day intro email

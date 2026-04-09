@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Building2, Mail, Bell, Settings, Upload, Bot } from "lucide-react";
+import { User, Building2, Mail, Bell, Settings, Upload, Bot, Clock } from "lucide-react";
 import type { AgentProfile } from "@/types/settings";
 import { ProfileSection } from "./ProfileSection";
 import { AgencySection } from "./AgencySection";
@@ -11,8 +11,9 @@ import { NotificationsSection } from "./NotificationsSection";
 import { AccountSection } from "./AccountSection";
 import { ImportSection } from "./ImportSection";
 import { HollisSection } from "./HollisSection";
+import { LeadTimesSection } from "./LeadTimesSection";
 
-type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "account" | "import";
+type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "renewals" | "account" | "import";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "hollis",        label: "Hollis",             icon: Bot       },
@@ -20,11 +21,12 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "agency",        label: "Agency",             icon: Building2 },
   { id: "email",         label: "Email & Signatures", icon: Mail      },
   { id: "notifications", label: "Notifications",      icon: Bell      },
+  { id: "renewals",      label: "Renewal Timing",     icon: Clock     },
   { id: "account",       label: "Account",            icon: Settings  },
   { id: "import",        label: "Import Data",        icon: Upload    },
 ];
 
-const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "notifications", "account", "import"];
+const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "notifications", "renewals", "account", "import"];
 
 interface Props {
   profile: Partial<AgentProfile>;
@@ -99,6 +101,9 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
             )}
             {activeTab === "notifications" && (
               <NotificationsSection profile={profile} />
+            )}
+            {activeTab === "renewals" && (
+              <LeadTimesSection />
             )}
             {activeTab === "account" && (
               <AccountSection planName={planName} />

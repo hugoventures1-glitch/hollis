@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { CSVPolicyRow, TouchpointType } from "@/types/renewals";
-import { touchpointScheduledDate } from "@/types/renewals";
+import type { CSVPolicyRow, TouchpointType, LeadTimeConfig } from "@/types/renewals";
+import { touchpointScheduledDate, resolveLeadTimes } from "@/types/renewals";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -49,10 +49,22 @@ export async function POST(request: NextRequest) {
     "script_14",
   ];
 
+  // Load this broker's lead time configs once — used to compute correct scheduled_at per policy type
+  const { data: leadTimeRows } = await supabase
+    .from("renewal_lead_time_configs")
+    .select("*")
+    .eq("user_id", user.id);
+
+  const leadTimeMap = new Map<string, LeadTimeConfig>(
+    (leadTimeRows ?? []).map((c: LeadTimeConfig) => [c.policy_type.toLowerCase(), c])
+  );
+
   let inserted = 0;
   const errors: string[] = [];
 
   for (const row of policies) {
+    const policyType = row.policy_type?.trim().toLowerCase() || null;
+
     // Insert policy
     const { data: policy, error: pErr } = await supabase
       .from("policies")
@@ -65,6 +77,7 @@ export async function POST(request: NextRequest) {
         expiration_date: row.expiration_date,
         carrier: row.carrier?.trim() || null,
         premium: row.premium ?? null,
+        policy_type: policyType,
         status: "active",
         campaign_stage: "pending",
       })
@@ -76,9 +89,10 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    // Create 4 touchpoints — skip any already past
+    // Create 4 touchpoints using the configured lead times for this policy type
+    const lt = resolveLeadTimes(policyType, leadTimeMap);
     const touchpoints = TOUCHPOINT_TYPES.map((type) => {
-      const scheduledAt = touchpointScheduledDate(row.expiration_date, type);
+      const scheduledAt = touchpointScheduledDate(row.expiration_date, type, lt);
       return {
         policy_id: policy.id,
         user_id: user.id,

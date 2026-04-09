@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PauseCircle, PlayCircle, CheckCircle2, AlertTriangle, BadgeCheck } from "lucide-react";
+import { PauseCircle, PlayCircle, CheckCircle2, AlertTriangle, BadgeCheck, ShieldCheck } from "lucide-react";
 import { useToast } from "@/components/actions/MicroToast";
 import type { Policy, CampaignStage } from "@/types/renewals";
 
 const TERMINAL_STAGES: CampaignStage[] = ["confirmed", "lapsed", "complete"];
 
 interface RenewalOverrideControlsProps {
-  policy: Pick<Policy, "id" | "renewal_paused" | "renewal_paused_until" | "renewal_manual_override" | "campaign_stage">;
+  policy: Pick<Policy, "id" | "renewal_paused" | "renewal_paused_until" | "renewal_manual_override" | "require_approval" | "campaign_stage">;
 }
 
 export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps) {
@@ -105,11 +105,34 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
 
   const canConfirm = !TERMINAL_STAGES.includes(policy.campaign_stage as CampaignStage);
 
+  const handleToggleRequireApproval = () => {
+    startTransition(async () => {
+      try {
+        await patch({ require_approval: !policy.require_approval });
+        toast(policy.require_approval ? "High-touch mode disabled" : "High-touch mode enabled — all communications will require approval");
+        router.refresh();
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Failed to update", "error");
+      }
+    });
+  };
+
   return (
     <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-4">
       <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest">
         Campaign Controls
       </div>
+
+      {/* High-touch notice */}
+      {policy.require_approval && (
+        <div className="flex items-start gap-3 rounded-lg bg-[#1a1200] border border-[#3d2e00] px-4 py-3">
+          <ShieldCheck size={14} className="text-[#f59e0b] shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-medium text-[#f59e0b]">High-touch client</div>
+            <div className="text-[12px] text-[#f59e0b]/70 mt-0.5">All outbound messages will appear in your inbox for approval before sending.</div>
+          </div>
+        </div>
+      )}
 
       {/* Manual override notice */}
       {policy.renewal_manual_override && (
@@ -179,6 +202,19 @@ export function RenewalOverrideControls({ policy }: RenewalOverrideControlsProps
             Mark Manually Handled
           </button>
         )}
+
+        <button
+          onClick={handleToggleRequireApproval}
+          disabled={isPending}
+          className={`flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+            policy.require_approval
+              ? "bg-[#3d2e00] text-[#f59e0b] hover:bg-[#4a3800]"
+              : "bg-[#ffffff06] text-[#8a8a8a] hover:bg-[#ffffff0a] hover:text-[#FAFAFA]"
+          }`}
+        >
+          <ShieldCheck size={13} />
+          {policy.require_approval ? "High-touch On" : "Require Approval"}
+        </button>
 
         {canConfirm && (
           <button

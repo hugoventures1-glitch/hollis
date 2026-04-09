@@ -53,6 +53,7 @@ export interface Policy {
   renewal_paused?: boolean;
   renewal_paused_until?: string | null;
   renewal_manual_override?: string | null;
+  require_approval?: boolean;
   // ── Health score (computed, refreshed by cron + refresh API) ──────────────
   health_score?: number | null;
   health_label?: HealthLabel | null;
@@ -63,6 +64,8 @@ export interface Policy {
   lapsed_at?: string | null;
   // ── Agent tier system (migration 025) ─────────────────────────────────────
   renewal_flags?: import("@/types/agent").RenewalFlags | null;
+  // ── Policy type (migration 030) ───────────────────────────────────────────
+  policy_type?: string | null;
 }
 
 export interface CampaignTouchpoint {
@@ -115,6 +118,7 @@ export interface CSVPolicyRow {
   expiration_date: string;
   carrier: string;
   premium?: number;
+  policy_type?: string;
 }
 
 export type ColumnMapping = Record<string, keyof CSVPolicyRow | "">;
@@ -140,20 +144,60 @@ export function daysUntilExpiry(expirationDate: string): number {
   return Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+// ── Lead time configuration (migration 030) ──────────────────────────────────
+
+export interface LeadTimeConfig {
+  id: string;
+  user_id: string;
+  policy_type: string;
+  offset_email_1: number;
+  offset_email_2: number;
+  offset_sms: number;
+  offset_call: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const DEFAULT_LEAD_TIMES = {
+  offset_email_1: 90,
+  offset_email_2: 60,
+  offset_sms: 30,
+  offset_call: 14,
+} as const;
+
+export type LeadTimes = typeof DEFAULT_LEAD_TIMES;
+
+export function resolveLeadTimes(
+  policyType: string | null | undefined,
+  configMap: Map<string, LeadTimeConfig>
+): LeadTimes {
+  if (!policyType) return DEFAULT_LEAD_TIMES;
+  const cfg = configMap.get(policyType.toLowerCase());
+  if (!cfg) return DEFAULT_LEAD_TIMES;
+  return {
+    offset_email_1: cfg.offset_email_1,
+    offset_email_2: cfg.offset_email_2,
+    offset_sms:     cfg.offset_sms,
+    offset_call:    cfg.offset_call,
+  } as LeadTimes;
+}
+
 export function touchpointScheduledDate(
   expirationDate: string,
-  type: TouchpointType
+  type: TouchpointType,
+  leadTimes?: LeadTimes
 ): string {
+  const lt = leadTimes ?? DEFAULT_LEAD_TIMES;
   const expiry = new Date(expirationDate);
   const offsets: Record<TouchpointType, number> = {
-    email_90: -90,
-    email_60: -60,
-    sms_30: -30,
-    script_14: -14,
-    questionnaire_90: -90,
-    submission_60: -60,
-    recommendation_30: -30,
-    final_notice_7: -7,
+    email_90:          -lt.offset_email_1,
+    email_60:          -lt.offset_email_2,
+    sms_30:            -lt.offset_sms,
+    script_14:         -lt.offset_call,
+    questionnaire_90:  -lt.offset_email_1, // fires alongside first email
+    submission_60:     -lt.offset_email_2,
+    recommendation_30: -lt.offset_sms,
+    final_notice_7:    -7,                 // always fixed, not configurable
   };
   expiry.setDate(expiry.getDate() + offsets[type]);
   return expiry.toISOString().split("T")[0];
