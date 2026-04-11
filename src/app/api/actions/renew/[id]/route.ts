@@ -170,16 +170,36 @@ export async function POST(
     touchpointId = created.id;
   }
 
+  // ── Resolve freshest contact info from clients table ──────────────────────
+  // The policies table stores denormalized client_email/client_phone that can
+  // go stale when a broker edits the client record. Look up the authoritative
+  // contact info from the clients table (matched by name), falling back to the
+  // policy fields if no matching client row is found.
+  let freshEmail = policy.client_email;
+  let freshPhone = policy.client_phone;
+  {
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("email, phone")
+      .eq("user_id", user.id)
+      .ilike("name", policy.client_name)
+      .maybeSingle();
+    if (clientRow) {
+      if (clientRow.email) freshEmail = clientRow.email;
+      if (clientRow.phone) freshPhone = clientRow.phone;
+    }
+  }
+
   // ── Generate content and send ─────────────────────────────────────────────
   let channel: "email" | "sms" = "email";
-  let recipient: string = policy.client_email ?? policy.client_name;
+  let recipient: string = freshEmail ?? policy.client_name;
   let providerId: string | null = null;
   let subject: string | null = null;
   let content: string | null = null;
 
   try {
     if (touchpointType === "email_90" || touchpointType === "email_60") {
-      if (!policy.client_email) {
+      if (!freshEmail) {
         return NextResponse.json(
           { error: `No email address on record for ${policy.client_name}` },
           { status: 400 }
@@ -202,24 +222,24 @@ export async function POST(
       const resend = getResendClient();
       const { data: sent } = await resend.emails.send({
         from,
-        to: policy.client_email,
+        to: freshEmail,
         subject,
         text: content,
       });
       providerId = sent?.id ?? null;
       channel = "email";
-      recipient = policy.client_email;
+      recipient = freshEmail;
     } else if (touchpointType === "sms_30") {
-      if (!policy.client_phone) {
+      if (!freshPhone) {
         return NextResponse.json(
           { error: `No phone number on record for ${policy.client_name}` },
           { status: 400 }
         );
       }
       content = await generateSMSMessage(policy);
-      providerId = await sendSMS(policy.client_phone, content);
+      providerId = await sendSMS(freshPhone, content);
       channel = "sms";
-      recipient = policy.client_phone;
+      recipient = freshPhone;
     } else if (touchpointType === "script_14") {
       // Generate call script and store — no external send
       content = await generateCallScript(policy);

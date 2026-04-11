@@ -15,7 +15,7 @@ interface QuickActionsProps {
 }
 
 export function QuickActions({ clientId, policies }: QuickActionsProps) {
-  const [activePanel, setActivePanel] = useState<"pause" | "questionnaire" | "note" | null>(null);
+  const [activePanel, setActivePanel] = useState<"pause" | "questionnaire" | "note" | "force" | null>(null);
 
   // Pause renewal state
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id ?? "");
@@ -32,6 +32,14 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
   const [qLoading, setQLoading] = useState(false);
   const [qSuccess, setQSuccess] = useState(false);
   const [qError, setQError] = useState<string | null>(null);
+
+  // Force send state
+  const SENDABLE_STAGES = ["pending", "email_90_sent", "email_60_sent", "sms_30_sent"];
+  const forcePolicies = policies.filter((p) => SENDABLE_STAGES.includes(p.campaign_stage ?? ""));
+  const [forcePolicyId, setForcePolicyId] = useState(forcePolicies[0]?.id ?? "");
+  const [forceLoading, setForceLoading] = useState(false);
+  const [forceResult, setForceResult] = useState<{ channel: string; newStage: string } | null>(null);
+  const [forceError, setForceError] = useState<string | null>(null);
 
   // Note state
   const [noteText, setNoteText] = useState("");
@@ -82,6 +90,27 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
       setQError(err instanceof Error ? err.message : "Failed to send questionnaire");
     } finally {
       setQLoading(false);
+    }
+  };
+
+  const handleForceSend = async () => {
+    if (!forcePolicyId) return;
+    setForceLoading(true);
+    setForceError(null);
+    try {
+      const res = await fetch(`/api/actions/renew/${forcePolicyId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ override: true }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? "Force send failed");
+      setForceResult({ channel: d.channel, newStage: d.newStage });
+      setTimeout(() => { setForceResult(null); setActivePanel(null); }, 3000);
+    } catch (err) {
+      setForceError(err instanceof Error ? err.message : "Force send failed");
+    } finally {
+      setForceLoading(false);
     }
   };
 
@@ -152,7 +181,54 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
         >
           Log a note
         </button>
+        {forcePolicies.length > 0 && (
+          <button
+            onClick={() => setActivePanel(activePanel === "force" ? null : "force")}
+            className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-colors ${
+              activePanel === "force"
+                ? "border-amber-600 bg-amber-900/20 text-amber-400"
+                : "border-amber-900/40 text-amber-600 hover:border-amber-600 hover:text-amber-400"
+            }`}
+          >
+            Force send
+          </button>
+        )}
       </div>
+
+      {/* Force send panel */}
+      {activePanel === "force" && (
+        <div className="space-y-3 pt-3 border-t border-[#1C1C1C]">
+          <p className="text-[11px] text-amber-600/80">Fires the next scheduled touchpoint immediately, bypassing tier checks. For testing only.</p>
+          {forcePolicies.length > 1 && (
+            <div>
+              <label className="block text-[11px] text-[#6b6b6b] mb-1">Policy</label>
+              <select
+                value={forcePolicyId}
+                onChange={(e) => setForcePolicyId(e.target.value)}
+                className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555]"
+              >
+                {forcePolicies.map((p) => (
+                  <option key={p.id} value={p.id}>{p.policy_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {forceError && <p className="text-[12px] text-red-400">{forceError}</p>}
+          {forceResult && (
+            <p className="text-[12px] text-amber-400">
+              Sent via {forceResult.channel} → {forceResult.newStage}
+            </p>
+          )}
+          <button
+            onClick={handleForceSend}
+            disabled={forceLoading || !!forceResult}
+            className="flex items-center gap-2 h-8 px-4 rounded-lg bg-amber-600 text-white text-[12px] font-semibold hover:bg-amber-500 transition-colors disabled:opacity-50"
+          >
+            {forceLoading && <Loader2 size={12} className="animate-spin" />}
+            Send next touchpoint
+          </button>
+        </div>
+      )}
 
       {/* Pause renewal panel */}
       {activePanel === "pause" && (

@@ -172,6 +172,24 @@ export async function GET(request: NextRequest) {
 
   for (const policy of policies as Policy[]) {
     results.processed++;
+
+    // ── Resolve freshest contact info from clients table ──────────────────
+    // The policies table stores denormalized client_email/client_phone that
+    // can go stale when a broker edits the client record. Override with the
+    // authoritative values from the clients table before any send logic runs.
+    {
+      const { data: freshClient } = await supabase
+        .from("clients")
+        .select("email, phone")
+        .eq("user_id", policy.user_id)
+        .ilike("name", policy.client_name)
+        .maybeSingle();
+      if (freshClient) {
+        if (freshClient.email) policy.client_email = freshClient.email;
+        if (freshClient.phone) policy.client_phone = freshClient.phone;
+      }
+    }
+
     const days = daysUntilExpiry(policy.expiration_date);
 
     // Lapse detection: policy has expired with no client confirmation
