@@ -4,6 +4,7 @@ import Link from "next/link";
 import { RefreshCcw, CheckCircle2 } from "lucide-react";
 import { QuickActions } from "./QuickActions";
 import { ClientAIPanel } from "./ClientAIPanel";
+import { ClientEditDrawer } from "./ClientEditDrawer";
 import { Breadcrumb } from "@/components/nav/Breadcrumb";
 import { decodeCrumbs, buildTrailParam } from "@/lib/trail";
 
@@ -141,7 +142,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                 {client.name.charAt(0).toUpperCase()}
               </span>
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h1 className="text-[22px] font-bold text-[#FAFAFA] leading-tight">{client.name}</h1>
               {client.industry && (
                 <p className="text-[14px] text-[#8a8a8a] mt-0.5 capitalize">
@@ -149,6 +150,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                 </p>
               )}
             </div>
+            <ClientEditDrawer client={client} />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-5 pt-5 border-t border-[#1C1C1C]">
