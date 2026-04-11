@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Loader2, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/actions/MicroToast";
+import { useHollisStore } from "@/stores/hollisStore";
 
 interface Client {
   id: string;
@@ -89,6 +90,7 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
 
   const router = useRouter();
   const { toast } = useToast();
+  const updateStore = useHollisStore.setState;
 
   useEffect(() => setMounted(true), []);
 
@@ -154,6 +156,19 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
         const data = await res.json();
         throw new Error(data.error ?? "Update failed");
       }
+
+      const updated = await res.json();
+
+      // Optimistically update the global store so lists feel instant
+      updateStore((state) => ({
+        clients: state.clients.map((c) =>
+          c.id === client.id
+            ? { ...c, name: updated.name, email: updated.email, phone: updated.phone,
+                business_type: updated.business_type, industry: updated.industry,
+                primary_state: updated.primary_state }
+            : c
+        ),
+      }));
 
       toast("Client updated", "success");
       setIsOpen(false);
