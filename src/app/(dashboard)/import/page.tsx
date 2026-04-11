@@ -31,6 +31,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { normaliseDate } from "@/lib/import/csv-utils";
+import { useHollisStore } from "@/stores/hollisStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -643,6 +644,9 @@ export default function FullBookImportPage() {
 
       setImportResult(data as ImportResult);
       setStep("done");
+      // Invalidate the cache so navigating to /clients shows the new data immediately
+      useHollisStore.setState({ lastFetched: null });
+      useHollisStore.getState().fetchAll();
     } catch {
       setImportError("Network error — please try again.");
       setStep("confirm");

@@ -11,6 +11,7 @@ import {
   generateTemplateCsv, triggerCsvDownload, errorsToCSV,
 } from "@/lib/import/csv-utils";
 import type { RowError } from "@/lib/import/csv-utils";
+import { useHollisStore } from "@/stores/hollisStore";
 
 // ── Field definitions ──────────────────────────────────────────
 
@@ -189,6 +190,8 @@ export default function ClientImportPage() {
       }
       setResult(data);
       setStep("done");
+      useHollisStore.setState({ lastFetched: null });
+      useHollisStore.getState().fetchAll();
     } catch {
       setServerError("Network error — please try again");
     } finally {
