@@ -23,8 +23,8 @@ import { processInboundSignal } from "@/lib/agent/process-signal";
 import type { ParserOutcome } from "@/types/agent";
 
 // ── Resend inbound email payload ───────────────────────────────────────────────
-// Shape based on Resend's email.received webhook event.
-// Verify against Resend dashboard once inbound is configured.
+// Resend's email.received webhook only sends metadata — no body content.
+// Body must be fetched separately via GET /emails/receiving/{email_id}.
 interface ResendInboundPayload {
   type: string; // "email.received"
   created_at: string;
@@ -33,10 +33,17 @@ interface ResendInboundPayload {
     from: string; // RFC 2822: "Display Name <email@domain>" or "email@domain"
     to: string[];
     subject: string;
-    text: string | null;
-    html?: string | null;
-    headers?: Record<string, string>;
   };
+}
+
+// Shape returned by GET /emails/receiving/{id}
+interface ResendReceivedEmail {
+  id: string;
+  from: string;
+  to: string | string[];
+  subject: string;
+  text?: string | null;
+  html?: string | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -161,22 +168,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  console.log("[webhook/resend/inbound] DEBUG data keys:", JSON.stringify(Object.keys(payload.data ?? {})));
-  console.log("[webhook/resend/inbound] DEBUG payload.data:", JSON.stringify(payload.data).slice(0, 500));
-
-  const { from, text, html } = payload.data ?? {};
+  const { from, email_id } = payload.data ?? {};
 
   if (!from) {
     console.warn("[webhook/resend/inbound] Missing from field in payload");
     return NextResponse.json({ ok: true });
   }
 
+  if (!email_id) {
+    console.warn("[webhook/resend/inbound] Missing email_id — cannot fetch body");
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Fetch full email content (body not included in webhook payload) ─────────
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    console.error("[webhook/resend/inbound] RESEND_API_KEY not set — cannot fetch email body");
+    return NextResponse.json({ ok: true });
+  }
+
+  let emailContent: ResendReceivedEmail;
+  try {
+    const res = await fetch(`https://api.resend.com/emails/receiving/${email_id}`, {
+      headers: { Authorization: `Bearer ${resendApiKey}` },
+    });
+    if (!res.ok) {
+      console.error(`[webhook/resend/inbound] Failed to fetch email body: ${res.status}`);
+      return NextResponse.json({ ok: true });
+    }
+    emailContent = await res.json() as ResendReceivedEmail;
+  } catch (err) {
+    console.error("[webhook/resend/inbound] Error fetching email body:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ ok: true });
+  }
+
   // ── Extract signal text ────────────────────────────────────────────────────
   let rawSignal: string;
-  if (text?.trim()) {
-    rawSignal = stripQuotedReply(text);
-  } else if (html?.trim()) {
-    rawSignal = stripQuotedReply(htmlToPlainText(html));
+  if (emailContent.text?.trim()) {
+    rawSignal = stripQuotedReply(emailContent.text);
+  } else if (emailContent.html?.trim()) {
+    rawSignal = stripQuotedReply(htmlToPlainText(emailContent.html));
   } else {
     console.warn("[webhook/resend/inbound] Email has no text or html body — skipping");
     return NextResponse.json({ ok: true });
