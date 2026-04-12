@@ -111,18 +111,20 @@ export async function POST(request: NextRequest) {
   const webhookSecret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
 
   if (webhookSecret) {
-    const sig = request.headers.get("svix-signature") ?? "";
-    const ts = request.headers.get("svix-timestamp") ?? "";
+    const sig   = request.headers.get("svix-signature") ?? "";
+    const ts    = request.headers.get("svix-timestamp") ?? "";
+    const msgId = request.headers.get("svix-id") ?? "";
 
-    if (!sig || !ts) {
+    if (!sig || !ts || !msgId) {
       // Missing headers — could be misconfiguration, not a replay attack
-      console.error("[webhook/resend/inbound] Missing svix-signature/svix-timestamp headers");
+      console.error("[webhook/resend/inbound] Missing svix headers");
       return NextResponse.json({ ok: true }); // always 200 — do not trigger Resend retries
     }
 
     // Svix secrets are base64-encoded and prefixed with "whsec_"
     const secretBytes = Buffer.from(webhookSecret.replace(/^whsec_/, ""), "base64");
-    const toSign = `${ts}.${rawBody}`;
+    // Svix signed content: {svix-id}.{svix-timestamp}.{raw-body}
+    const toSign = `${msgId}.${ts}.${rawBody}`;
     const expectedBytes = crypto.createHmac("sha256", secretBytes).update(toSign).digest();
 
     // Svix signatures are base64-encoded after the "v1," prefix
@@ -161,9 +163,6 @@ export async function POST(request: NextRequest) {
 
   const { from, text, html } = payload.data ?? {};
 
-  console.log("[webhook/resend/inbound] DEBUG payload.data keys:", Object.keys(payload.data ?? {}));
-  console.log("[webhook/resend/inbound] DEBUG from:", from, "| has text:", !!text, "| has html:", !!html);
-
   if (!from) {
     console.warn("[webhook/resend/inbound] Missing from field in payload");
     return NextResponse.json({ ok: true });
@@ -190,7 +189,6 @@ export async function POST(request: NextRequest) {
 
   // ── Parse sender ───────────────────────────────────────────────────────────
   const { email: senderEmail, name: senderName } = parseFromHeader(from);
-  console.log("[webhook/resend/inbound] DEBUG senderEmail:", senderEmail);
 
   // ── Policy lookup ──────────────────────────────────────────────────────────
   const admin = createAdminClient();
