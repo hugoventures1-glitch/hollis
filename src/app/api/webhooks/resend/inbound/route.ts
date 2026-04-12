@@ -120,17 +120,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true }); // always 200 — do not trigger Resend retries
     }
 
+    // Svix secrets are base64-encoded and prefixed with "whsec_"
+    const secretBytes = Buffer.from(webhookSecret.replace(/^whsec_/, ""), "base64");
     const toSign = `${ts}.${rawBody}`;
-    const expected = crypto.createHmac("sha256", webhookSecret).update(toSign).digest("hex");
+    const expectedBytes = crypto.createHmac("sha256", secretBytes).update(toSign).digest();
 
+    // Svix signatures are base64-encoded after the "v1," prefix
     const valid = sig.split(" ").some((s) => {
       if (!s.startsWith("v1,")) return false;
-      const sigHex = s.slice(3);
       try {
-        return crypto.timingSafeEqual(
-          Buffer.from(sigHex, "hex"),
-          Buffer.from(expected, "hex")
-        );
+        const sigBytes = Buffer.from(s.slice(3), "base64");
+        return sigBytes.length === expectedBytes.length &&
+          crypto.timingSafeEqual(sigBytes, expectedBytes);
       } catch {
         return false;
       }
