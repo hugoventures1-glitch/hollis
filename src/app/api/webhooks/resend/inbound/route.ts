@@ -161,6 +161,9 @@ export async function POST(request: NextRequest) {
 
   const { from, text, html } = payload.data ?? {};
 
+  console.log("[webhook/resend/inbound] DEBUG payload.data keys:", Object.keys(payload.data ?? {}));
+  console.log("[webhook/resend/inbound] DEBUG from:", from, "| has text:", !!text, "| has html:", !!html);
+
   if (!from) {
     console.warn("[webhook/resend/inbound] Missing from field in payload");
     return NextResponse.json({ ok: true });
@@ -187,6 +190,7 @@ export async function POST(request: NextRequest) {
 
   // ── Parse sender ───────────────────────────────────────────────────────────
   const { email: senderEmail, name: senderName } = parseFromHeader(from);
+  console.log("[webhook/resend/inbound] DEBUG senderEmail:", senderEmail);
 
   // ── Policy lookup ──────────────────────────────────────────────────────────
   const admin = createAdminClient();
