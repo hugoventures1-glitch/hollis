@@ -77,11 +77,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (Object.keys(contactChanges).length > 0) {
     const admin = createAdminClient();
-    await admin
-      .from("policies")
-      .update(contactChanges)
-      .eq("user_id", user.id)
-      .ilike("client_name", current.name);
+    const base = admin.from("policies").update(contactChanges).eq("user_id", user.id);
+    // Match by old email (exact, reliable) when available; fall back to name
+    if (current.email) {
+      await base.eq("client_email", current.email);
+    } else {
+      await base.eq("client_name", current.name);
+    }
   }
 
   return NextResponse.json(data);
