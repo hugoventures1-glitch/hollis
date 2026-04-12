@@ -161,6 +161,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  console.log("[webhook/resend/inbound] DEBUG data keys:", JSON.stringify(Object.keys(payload.data ?? {})));
+  console.log("[webhook/resend/inbound] DEBUG payload.data:", JSON.stringify(payload.data).slice(0, 500));
+
   const { from, text, html } = payload.data ?? {};
 
   if (!from) {
