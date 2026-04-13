@@ -248,7 +248,7 @@ export async function processInboundSignal(
             to: recipientEmail,
             subject: draft.subject,
             text: draft.body,
-            replyTo: (profile as { email?: string | null } | null)?.email ?? undefined,
+            replyTo: process.env.INBOUND_EMAIL ?? (profile as { email?: string | null } | null)?.email ?? undefined,
           });
 
           // Intent-specific side effects

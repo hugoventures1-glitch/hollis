@@ -284,7 +284,30 @@ export async function POST(request: NextRequest) {
   // ── Policy lookup ──────────────────────────────────────────────────────────
   const admin = createAdminClient();
 
-  const { data: candidates, error: lookupError } = await admin
+  // Resolve broker from signal token in the `to` field (e.g. signal+abc123@hollisai.com.au)
+  let brokerUserId: string | null = null;
+  const toAddresses: string[] = payload.data.to ?? [];
+  for (const addr of toAddresses) {
+    // Match broker token from {token}@ildaexi.resend.app
+    const m = addr.match(/^([a-z0-9]+)@ildaexi\.resend\.app$/i);
+    if (m) {
+      const { data: agentProfile } = await admin
+        .from("agent_profiles")
+        .select("user_id")
+        .eq("signal_token", m[1])
+        .single();
+      if (agentProfile?.user_id) brokerUserId = agentProfile.user_id as string;
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "broker_token_lookup",
+        email_id,
+        detail: { token: m[1], resolved: Boolean(brokerUserId) },
+      });
+      break;
+    }
+  }
+
+  let policyQuery = admin
     .from("policies")
     .select(
       "id, user_id, client_name, policy_name, expiration_date, campaign_stage, last_contact_at, renewal_flags, renewal_paused, client_email, carrier, premium, agent_name, agent_email"
@@ -292,6 +315,12 @@ export async function POST(request: NextRequest) {
     .eq("client_email", senderEmail)
     .not("campaign_stage", "in", '("confirmed","lapsed")')
     .order("expiration_date", { ascending: false });
+
+  if (brokerUserId) {
+    policyQuery = policyQuery.eq("user_id", brokerUserId);
+  }
+
+  const { data: candidates, error: lookupError } = await policyQuery;
 
   if (lookupError) {
     await logWebhookEvent({

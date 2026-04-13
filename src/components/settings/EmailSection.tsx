@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { useToast } from "@/components/actions/MicroToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { AgentProfile } from "@/types/settings";
@@ -25,6 +26,17 @@ interface Props {
 export function EmailSection({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { toast } = useToast();
+
+  const signalAddress = profile.signal_token
+    ? `${profile.signal_token}@ildaexi.resend.app`
+    : null;
+
+  const handleCopySignal = async () => {
+    if (!signalAddress) return;
+    await navigator.clipboard.writeText(signalAddress);
+    toast("Signal address copied");
+  };
 
   const {
     register,
@@ -93,6 +105,26 @@ export function EmailSection({ profile }: Props) {
           error={!!errors.reply_to_email}
         />
       </SettingsField>
+
+      {signalAddress && (
+        <SettingsField
+          label="Inbound signal address"
+          hint="CC this address on emails you send to clients. When they reply-all, Hollis reads the response automatically."
+        >
+          <div className="flex items-center gap-2">
+            <code className="flex-1 px-3 py-2 rounded-md bg-[#111118] border border-[#2a2a36] text-[13px] text-zinc-300 font-mono select-all truncate">
+              {signalAddress}
+            </code>
+            <button
+              type="button"
+              onClick={handleCopySignal}
+              className="shrink-0 px-3 py-2 rounded-md bg-[#1e1e2a] border border-[#2a2a36] text-[12px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors cursor-pointer"
+            >
+              Copy
+            </button>
+          </div>
+        </SettingsField>
+      )}
 
       <div className="flex items-center justify-between py-3 border-y border-[#1e1e2a]">
         <div>

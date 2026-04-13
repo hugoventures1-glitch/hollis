@@ -23,6 +23,7 @@ export interface AgentProfile {
   email_from_name: string | null;
   reply_to_email: string | null;
   cc_self_on_client_emails: boolean;
+  signal_token: string | null;
 
   // Notifications
   notify_renewal_fired: boolean;
@@ -41,4 +42,4 @@ export interface AgentProfile {
   updated_at: string;
 }
 
-export type AgentProfilePatch = Partial<Omit<AgentProfile, "id" | "user_id" | "created_at" | "updated_at">>;
+export type AgentProfilePatch = Partial<Omit<AgentProfile, "id" | "user_id" | "signal_token" | "created_at" | "updated_at">>;

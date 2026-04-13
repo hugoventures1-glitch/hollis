@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
             to: policy.client_email,
             subject: lapseSubject,
             text: lapseBody,
-            replyTo: lapseProfile?.email ?? undefined,
+            replyTo: process.env.INBOUND_EMAIL ?? lapseProfile?.email ?? undefined,
           });
           await supabase.from("send_logs").insert({
             policy_id: policy.id,
@@ -694,7 +694,7 @@ async function fireTouchpoint(
       to: policy.client_email,
       subject,
       text: content,
-      replyTo: brokerProfile?.email ?? undefined,
+      replyTo: process.env.INBOUND_EMAIL ?? brokerProfile?.email ?? undefined,
     });
     providerId = sent?.id ?? null;
     channel = "email";
@@ -837,7 +837,7 @@ async function fireTouchpoint(
       to: policy.client_email,
       subject,
       text: content,
-      replyTo: qBrokerProfile?.email ?? undefined,
+      replyTo: process.env.INBOUND_EMAIL ?? qBrokerProfile?.email ?? undefined,
     });
     providerId = qSent?.id ?? null;
     channel = "email";

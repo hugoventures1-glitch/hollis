@@ -307,7 +307,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             to: recipientEmail,
             subject: subject ?? "Re: Your renewal enquiry",
             text: finalBody,
-            replyTo: (brokerProfile as { email?: string | null } | null)?.email ?? undefined,
+            replyTo: process.env.INBOUND_EMAIL ?? (brokerProfile as { email?: string | null } | null)?.email ?? undefined,
           });
 
           // Log via logAction — skip send_logs (no touchpoint_id for reply emails)
@@ -518,7 +518,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             to: recipientEmail,
             subject: subject ?? "Identity verification required",
             text: finalBody,
-            replyTo: (brokerProfile as { email?: string | null } | null)?.email ?? undefined,
+            replyTo: process.env.INBOUND_EMAIL ?? (brokerProfile as { email?: string | null } | null)?.email ?? undefined,
           });
 
           void logAction({
