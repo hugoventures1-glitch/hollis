@@ -1,42 +1,38 @@
 /**
  * POST /api/webhooks/resend/inbound
  *
- * Receives Resend inbound email webhooks, matches the sender to a policy
- * via client_email lookup, and feeds the body into the existing signal
- * classification pipeline.
- *
- * This endpoint makes the agent's inbound half functional in production —
- * client replies, confirmations, OOO auto-replies, and queries are all
- * automatically classified and routed without broker intervention.
+ * Receives Resend inbound email webhooks (Svix-signed), matches the sender
+ * to a policy via client_email lookup, and feeds the body into the existing
+ * signal classification pipeline.
  *
  * Protected by RESEND_INBOUND_WEBHOOK_SECRET (set in Resend dashboard → Inbound).
  * IMPORTANT: Always returns 200 — returning 4xx causes Resend to retry indefinitely.
  *
- * Policy lookup: matches sender's from address against policies.client_email,
- * filtering out confirmed/lapsed policies, ordered by soonest-expiring first.
+ * Observability: every gate writes to public.webhook_events so we can diagnose
+ * silent drops without depending on Vercel runtime logs.
  */
 
-import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { Webhook, WebhookVerificationError } from "svix";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processInboundSignal } from "@/lib/agent/process-signal";
+import { logWebhookEvent } from "@/lib/webhooks/log-event";
 import type { ParserOutcome } from "@/types/agent";
 
-// ── Resend inbound email payload ───────────────────────────────────────────────
-// Resend's email.received webhook only sends metadata — no body content.
-// Body must be fetched separately via GET /emails/receiving/{email_id}.
+const ENDPOINT = "resend_inbound";
+
+// ── Resend inbound email payload (metadata only — body fetched separately) ─────
 interface ResendInboundPayload {
-  type: string; // "email.received"
+  type: string;
   created_at: string;
   data: {
     email_id?: string;
-    from: string; // RFC 2822: "Display Name <email@domain>" or "email@domain"
+    from: string;
     to: string[];
     subject: string;
   };
 }
 
-// Shape returned by GET /emails/receiving/{id}
 interface ResendReceivedEmail {
   id: string;
   from: string;
@@ -48,17 +44,10 @@ interface ResendReceivedEmail {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/**
- * Parse an RFC 2822 from header into a normalised email + optional display name.
- * Examples:
- *   "John Smith <john@acme.com>"  → { email: "john@acme.com", name: "John Smith" }
- *   '"Smith, John" <j@acme.com>'  → { email: "j@acme.com", name: "Smith, John" }
- *   "john@acme.com"               → { email: "john@acme.com", name: null }
- */
 function parseFromHeader(from: string): { email: string; name: string | null } {
   const angleMatch = from.match(/^(.*?)\s*<([^>]+)>\s*$/);
   if (angleMatch) {
-    const rawName = angleMatch[1].trim().replace(/^"|"$/g, ""); // strip surrounding quotes
+    const rawName = angleMatch[1].trim().replace(/^"|"$/g, "");
     return {
       email: angleMatch[2].trim().toLowerCase(),
       name: rawName.length > 0 ? rawName : null,
@@ -67,40 +56,27 @@ function parseFromHeader(from: string): { email: string; name: string | null } {
   return { email: from.trim().toLowerCase(), name: null };
 }
 
-// Patterns that mark the start of quoted reply text — everything after the first
-// match is stripped to reduce noise fed to Claude.
 const QUOTE_MARKERS: RegExp[] = [
-  /\n\nOn [^\n]+\n?[^\n]*wrote:/i, // Gmail / Apple Mail: "On Jan 1, John wrote:" (may span 2 lines)
-  /\n\n-{3,}/, // --- separator
-  /\n_{3,}/, // ___ separator
-  /^>+\s/m, // > quoted lines
-  /\n\nFrom:\s/i, // Outlook-style "From: ..."
-  /\n\nSent:\s/i, // Outlook-style "Sent: ..."
+  /\n\nOn [^\n]+\n?[^\n]*wrote:/i,
+  /\n\n-{3,}/,
+  /\n_{3,}/,
+  /^>+\s/m,
+  /\n\nFrom:\s/i,
+  /\n\nSent:\s/i,
 ];
 
-/**
- * Strip quoted reply text from an email body.
- * Falls back to the original text if stripping would return an empty string.
- */
 function stripQuotedReply(text: string): string {
-  // Normalise Windows line endings first
   const normalised = text.replace(/\r\n/g, "\n");
   let stripped = normalised;
-
   for (const marker of QUOTE_MARKERS) {
     const match = stripped.search(marker);
     if (match !== -1) {
       stripped = stripped.slice(0, match).trimEnd();
     }
   }
-
   return stripped.length > 0 ? stripped : normalised;
 }
 
-/**
- * Minimal HTML → plain text fallback.
- * Used only when the email has no text/plain part.
- */
 function htmlToPlainText(html: string): string {
   return html
     .replace(/<[^>]+>/g, " ")
@@ -108,99 +84,171 @@ function htmlToPlainText(html: string): string {
     .trim();
 }
 
+/**
+ * Fetch inbound email body from Resend, with one retry on 404 to absorb
+ * the race where email.received fires before the email is indexed.
+ */
+async function fetchInboundEmail(
+  emailId: string,
+  apiKey: string
+): Promise<{ ok: true; data: ResendReceivedEmail } | { ok: false; status: number }> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const res = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (res.ok) {
+      return { ok: true, data: (await res.json()) as ResendReceivedEmail };
+    }
+    if (res.status !== 404 || attempt === 2) {
+      return { ok: false, status: res.status };
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return { ok: false, status: 0 };
+}
+
 // ── Webhook handler ────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  // Must read raw body before JSON parsing — required for HMAC verification
   const rawBody = await request.text();
 
-  // ── Signature verification ─────────────────────────────────────────────────
+  const svixId = request.headers.get("svix-id");
+  const svixTs = request.headers.get("svix-timestamp");
+  const svixSig = request.headers.get("svix-signature");
+
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "received",
+    detail: {
+      body_length: rawBody.length,
+      headers_present: {
+        "svix-id": Boolean(svixId),
+        "svix-timestamp": Boolean(svixTs),
+        "svix-signature": Boolean(svixSig),
+      },
+    },
+  });
+
+  // ── Signature verification (canonical svix package) ────────────────────────
   const webhookSecret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
-
   if (webhookSecret) {
-    const sig   = request.headers.get("svix-signature") ?? "";
-    const ts    = request.headers.get("svix-timestamp") ?? "";
-    const msgId = request.headers.get("svix-id") ?? "";
-
-    if (!sig || !ts || !msgId) {
-      // Missing headers — could be misconfiguration, not a replay attack
-      console.error("[webhook/resend/inbound] Missing svix headers");
-      return NextResponse.json({ ok: true }); // always 200 — do not trigger Resend retries
+    try {
+      new Webhook(webhookSecret).verify(rawBody, {
+        "svix-id": svixId ?? "",
+        "svix-timestamp": svixTs ?? "",
+        "svix-signature": svixSig ?? "",
+      });
+    } catch (err) {
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "sig_fail",
+        http_status: 200,
+        detail: {
+          error:
+            err instanceof WebhookVerificationError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : String(err),
+        },
+      });
+      return NextResponse.json({ ok: true });
     }
-
-    // Svix secrets are base64-encoded and prefixed with "whsec_"
-    const secretBytes = Buffer.from(webhookSecret.replace(/^whsec_/, ""), "base64");
-    // Svix signed content: {svix-id}.{svix-timestamp}.{raw-body}
-    const toSign = `${msgId}.${ts}.${rawBody}`;
-    const expectedBytes = crypto.createHmac("sha256", secretBytes).update(toSign).digest();
-
-    // Svix signatures are base64-encoded after the "v1," prefix
-    const valid = sig.split(" ").some((s) => {
-      if (!s.startsWith("v1,")) return false;
-      try {
-        const sigBytes = Buffer.from(s.slice(3), "base64");
-        return sigBytes.length === expectedBytes.length &&
-          crypto.timingSafeEqual(sigBytes, expectedBytes);
-      } catch {
-        return false;
-      }
-    });
-
-    if (!valid) {
-      console.error("[webhook/resend/inbound] Invalid HMAC signature — ignoring payload");
-      return NextResponse.json({ ok: true }); // always 200 — see note above
-    }
+    await logWebhookEvent({ endpoint: ENDPOINT, gate: "sig_ok" });
   } else {
-    console.warn("[webhook/resend/inbound] RESEND_INBOUND_WEBHOOK_SECRET not set — skipping signature check");
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "sig_ok",
+      detail: { note: "RESEND_INBOUND_WEBHOOK_SECRET not set — verification skipped" },
+    });
   }
 
   // ── Parse payload ──────────────────────────────────────────────────────────
   let payload: ResendInboundPayload;
   try {
     payload = JSON.parse(rawBody) as ResendInboundPayload;
-  } catch {
-    console.error("[webhook/resend/inbound] Failed to parse JSON body");
-    return NextResponse.json({ ok: true });
-  }
-
-  // Only handle inbound email events
-  if (payload.type !== "email.received") {
+  } catch (err) {
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      detail: { error: "json_parse_failed", message: err instanceof Error ? err.message : String(err) },
+    });
     return NextResponse.json({ ok: true });
   }
 
   const { from, email_id } = payload.data ?? {};
 
-  if (!from) {
-    console.warn("[webhook/resend/inbound] Missing from field in payload");
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "parsed",
+    email_id: email_id ?? null,
+    detail: { type: payload.type, has_from: Boolean(from) },
+  });
+
+  if (payload.type !== "email.received") {
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "unknown_event_type",
+      email_id: email_id ?? null,
+      detail: { type: payload.type },
+    });
     return NextResponse.json({ ok: true });
   }
 
-  if (!email_id) {
-    console.warn("[webhook/resend/inbound] Missing email_id — cannot fetch body");
+  if (!from || !email_id) {
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      email_id: email_id ?? null,
+      detail: { error: "missing_required_fields", has_from: Boolean(from), has_email_id: Boolean(email_id) },
+    });
     return NextResponse.json({ ok: true });
   }
 
-  // ── Fetch full email content (body not included in webhook payload) ─────────
+  // ── Fetch full email content ───────────────────────────────────────────────
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
-    console.error("[webhook/resend/inbound] RESEND_API_KEY not set — cannot fetch email body");
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      email_id,
+      detail: { error: "RESEND_API_KEY_missing" },
+    });
     return NextResponse.json({ ok: true });
   }
 
   let emailContent: ResendReceivedEmail;
   try {
-    const res = await fetch(`https://api.resend.com/emails/receiving/${email_id}`, {
-      headers: { Authorization: `Bearer ${resendApiKey}` },
-    });
-    if (!res.ok) {
-      console.error(`[webhook/resend/inbound] Failed to fetch email body: ${res.status}`);
+    const fetchResult = await fetchInboundEmail(email_id, resendApiKey);
+    if (!fetchResult.ok) {
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "body_fetch_failed",
+        email_id,
+        http_status: fetchResult.status,
+      });
       return NextResponse.json({ ok: true });
     }
-    emailContent = await res.json() as ResendReceivedEmail;
+    emailContent = fetchResult.data;
   } catch (err) {
-    console.error("[webhook/resend/inbound] Error fetching email body:", err instanceof Error ? err.message : err);
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "body_fetch_failed",
+      email_id,
+      detail: { error: err instanceof Error ? err.message : String(err) },
+    });
     return NextResponse.json({ ok: true });
   }
+
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "body_fetched",
+    email_id,
+    detail: {
+      has_text: Boolean(emailContent.text?.trim()),
+      has_html: Boolean(emailContent.html?.trim()),
+    },
+  });
 
   // ── Extract signal text ────────────────────────────────────────────────────
   let rawSignal: string;
@@ -209,16 +257,25 @@ export async function POST(request: NextRequest) {
   } else if (emailContent.html?.trim()) {
     rawSignal = stripQuotedReply(htmlToPlainText(emailContent.html));
   } else {
-    console.warn("[webhook/resend/inbound] Email has no text or html body — skipping");
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      email_id,
+      detail: { error: "empty_body_no_text_no_html" },
+    });
     return NextResponse.json({ ok: true });
   }
 
   if (!rawSignal.trim()) {
-    console.warn("[webhook/resend/inbound] Signal is empty after stripping quoted reply — skipping");
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      email_id,
+      detail: { error: "empty_after_strip" },
+    });
     return NextResponse.json({ ok: true });
   }
 
-  // Guard: cap signal length consistent with manual route validation
   rawSignal = rawSignal.slice(0, 10_000);
 
   // ── Parse sender ───────────────────────────────────────────────────────────
@@ -237,16 +294,26 @@ export async function POST(request: NextRequest) {
     .order("expiration_date", { ascending: false });
 
   if (lookupError) {
-    console.error("[webhook/resend/inbound] Policy lookup error:", lookupError.message);
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      email_id,
+      sender_email: senderEmail,
+      detail: { error: "policy_lookup_failed", message: lookupError.message },
+    });
     return NextResponse.json({ ok: true });
   }
 
   if (!candidates || candidates.length === 0) {
-    console.info(`[webhook/resend/inbound] No active policy found for sender: ${senderEmail}`);
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "no_policy_match",
+      email_id,
+      sender_email: senderEmail,
+    });
     return NextResponse.json({ ok: true });
   }
 
-  // Warn when the same email address appears under multiple broker accounts
   const distinctBrokers = new Set(candidates.map((c) => c.user_id));
   if (distinctBrokers.size > 1) {
     console.warn(
@@ -266,6 +333,15 @@ export async function POST(request: NextRequest) {
     .limit(10);
 
   // ── Run signal pipeline ────────────────────────────────────────────────────
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "pipeline_started",
+    email_id,
+    sender_email: senderEmail,
+    policy_id: policy.id as string,
+    user_id: policy.user_id as string,
+  });
+
   try {
     await processInboundSignal({
       admin,
@@ -278,12 +354,27 @@ export async function POST(request: NextRequest) {
       source: "email",
       recentOutcomes: (recentOutcomes as ParserOutcome[]) ?? [],
     });
+
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_done",
+      email_id,
+      sender_email: senderEmail,
+      policy_id: policy.id as string,
+      user_id: policy.user_id as string,
+    });
   } catch (pipelineErr) {
-    // Log but do not surface to Resend — a 500 would trigger retries
-    console.error(
-      "[webhook/resend/inbound] Pipeline error:",
-      pipelineErr instanceof Error ? pipelineErr.message : pipelineErr
-    );
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      email_id,
+      sender_email: senderEmail,
+      policy_id: policy.id as string,
+      user_id: policy.user_id as string,
+      detail: {
+        error: pipelineErr instanceof Error ? pipelineErr.message : String(pipelineErr),
+      },
+    });
   }
 
   return NextResponse.json({ ok: true });

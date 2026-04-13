@@ -1,27 +1,19 @@
 /**
  * POST /api/webhooks/resend
  *
- * Ingests Resend delivery status webhooks and updates send_logs + client records.
+ * Ingests Resend delivery status webhooks (Svix-signed) and updates send_logs +
+ * client records for delivered/bounced/complained/opened events.
  *
- * Resend sends POST requests with events like:
- *   email.delivered  — email confirmed delivered
- *   email.bounced    — permanent bounce (invalid address, domain doesn't exist)
- *   email.complained — recipient marked as spam
- *   email.opened     — recipient opened the email
- *
- * Protected by RESEND_WEBHOOK_SECRET (set in Resend dashboard → Webhooks).
- * Uses HMAC-SHA256 signature verification via the svix-signature header.
- * If the secret is not configured we log a warning but still process the event
- * so development/staging environments work without the signature.
- *
- * On bounce:
- *   1. Update the matching send_log row with bounced_at + delivery_error
- *   2. If the recipient matches a client email, mark client.email_bounced = true
+ * Protected by RESEND_WEBHOOK_SECRET. Always returns 200 — Resend retries
+ * indefinitely on any 4xx response.
  */
-import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { Webhook, WebhookVerificationError } from "svix";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit/log";
+import { logWebhookEvent } from "@/lib/webhooks/log-event";
+
+const ENDPOINT = "resend_delivery";
 
 interface ResendEmailEvent {
   type:
@@ -34,7 +26,7 @@ interface ResendEmailEvent {
     | "email.clicked";
   created_at: string;
   data: {
-    email_id: string;        // == provider_message_id stored in send_logs
+    email_id: string;
     from: string;
     to: string[];
     subject: string;
@@ -45,71 +37,102 @@ interface ResendEmailEvent {
 }
 
 export async function POST(request: NextRequest) {
-  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-
-  // Must read raw body before JSON parsing for signature verification
   const rawBody = await request.text();
 
+  const svixId = request.headers.get("svix-id");
+  const svixTs = request.headers.get("svix-timestamp");
+  const svixSig = request.headers.get("svix-signature");
+
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "received",
+    detail: {
+      body_length: rawBody.length,
+      headers_present: {
+        "svix-id": Boolean(svixId),
+        "svix-timestamp": Boolean(svixTs),
+        "svix-signature": Boolean(svixSig),
+      },
+    },
+  });
+
+  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
   if (webhookSecret) {
-    const sig = request.headers.get("svix-signature") ?? "";
-    const ts = request.headers.get("svix-timestamp") ?? "";
-
-    if (!sig || !ts) {
-      return NextResponse.json({ error: "Missing signature headers" }, { status: 401 });
+    try {
+      new Webhook(webhookSecret).verify(rawBody, {
+        "svix-id": svixId ?? "",
+        "svix-timestamp": svixTs ?? "",
+        "svix-signature": svixSig ?? "",
+      });
+    } catch (err) {
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "sig_fail",
+        http_status: 200,
+        detail: {
+          error:
+            err instanceof WebhookVerificationError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : String(err),
+        },
+      });
+      return NextResponse.json({ ok: true });
     }
-
-    const toSign = `${ts}.${rawBody}`;
-    const expected = crypto.createHmac("sha256", webhookSecret).update(toSign).digest("hex");
-
-    const valid = sig.split(" ").some((s) => {
-      if (!s.startsWith("v1,")) return false;
-      const sigHex = s.slice(3);
-      try {
-        return crypto.timingSafeEqual(
-          Buffer.from(sigHex, "hex"),
-          Buffer.from(expected, "hex")
-        );
-      } catch {
-        return false;
-      }
-    });
-
-    if (!valid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
+    await logWebhookEvent({ endpoint: ENDPOINT, gate: "sig_ok" });
   } else {
-    console.warn("[webhook/resend] RESEND_WEBHOOK_SECRET not set — skipping signature check");
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "sig_ok",
+      detail: { note: "RESEND_WEBHOOK_SECRET not set — verification skipped" },
+    });
   }
 
   let event: ResendEmailEvent;
   try {
     event = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "pipeline_error",
+      detail: { error: "json_parse_failed" },
+    });
+    return NextResponse.json({ ok: true });
   }
 
   const { type, data, created_at } = event;
   const emailId = data?.email_id;
   const recipient = data?.to?.[0];
 
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "parsed",
+    email_id: emailId ?? null,
+    detail: { type, has_recipient: Boolean(recipient) },
+  });
+
   if (!emailId || !type) {
-    return NextResponse.json({ ok: true }); // ignore unrecognised events
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "unknown_event_type",
+      email_id: emailId ?? null,
+      detail: { type, missing_email_id: !emailId },
+    });
+    return NextResponse.json({ ok: true });
   }
 
   const supabase = createAdminClient();
   const ts = created_at ?? new Date().toISOString();
 
-  // ── delivered ───────────────────────────────────────────────────────────────
   if (type === "email.delivered") {
     await supabase
       .from("send_logs")
       .update({ status: "sent", delivered_at: ts })
       .eq("provider_message_id", emailId);
-
     return NextResponse.json({ ok: true });
   }
 
-  // ── bounced ─────────────────────────────────────────────────────────────────
   if (type === "email.bounced") {
     const errorMsg = data.bounce?.message ?? "Bounced";
 
@@ -118,27 +141,24 @@ export async function POST(request: NextRequest) {
       .update({ status: "bounced", bounced_at: ts, delivery_error: errorMsg })
       .eq("provider_message_id", emailId);
 
-    // Flag the client record so future sends are suppressed
     if (recipient) {
       await supabase
         .from("clients")
         .update({ email_bounced: true, email_bounced_at: ts })
         .eq("email", recipient)
-        .eq("email_bounced", false); // avoid redundant writes
+        .eq("email_bounced", false);
     }
 
     console.warn(`[webhook/resend] Bounce recorded for ${recipient ?? emailId}: ${errorMsg}`);
     return NextResponse.json({ ok: true });
   }
 
-  // ── complained (spam) ───────────────────────────────────────────────────────
   if (type === "email.complained") {
     await supabase
       .from("send_logs")
       .update({ complained_at: ts })
       .eq("provider_message_id", emailId);
 
-    // Treat complaints the same as bounces for future send suppression
     if (recipient) {
       await supabase
         .from("clients")
@@ -151,9 +171,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // ── opened ──────────────────────────────────────────────────────────────────
   if (type === "email.opened") {
-    // Look up send_logs to get policy_id and user_id
     const { data: logRow } = await supabase
       .from("send_logs")
       .select("policy_id, user_id")
@@ -177,6 +195,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // All other events (clicked, etc.) — acknowledge without action
+  // All other events (sent, delivery_delayed, clicked, etc.) — acknowledge.
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "unknown_event_type",
+    email_id: emailId,
+    detail: { type },
+  });
   return NextResponse.json({ ok: true });
 }
