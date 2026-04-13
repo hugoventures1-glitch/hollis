@@ -137,11 +137,11 @@ export interface PolicyDetail extends Policy {
 // ── Helpers ──────────────────────────────────────────────────
 
 export function daysUntilExpiry(expirationDate: string): number {
-  const expiry = new Date(expirationDate);
+  const expiry = new Date(expirationDate + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   expiry.setHours(0, 0, 0, 0);
-  return Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 // ── Lead time configuration (migration 030) ──────────────────────────────────
