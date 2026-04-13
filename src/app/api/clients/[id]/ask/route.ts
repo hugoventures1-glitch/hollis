@@ -85,7 +85,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   ] = await Promise.all([
     supabase
       .from("policies")
-      .select("id, policy_name, expiration_date, campaign_stage, health_label, carrier, premium, status")
+      .select("id, policy_name, expiration_date, campaign_stage, health_label, carrier, premium, status, client_confirmed_at")
       .eq("user_id", user.id)
       .ilike("client_name", nameFilter)
       .order("expiration_date", { ascending: true })
@@ -157,6 +157,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         health: p.health_label ?? null,
         expiresOn: formatDate(p.expiration_date),
         daysRemaining: daysUntil(p.expiration_date),
+        confirmedOn: p.client_confirmed_at ? formatDate(p.client_confirmed_at) : null,
       })),
     coiRequests: cois.map((c) => ({
       id: c.id,
