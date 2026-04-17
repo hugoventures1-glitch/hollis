@@ -300,11 +300,22 @@ export async function processInboundSignal(
   // The DB trigger mark_document_received() cascades to cancel pending
   // doc_chase_messages and complete the doc_chase_sequences record.
   if (tierDecision.tier === 1 && classification.intent === "document_received") {
+    const receivedAt = new Date().toISOString();
+    // Close doc chases linked to this policy
     await admin
       .from("doc_chase_requests")
-      .update({ status: "received", received_at: new Date().toISOString() })
+      .update({ status: "received", received_at: receivedAt })
       .eq("policy_id", policyId)
       .neq("status", "received");
+    // Also close standalone doc chases (no policy_id) for this sender
+    if (senderEmail) {
+      await admin
+        .from("doc_chase_requests")
+        .update({ status: "received", received_at: receivedAt })
+        .eq("client_email", senderEmail)
+        .is("policy_id", null)
+        .neq("status", "received");
+    }
   }
 
   // ── 10. Tier 2: write to approval_queue ────────────────────────────────────────

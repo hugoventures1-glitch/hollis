@@ -24,15 +24,17 @@ Return ONLY valid JSON — no markdown fences, no extra text:
 
 Each body must be plain text (no HTML). Include a professional sign-off with the agent name and email.`;
 
-const SYSTEM_PROMPT_SMS_T3 = `You are an insurance agency assistant. The agent is chasing a required document from their client. Draft a single SMS reminder for touch 3 (day 10). Requirements:
+const SYSTEM_PROMPT_SMS_T3 = `You are an insurance agency assistant. The agent is chasing a required document from their client. Draft a single SMS reminder for touch 3. Requirements:
 - Maximum 160 characters total.
 - Plain text only, no emojis.
 - Professional but direct — mention the document is still needed and holding up their policy.
+- If urgency context is provided, reflect that urgency in the tone.
 - Include agent name or "us" so they know who to reply to.`;
 
 const SYSTEM_PROMPT_PHONE_SCRIPT = `You are an insurance agency assistant. The agent will call their client for a final follow-up about an outstanding document. Draft a concise phone call script with 3–5 bullet talking points. Requirements:
 - Each point is one short sentence.
 - Cover: greeting, why you're calling, the document needed, consequence if not received, next step.
+- If urgency or notes context is provided, incorporate it into the talking points.
 - Professional and firm but not aggressive.
 - Total under 150 words.
 
@@ -102,6 +104,9 @@ function buildFallbacks(
 /**
  * Drafts the 4-touch document-chase sequence. Touch 3 is SMS when client_phone
  * exists; otherwise email. Touch 4 is always a phone script (UI-only).
+ *
+ * daysUntilExpiry: days until linked policy expires. Used to scale urgency
+ * across all 4 touches and adjust tone accordingly.
  */
 export async function draftDocumentChaseSequence(
   clientName: string,
@@ -109,7 +114,8 @@ export async function draftDocumentChaseSequence(
   agentName: string,
   agentEmail: string,
   notes?: string | null,
-  clientPhone?: string | null
+  clientPhone?: string | null,
+  daysUntilExpiry?: number | null
 ): Promise<TouchDraft[]> {
   const fallbacks = buildFallbacks(
     clientName,
@@ -121,17 +127,28 @@ export async function draftDocumentChaseSequence(
 
   const useSmsForTouch3 = !!(clientPhone?.trim());
 
+  // Build urgency string that's appended to every Claude call
+  const urgencyLine = daysUntilExpiry !== null && daysUntilExpiry !== undefined
+    ? daysUntilExpiry <= 7
+      ? `URGENCY: Policy expires in ${daysUntilExpiry} day(s) — treat as critical. All touches must convey genuine urgency without being rude.`
+      : daysUntilExpiry <= 14
+        ? `URGENCY: Policy expires in ${daysUntilExpiry} days — time-sensitive. Escalate tone progressively across touches.`
+        : daysUntilExpiry <= 30
+          ? `Context: Policy expires in ${daysUntilExpiry} days. Mention the timeline to create appropriate urgency.`
+          : `Context: Policy expires in ${daysUntilExpiry} days. Tone can be professional and measured.`
+    : null;
+
   try {
     const anthropic = getAnthropicClient();
 
     // 1. Draft touches 1, 2, and (optionally) 3 as emails
-    const emailTouchesCount = useSmsForTouch3 ? 3 : 4;
     const userMessage = [
       `Client name: ${clientName}`,
       `Document needed: ${documentType}`,
       `Agent name: ${agentName}`,
       `Agent email: ${agentEmail}`,
       notes ? `Additional context: ${notes}` : "",
+      urgencyLine ?? "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -161,16 +178,17 @@ export async function draftDocumentChaseSequence(
     // 2. If touch 3 is SMS, draft it separately
     let touch3Body = "";
     if (useSmsForTouch3) {
+      const smsContext = [
+        `Client: ${clientName}. Document: ${documentType}. Agent: ${agentName}.`,
+        notes ? `Context: ${notes}` : "",
+        urgencyLine ?? "",
+      ].filter(Boolean).join(" ");
+
       const smsResponse = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 256,
         system: SYSTEM_PROMPT_SMS_T3,
-        messages: [
-          {
-            role: "user",
-            content: `Client: ${clientName}. Document: ${documentType}. Agent: ${agentName}.`,
-          },
-        ],
+        messages: [{ role: "user", content: smsContext }],
       });
       const smsRaw =
         smsResponse.content[0].type === "text"
@@ -181,16 +199,17 @@ export async function draftDocumentChaseSequence(
     }
 
     // 3. Draft touch 4 phone script
+    const scriptContext = [
+      `Client: ${clientName}. Document: ${documentType}. Agent: ${agentName}.`,
+      notes ? `Additional context: ${notes}` : "",
+      urgencyLine ?? "",
+    ].filter(Boolean).join(" ");
+
     const scriptResponse = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 512,
       system: SYSTEM_PROMPT_PHONE_SCRIPT,
-      messages: [
-        {
-          role: "user",
-          content: `Client: ${clientName}. Document: ${documentType}. Agent: ${agentName}.`,
-        },
-      ],
+      messages: [{ role: "user", content: scriptContext }],
     });
     const scriptRaw =
       scriptResponse.content[0].type === "text"

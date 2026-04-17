@@ -331,7 +331,7 @@ function DetailPanel({
                   className="text-[10px] font-semibold uppercase tracking-widest"
                   style={{ color: "var(--text-tertiary)" }}
                 >
-                  Draft message
+                  Outreach draft
                 </div>
                 {isEditing ? (
                   <textarea
@@ -424,90 +424,98 @@ function DetailPanel({
       </div>
 
       {/* Action bar — always visible */}
-      <div
-        className="px-6 py-4 shrink-0 flex items-center gap-2 transition-colors"
-        style={{
-          borderTop: "1px solid var(--border)",
-          background: sent ? "rgba(184,244,0,0.06)" : undefined,
-        }}
-      >
-        {sent ? (
-          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "#B8F400" }}>
-            <CheckCircle2 size={14} />
-            Sent
+      {sent ? (
+        <div
+          className="px-6 py-5 shrink-0"
+          style={{ borderTop: "1px solid rgba(184,244,0,0.15)", background: "rgba(184,244,0,0.05)" }}
+        >
+          <div className="flex items-center gap-3 mb-1">
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "rgba(184,244,0,0.12)", border: "1px solid rgba(184,244,0,0.25)" }}
+            >
+              <CheckCircle2 size={13} style={{ color: "#B8F400" }} />
+            </div>
+            <span className="text-[14px] font-semibold" style={{ color: "#B8F400" }}>
+              Renewal approved
+            </span>
           </div>
-        ) : isEditing ? (
-          <>
-            <button
-              onClick={onConfirmEdit}
-              disabled={busy}
-              className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
-              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-            >
-              {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-              Save &amp; Send
-            </button>
-            <button
-              onClick={onCancelEdit}
-              disabled={busy}
-              className="h-9 flex items-center px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
-              style={{ border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={onApprove}
-              disabled={busy}
-              className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
-              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
-            >
-              {busy ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <CheckCircle2 size={13} />
-              )}
-              Approve &amp; Send
-            </button>
-            <button
-              onClick={onEdit}
-              disabled={busy}
-              className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
-              style={{
-                border: "1px solid var(--border)",
-                color: "var(--text-secondary)",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-            >
-              <Pencil size={13} />
-              Edit &amp; Send
-            </button>
-            <button
-              onClick={onReject}
-              disabled={busy}
-              className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40 ml-auto"
-              style={{
-                border: "1px solid var(--border)",
-                color: "var(--text-tertiary)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#f87171";
-                e.currentTarget.style.borderColor = "rgba(220,38,38,0.3)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-tertiary)";
-                e.currentTarget.style.borderColor = "var(--border)";
-              }}
-            >
-              <XCircle size={13} />
-              Reject
-            </button>
-          </>
-        )}
-      </div>
+          <p className="text-[12px] pl-9 leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
+            Hollis has dispatched the outreach to{" "}
+            <span style={{ color: "var(--text-secondary)" }}>
+              {item.policies?.client_name ?? "the client"}
+            </span>
+            . The renewal is now in motion.
+          </p>
+        </div>
+      ) : (
+        <div
+          className="px-6 py-4 shrink-0 flex items-center gap-2"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          {isEditing ? (
+            <>
+              <button
+                onClick={onConfirmEdit}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+                style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+              >
+                {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                Save &amp; Approve
+              </button>
+              <button
+                onClick={onCancelEdit}
+                disabled={busy}
+                className="h-9 flex items-center px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
+                style={{ border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onApprove}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+                style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+              >
+                {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                Approve
+              </button>
+              <button
+                onClick={onEdit}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40"
+                style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+              >
+                <Pencil size={13} />
+                Edit
+              </button>
+              <button
+                onClick={onReject}
+                disabled={busy}
+                className="h-9 flex items-center gap-2 px-3.5 rounded-lg text-[13px] transition-colors disabled:opacity-40 ml-auto"
+                style={{ border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#f87171";
+                  e.currentTarget.style.borderColor = "rgba(220,38,38,0.3)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-tertiary)";
+                  e.currentTarget.style.borderColor = "var(--border)";
+                }}
+              >
+                <XCircle size={13} />
+                Reject
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

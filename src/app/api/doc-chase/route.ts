@@ -13,8 +13,21 @@ import { draftDocumentChaseSequence } from "@/lib/doc-chase/generate";
 import type { CreateDocChaseBody } from "@/types/doc-chase";
 import { writeAuditLog } from "@/lib/audit/log";
 
-// Touch schedule: offsets in days from now
-const TOUCH_DELAYS_DAYS = [0, 5, 10, 20];
+/**
+ * Touch cadence adapts to days until policy expiry:
+ *   ≤ 7 days  → 0 / 1 / 2 / 4   (near-daily — critical)
+ *   ≤ 14 days → 0 / 2 / 4 / 7   (every 2–3 days)
+ *   ≤ 30 days → 0 / 3 / 6 / 12  (twice-a-week cadence)
+ *   ≤ 60 days → 0 / 5 / 10 / 20 (standard)
+ *   > 60 days / no policy → 0 / 7 / 14 / 28 (relaxed)
+ */
+function computeTouchDelays(daysUntilExpiry: number | null): [number, number, number, number] {
+  if (daysUntilExpiry !== null && daysUntilExpiry <= 7)  return [0, 1, 2, 4];
+  if (daysUntilExpiry !== null && daysUntilExpiry <= 14) return [0, 2, 4, 7];
+  if (daysUntilExpiry !== null && daysUntilExpiry <= 30) return [0, 3, 6, 12];
+  if (daysUntilExpiry !== null && daysUntilExpiry <= 60) return [0, 5, 10, 20];
+  return [0, 7, 14, 28];
+}
 
 // ── POST — create request + sequence ─────────────────────────────────────────
 
@@ -41,7 +54,31 @@ export async function POST(request: NextRequest) {
     notes,
     agent_name,
     agent_email,
+    touch_delays: rawTouchDelays,
   } = body;
+
+  // Validate custom touch_delays if provided: 4 non-negative integers, each >= previous
+  let customTouchDelays: [number, number, number, number] | null = null;
+  if (rawTouchDelays !== undefined) {
+    if (
+      !Array.isArray(rawTouchDelays) ||
+      rawTouchDelays.length !== 4 ||
+      !rawTouchDelays.every((d: unknown) => typeof d === "number" && Number.isInteger(d) && d >= 0)
+    ) {
+      return NextResponse.json(
+        { error: "touch_delays must be an array of 4 non-negative integers" },
+        { status: 400 }
+      );
+    }
+    const [d1, d2, d3, d4] = rawTouchDelays as number[];
+    if (d2 < d1 || d3 < d2 || d4 < d3) {
+      return NextResponse.json(
+        { error: "touch_delays must be non-decreasing" },
+        { status: 400 }
+      );
+    }
+    customTouchDelays = [d1, d2, d3, d4];
+  }
 
   if (!client_name?.trim()) {
     return NextResponse.json({ error: "client_name is required" }, { status: 400 });
@@ -53,14 +90,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "document_type is required" }, { status: 400 });
   }
 
-  // If policy_id provided, verify it belongs to this user and pull agent info
+  // If policy_id provided, verify it belongs to this user and pull agent info + expiry
   let resolvedAgentName = agent_name?.trim() || "";
   let resolvedAgentEmail = agent_email?.trim() || "";
+  let daysUntilExpiry: number | null = null;
 
   if (policy_id) {
     const { data: policy } = await supabase
       .from("policies")
-      .select("id, agent_name, agent_email")
+      .select("id, agent_name, agent_email, expiration_date")
       .eq("id", policy_id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -70,6 +108,12 @@ export async function POST(request: NextRequest) {
     }
     if (!resolvedAgentName && policy.agent_name) resolvedAgentName = policy.agent_name;
     if (!resolvedAgentEmail && policy.agent_email) resolvedAgentEmail = policy.agent_email;
+    if (policy.expiration_date) {
+      const exp = new Date(policy.expiration_date + "T00:00:00");
+      const nowDate = new Date();
+      nowDate.setHours(0, 0, 0, 0);
+      daysUntilExpiry = Math.ceil((exp.getTime() - nowDate.getTime()) / 86_400_000);
+    }
   }
 
   // Fallback: try first policy with agent info if still missing
@@ -96,7 +140,8 @@ export async function POST(request: NextRequest) {
       resolvedAgentName || "Your Agent",
       resolvedAgentEmail || (process.env.FROM_EMAIL ?? "hugo@hollisai.com.au"),
       notes ?? null,
-      client_phone?.trim() || null
+      client_phone?.trim() || null,
+      daysUntilExpiry
     );
   } catch (err) {
     console.error("[doc-chase] Draft sequence failed:", err);
@@ -105,6 +150,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  const touchDelays = customTouchDelays ?? computeTouchDelays(daysUntilExpiry);
 
   // Insert the request record
   const { data: req, error: reqErr } = await supabase
@@ -154,7 +201,7 @@ export async function POST(request: NextRequest) {
   const now = new Date();
   const messageInserts = touches.map((touch, i) => {
     const scheduledFor = new Date(
-      now.getTime() + TOUCH_DELAYS_DAYS[i] * 86_400_000
+      now.getTime() + touchDelays[i] * 86_400_000
     );
     return {
       sequence_id: seq.id,

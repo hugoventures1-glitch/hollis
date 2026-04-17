@@ -19,9 +19,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  ChevronRight,
   Search,
   Phone,
+  MessageSquare,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PhoneScriptModal } from "@/components/doc-chase/PhoneScriptModal";
@@ -116,6 +116,14 @@ function ToastStack({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: nu
 
 // ── Create Drawer ─────────────────────────────────────────────────────────────
 
+interface Client {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  extra?: { doc_chase_cadence?: [number, number, number, number] } | null;
+}
+
 interface Policy {
   id: string;
   policy_name: string;
@@ -142,14 +150,25 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
   });
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<{ client_name?: string; client_email?: string }>({});
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientDropdown, setClientDropdown] = useState(false);
+  const [clientLocked, setClientLocked] = useState(false); // true once auto-populated from a known client
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [savedCadence, setSavedCadence] = useState<[number, number, number, number] | null>(null);
+  const [touchDelays, setTouchDelays] = useState<[number, number, number, number]>([0, 5, 10, 20]);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [policySearch, setPolicySearch] = useState("");
   const [policyDropdown, setPolicyDropdown] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch policies for the typeahead
+  // Fetch clients and policies when drawer opens
   useEffect(() => {
     if (!open) return;
+    fetch("/api/clients")
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d)) setClients(d); })
+      .catch(() => {});
     fetch("/api/policies?limit=200")
       .then((r) => r.json())
       .then((d) => {
@@ -173,9 +192,18 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
         policy_id: "",
         notes: "",
       });
+      setClientSearch("");
+      setClientLocked(false);
+      setSelectedClientId(null);
+      setSavedCadence(null);
+      setTouchDelays([0, 5, 10, 20]);
       setPolicySearch("");
     }
   }, [open]);
+
+  const filteredClients = clients.filter((c) =>
+    c.name.toLowerCase().includes(clientSearch.toLowerCase())
+  );
 
   const filteredPolicies = policies.filter(
     (p) =>
@@ -210,6 +238,7 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
           document_type: resolvedDocType,
           policy_id: form.policy_id || undefined,
           notes: form.notes.trim() || undefined,
+          touch_delays: touchDelays,
         }),
       });
 
@@ -217,7 +246,15 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
       if (!res.ok) {
         onError(data.error ?? "Failed to create request");
       } else {
-        onSuccess("Sequence started — 4 emails scheduled");
+        // Save the cadence as this client's preference (fire-and-forget)
+        if (selectedClientId) {
+          fetch(`/api/clients/${selectedClientId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ doc_chase_cadence: touchDelays }),
+          }).catch(() => {});
+        }
+        onSuccess("Sequence started — 4 touches scheduled");
         onCreated();
         onClose();
       }
@@ -256,33 +293,96 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
 
-          {/* Client Name */}
-          <div>
+          {/* Client Name — typeahead from client list */}
+          <div className="relative">
             <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
               Client Name <span className="text-red-500">*</span>
             </label>
-            <input
-              ref={firstInputRef}
-              type="text"
-              value={form.client_name}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, client_name: e.target.value }));
-                if (e.target.value.trim()) setFormErrors((prev) => ({ ...prev, client_name: undefined }));
-              }}
-              placeholder="Acme Corp"
-              className={`w-full h-9 px-3 rounded-md bg-[#111111] border text-[13px] text-[#FAFAFA] placeholder-zinc-600 outline-none focus:border-[#555555] transition-colors ${
-                formErrors.client_name ? "border-red-500/60" : "border-[#1C1C1C]"
-              }`}
-            />
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b6b] pointer-events-none" />
+              <input
+                ref={firstInputRef}
+                type="text"
+                value={clientSearch || form.client_name}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setClientSearch(v);
+                  setForm((f) => ({ ...f, client_name: v }));
+                  setClientLocked(false);
+                  setClientDropdown(true);
+                  if (v.trim()) setFormErrors((prev) => ({ ...prev, client_name: undefined }));
+                }}
+                onFocus={() => setClientDropdown(true)}
+                onBlur={() => setTimeout(() => setClientDropdown(false), 150)}
+                placeholder="Search clients…"
+                className={`w-full h-9 pl-8 pr-3 rounded-md bg-[#111111] border text-[13px] text-[#FAFAFA] placeholder-zinc-600 outline-none focus:border-[#555555] transition-colors ${
+                  formErrors.client_name ? "border-red-500/60" : "border-[#1C1C1C]"
+                }`}
+              />
+              {clientLocked && (
+                <button
+                  type="button"
+                  onMouseDown={() => {
+                    setClientSearch("");
+                    setClientLocked(false);
+                    setSelectedClientId(null);
+                    setSavedCadence(null);
+                    setTouchDelays([0, 5, 10, 20]);
+                    setForm((f) => ({ ...f, client_name: "", client_email: "", client_phone: "" }));
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6b6b6b] hover:text-[#8a8a8a]"
+                  title="Clear client"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            {clientDropdown && filteredClients.length > 0 && !clientLocked && (
+              <div className="absolute z-50 left-0 right-0 mt-1 rounded-md bg-[#111111] border border-[#1C1C1C] shadow-xl max-h-48 overflow-y-auto">
+                {filteredClients.slice(0, 10).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onMouseDown={() => {
+                      setForm((f) => ({
+                        ...f,
+                        client_name: c.name,
+                        client_email: c.email ?? f.client_email,
+                        client_phone: c.phone ?? f.client_phone,
+                      }));
+                      setClientSearch(c.name);
+                      setClientLocked(true);
+                      setClientDropdown(false);
+                      setSelectedClientId(c.id);
+                      setFormErrors((prev) => ({ ...prev, client_name: undefined }));
+                      const cad = c.extra?.doc_chase_cadence ?? null;
+                      setSavedCadence(cad);
+                      setTouchDelays(cad ?? [0, 5, 10, 20]);
+                    }}
+                    className="w-full text-left px-3 py-2.5 hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="text-[13px] font-medium text-[#FAFAFA]">{c.name}</div>
+                    {(c.email || c.phone) && (
+                      <div className="text-[11px] text-[#555] mt-0.5">
+                        {c.email}{c.email && c.phone ? " · " : ""}{c.phone}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             {formErrors.client_name && (
               <p className="text-[11px] text-red-400 mt-1">{formErrors.client_name}</p>
             )}
           </div>
 
-          {/* Client Email */}
+          {/* Client Email — auto-populated when client is selected */}
           <div>
             <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
               Client Email <span className="text-red-500">*</span>
+              {clientLocked && form.client_email && (
+                <span className="ml-2 text-[#444] font-normal normal-case">auto-filled</span>
+              )}
             </label>
             <input
               type="email"
@@ -301,10 +401,13 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
             )}
           </div>
 
-          {/* Client Phone */}
+          {/* Client Phone — auto-populated when client is selected */}
           <div>
             <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
               Client Phone <span className="text-[#6b6b6b]">(optional)</span>
+              {clientLocked && form.client_phone && (
+                <span className="ml-2 text-[#444] font-normal">auto-filled</span>
+              )}
             </label>
             <input
               type="tel"
@@ -407,12 +510,57 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
             />
           </div>
 
-          {/* Info banner */}
-          <div className="rounded-lg bg-[#FAFAFA]/[0.05] border border-[#FAFAFA]/15 px-4 py-3">
-            <p className="text-[12px] text-[#8a8a8a] leading-relaxed">
-              Hollis will draft a 4-touch sequence (days 0, 5, 10, 20). Touch 3
-              can be SMS if you add a phone number. Touch 4 surfaces a call script
-              for you to use — no automatic send.
+          {/* Send schedule */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[12px] font-medium text-[#8a8a8a]">
+                Send schedule <span className="text-[#6b6b6b] font-normal">(days from today)</span>
+              </label>
+              {savedCadence && (
+                <span className="text-[11px] text-[#444]">saved preference</span>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {(["Touch 1", "Touch 2", "Touch 3", "Touch 4"] as const).map((label, i) => (
+                <div key={i}>
+                  <div className="text-[11px] text-[#555] mb-1 text-center">{label}</div>
+                  <input
+                    type="number"
+                    min={i === 0 ? 0 : touchDelays[i - 1]}
+                    value={touchDelays[i]}
+                    onChange={(e) => {
+                      const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                      setTouchDelays((prev) => {
+                        const next: [number, number, number, number] = [...prev] as [number, number, number, number];
+                        next[i] = val;
+                        // Enforce non-decreasing
+                        for (let j = i + 1; j < 4; j++) {
+                          if (next[j] < next[j - 1]) next[j] = next[j - 1];
+                        }
+                        return next;
+                      });
+                    }}
+                    className="w-full h-9 px-2 rounded-md bg-[#111111] border border-[#1C1C1C] text-[13px] text-[#FAFAFA] text-center outline-none focus:border-[#555555] transition-colors tabular-nums"
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Send date preview */}
+            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">
+              {touchDelays.map((d, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() + d);
+                const label = date.toLocaleDateString("en-AU", { month: "short", day: "numeric" });
+                return (
+                  <span key={i} className="text-[11px] text-[#444] whitespace-nowrap flex items-center gap-1.5">
+                    {i > 0 && <span className="text-[#2A2A2A]">→</span>}
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-[#444] mt-2 leading-relaxed">
+              Touch 3 upgrades to SMS if a phone number is provided. Touch 4 is a call script — no auto-send.
             </p>
           </div>
         </form>
@@ -475,6 +623,11 @@ export default function DocumentsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
+
+  // Tab + search state
+  const [view, setView] = useState<"active" | "received" | "cancelled">("active");
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   // Phone script modal
   const [phoneScriptRequestId, setPhoneScriptRequestId] = useState<string | null>(null);
@@ -625,33 +778,126 @@ export default function DocumentsPage() {
         </div>
       </header>
 
-      {/* Stats bar */}
-      <div className="flex items-center gap-0 px-10 py-8 border-b border-[#252530] shrink-0">
-        <div className="pr-10">
-          <div className="text-[32px] font-bold text-[#FAFAFA] leading-none">
+      {/* Stats strip */}
+      <div
+        className="flex items-stretch justify-around shrink-0"
+        style={{ borderBottom: "1px solid #141414" }}
+      >
+        <div className="py-6 flex flex-col gap-1 items-center">
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: "#FAFAFA" }}>
             {loading ? "—" : activeCount}
           </div>
-          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Active Requests</div>
+          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Active
+          </div>
         </div>
-        <div className="px-10 border-l border-[#1C1C1C]">
-          <div className="text-[32px] font-bold text-[#FAFAFA] leading-none">
+        <div className="py-6 flex flex-col gap-1 items-center">
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: "#FAFAFA" }}>
             {loading ? "—" : receivedThisMonth}
           </div>
-          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Received This Month</div>
+          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Received This Month
+          </div>
         </div>
-        <div className="px-10 border-l border-[#1C1C1C]">
-          <div
-            className={`text-[32px] font-bold leading-none ${
-              overdueCount > 0 ? "text-red-400" : "text-[#6b6b6b]"
-            }`}
-          >
+        <div className="py-6 flex flex-col gap-1 items-center">
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: overdueCount > 0 ? "#FF4444" : "#555" }}>
             {loading ? "—" : overdueCount}
           </div>
-          <div className="text-[12px] text-[#8a8a8a] mt-1.5">Overdue</div>
+          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Overdue
+          </div>
         </div>
       </div>
 
+      {/* Search + Tabs bar */}
+      {(() => {
+        const tabs: { id: "active" | "received" | "cancelled"; label: string; count: number }[] = [
+          { id: "active",    label: "Active",    count: requests.filter(r => ["pending","active"].includes(optimisticStatus[r.id] ?? r.status)).length },
+          { id: "received",  label: "Received",  count: requests.filter(r => (optimisticStatus[r.id] ?? r.status) === "received").length },
+          { id: "cancelled", label: "Cancelled", count: requests.filter(r => (optimisticStatus[r.id] ?? r.status) === "cancelled").length },
+        ];
+        return (
+          <div
+            className="shrink-0 px-14 py-3 flex items-center gap-6"
+            style={{ borderBottom: "1px solid #1A1A1A", height: 60 }}
+          >
+            <div
+              className="flex items-center gap-3 px-4 rounded-xl transition-all duration-200 flex-shrink-0"
+              style={{ width: 280, height: 44, background: "#0E0E0E", border: "1px solid #2A2A2A" }}
+              onClick={() => searchRef.current?.focus()}
+            >
+              <Search size={16} style={{ color: "#555", flexShrink: 0 }} />
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setSearchQuery(""); }}
+                placeholder="Search or filter"
+                className="flex-1 bg-transparent outline-none placeholder-[#555]"
+                style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "#AAAAAA" }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSearchQuery(""); }}
+                  style={{ color: "#555", lineHeight: 1 }}
+                  className="text-[11px] shrink-0 hover:text-[#888] transition-colors"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <div className="flex-1" />
+            <div
+              className="flex items-center gap-2 px-2 rounded-lg flex-shrink-0"
+              style={{ background: "#1A1A1A", height: 40 }}
+            >
+              {tabs.map((tab) => {
+                const isActive = view === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setView(tab.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all rounded-md"
+                    style={{
+                      color: isActive ? "#FAFAFA" : "#555",
+                      background: isActive ? "#0E0E0E" : "transparent",
+                      border: isActive ? "1px solid #252525" : "none",
+                    }}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span
+                        className="tabular-nums"
+                        style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: isActive ? "#666" : "#333" }}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Table */}
+      {(() => {
+        const rows = requests
+          .filter((r) => {
+            const eff = optimisticStatus[r.id] ?? r.status;
+            if (view === "active") return eff === "pending" || eff === "active";
+            if (view === "received") return eff === "received";
+            return eff === "cancelled";
+          })
+          .filter((r) => {
+            if (!searchQuery) return true;
+            const q = searchQuery.toLowerCase();
+            return r.client_name.toLowerCase().includes(q) || r.document_type.toLowerCase().includes(q);
+          });
+
+        return (
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-24">
@@ -659,6 +905,18 @@ export default function DocumentsPage() {
           </div>
         ) : requests.length === 0 ? (
           <EmptyState onRequest={() => setDrawerOpen(true)} />
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-5" style={{ background: "#111" }}>
+              <Plus size={20} style={{ color: "#2E2E2E" }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FAFAFA", fontFamily: "var(--font-display)" }}>
+              Nothing here
+            </div>
+            <div style={{ fontSize: 13, color: "#333", marginTop: 6, maxWidth: 300, lineHeight: 1.6 }}>
+              {searchQuery ? "No requests match your search." : `No ${view} requests.`}
+            </div>
+          </div>
         ) : (
           <table className="w-full">
             <thead className="sticky top-0 bg-[#0C0C0C] z-10">
@@ -684,7 +942,7 @@ export default function DocumentsPage() {
               </tr>
             </thead>
             <tbody>
-              {requests.map((req) => {
+              {rows.map((req) => {
                 const effectiveStatus: DocChaseRequestStatus =
                   optimisticStatus[req.id] ?? req.status;
                 const isConfirming = confirm?.id === req.id;
@@ -710,10 +968,24 @@ export default function DocumentsPage() {
                             📞 Call ready
                           </span>
                         )}
+                        {req.last_client_reply && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-950/40 text-amber-400 border border-amber-800/30 cursor-default"
+                            title={req.last_client_reply}
+                          >
+                            <MessageSquare size={10} />
+                            Client replied
+                          </span>
+                        )}
                       </div>
                       <div className="text-[12px] text-[#8a8a8a] mt-0.5">
                         {req.client_email}
                       </div>
+                      {req.last_client_reply && (
+                        <div className="text-[11px] text-[#555] mt-1 max-w-[220px] truncate" title={req.last_client_reply}>
+                          {req.last_client_reply}
+                        </div>
+                      )}
                     </td>
 
                     {/* Document type */}
@@ -868,6 +1140,8 @@ export default function DocumentsPage() {
           </table>
         )}
       </div>
+      );
+      })()}
 
       {/* Create Drawer */}
       <CreateDrawer

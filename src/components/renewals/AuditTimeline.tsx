@@ -152,7 +152,7 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
         <div className="absolute left-[18px] top-2 bottom-2 w-px" style={{ background: "var(--border)" }} />
 
         <div className="space-y-3">
-          {entries.map((entry) => {
+          {[...entries].reverse().map((entry) => {
             const Icon = EVENT_ICONS[entry.event_type];
             const colorClass = EVENT_COLORS[entry.event_type];
             const isExpanded = expandedId === entry.id;

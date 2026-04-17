@@ -340,6 +340,33 @@ export async function POST(request: NextRequest) {
       email_id,
       sender_email: senderEmail,
     });
+
+    // Check for active standalone doc-chase requests for this sender.
+    // Surface the reply text on the request row so the broker can review
+    // and manually mark as received — we don't auto-close without policy context.
+    const { data: activeChases } = await admin
+      .from("doc_chase_requests")
+      .select("id")
+      .eq("client_email", senderEmail)
+      .in("status", ["pending", "active"]);
+
+    if (activeChases && activeChases.length > 0) {
+      const replyAt = new Date().toISOString();
+      const ids = activeChases.map((r: { id: string }) => r.id);
+      await admin
+        .from("doc_chase_requests")
+        .update({ last_client_reply: rawSignal.slice(0, 2000), last_client_reply_at: replyAt })
+        .in("id", ids);
+
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "doc_chase_reply",
+        email_id,
+        sender_email: senderEmail,
+        detail: { doc_chase_request_ids: ids, reply_length: rawSignal.length },
+      });
+    }
+
     return NextResponse.json({ ok: true });
   }
 

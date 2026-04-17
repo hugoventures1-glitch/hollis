@@ -26,8 +26,6 @@ import { RenewalViewTracker } from "@/components/analytics/RenewalViewTracker";
 import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
 import { QuestionnairePanel } from "@/components/renewals/QuestionnairePanel";
 import { AuditTimeline } from "@/components/renewals/AuditTimeline";
-import { SubmissionPanel } from "@/components/renewals/SubmissionPanel";
-import { RecommendationButton } from "@/components/renewals/RecommendationButton";
 
 export const dynamic = "force-dynamic";
 
@@ -203,26 +201,6 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
             terms={insurerTerms}
             priorPremium={p.premium ?? null}
           />
-
-          {/* Recommendation Pack (F2) */}
-          <div className="rounded-xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#555555" }}>
-              Recommendation Pack
-            </div>
-            <div className="text-[12px]" style={{ color: "#555555" }}>
-              Generate a formal renewal recommendation for the client based on insurer quotes above.
-              Sent to the client&apos;s email address.
-            </div>
-            {!hasTerms && (
-              <div className="text-[12px]" style={{ color: "#888888" }}>
-                Add at least one insurer quote before generating a recommendation.
-              </div>
-            )}
-            <RecommendationButton policyId={p.id} hasTerms={hasTerms} />
-          </div>
-
-          {/* Submission Builder (F7) */}
-          <SubmissionPanel policyId={p.id} hasTerms={hasTerms} />
 
           {/* Campaign timeline */}
           <div>

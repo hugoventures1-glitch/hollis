@@ -45,6 +45,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (f in body) updates[f] = body[f];
   }
 
+  // doc_chase_cadence: merged into the extra JSONB column
+  if ("doc_chase_cadence" in body) {
+    const cadence = body.doc_chase_cadence;
+    if (
+      !Array.isArray(cadence) ||
+      cadence.length !== 4 ||
+      !cadence.every((d: unknown) => typeof d === "number" && Number.isInteger(d) && d >= 0)
+    ) {
+      return NextResponse.json(
+        { error: "doc_chase_cadence must be an array of 4 non-negative integers" },
+        { status: 400 }
+      );
+    }
+    // Fetch current extra to merge cleanly
+    const { data: cur } = await supabase
+      .from("clients")
+      .select("extra")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single();
+    updates.extra = { ...(cur?.extra ?? {}), doc_chase_cadence: cadence };
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });
   }

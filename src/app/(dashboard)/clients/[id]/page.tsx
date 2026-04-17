@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { RefreshCcw, CheckCircle2 } from "lucide-react";
+import { RefreshCcw, CheckCircle2, Circle } from "lucide-react";
 import { QuickActions } from "./QuickActions";
 import { ClientAIPanel } from "./ClientAIPanel";
 import { ClientEditDrawer } from "./ClientEditDrawer";
@@ -60,6 +60,30 @@ const STAGE_LABEL: Record<string, string> = {
   complete:            "Complete",
   lapsed:              "Lapsed",
 };
+
+const STAGE_ORDER = [
+  "pending", "email_90_sent", "email_60_sent", "sms_30_sent",
+  "script_14_ready", "questionnaire_sent", "submission_sent",
+  "recommendation_sent", "final_notice_sent", "confirmed", "complete",
+];
+
+const CHECKLIST_MILESTONES: { key: string; label: string }[] = [
+  { key: "email_90_sent",        label: "90-day outreach" },
+  { key: "email_60_sent",        label: "60-day outreach" },
+  { key: "sms_30_sent",          label: "30-day SMS" },
+  { key: "questionnaire_sent",   label: "Questionnaire" },
+  { key: "submission_sent",      label: "Submission" },
+  { key: "recommendation_sent",  label: "Recommendation" },
+  { key: "confirmed",            label: "Renewal confirmed" },
+];
+
+function isStageComplete(currentStage: string | null, targetStage: string): boolean {
+  if (!currentStage) return false;
+  if (currentStage === "lapsed") return false;
+  const cur = STAGE_ORDER.indexOf(currentStage);
+  const tgt = STAGE_ORDER.indexOf(targetStage);
+  return cur >= tgt && tgt !== -1;
+}
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
@@ -132,10 +156,87 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
         <Breadcrumb crumbs={crumbs} current={client.name} />
       </div>
 
-      <div className="max-w-3xl mx-auto w-full px-6 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto w-full px-6 py-8 space-y-6">
 
-        {/* ── Identity card ──────────────────────────────────────────────── */}
-        <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
+        {/* ── Top row: Renewal checklist + Identity card ─────────────────── */}
+        <div className="flex gap-4 items-start">
+
+          {/* Renewal Checklist */}
+          <div className="w-56 shrink-0 rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+              Renewal Checklist
+            </div>
+
+            {activePolicies.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-2">
+                <Circle size={16} style={{ color: "#252525" }} />
+                <span className="text-[11px]" style={{ color: "#333" }}>No active renewals</span>
+              </div>
+            ) : (() => {
+              const policy = activePolicies[0];
+              const stage  = policy.campaign_stage ?? "pending";
+              const isLapsed = stage === "lapsed";
+              return (
+                <>
+                  <div className="text-[11px] truncate font-medium" style={{ color: "#555" }}>
+                    {policy.policy_name}
+                  </div>
+                  <div className="flex flex-col gap-2 mt-1">
+                    {CHECKLIST_MILESTONES.map(({ key, label }) => {
+                      const done    = !isLapsed && isStageComplete(stage, key);
+                      const current = !isLapsed && stage === key;
+                      const isFinal = key === "confirmed";
+                      return (
+                        <div key={key} className="flex items-center gap-2.5">
+                          <div
+                            className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center"
+                            style={{
+                              background: done ? (isFinal ? "#00D97E22" : "#FAFAFA11") : "transparent",
+                              border: done
+                                ? `1px solid ${isFinal ? "#00D97E" : "#444"}`
+                                : current
+                                  ? "1px solid #F59E0B"
+                                  : "1px solid #252525",
+                            }}
+                          >
+                            {done && (
+                              <div
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ background: isFinal ? "#00D97E" : "#555" }}
+                              />
+                            )}
+                          </div>
+                          <span
+                            className="text-[12px] leading-tight"
+                            style={{
+                              color: done
+                                ? isFinal ? "#00D97E" : "#AAAAAA"
+                                : current
+                                  ? "#F59E0B"
+                                  : "#333",
+                            }}
+                          >
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {isLapsed && (
+                    <div className="mt-1 text-[11px]" style={{ color: "#FF4444" }}>Lapsed</div>
+                  )}
+                  {activePolicies.length > 1 && (
+                    <div className="mt-auto pt-3 text-[11px]" style={{ color: "#333", borderTop: "1px solid #1C1C1C" }}>
+                      +{activePolicies.length - 1} more {activePolicies.length - 1 === 1 ? "policy" : "policies"}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Identity card */}
+          <div className="flex-1 rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-14 h-14 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
               <span className="text-[22px] font-bold text-[#FAFAFA]">
@@ -185,7 +286,8 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
               <p className="text-[14px] text-[#8a8a8a] leading-relaxed">{client.notes}</p>
             </div>
           )}
-        </div>
+          </div>{/* end identity card */}
+        </div>{/* end top row flex */}
 
         {/* ── Status cards ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">

@@ -5,12 +5,35 @@ export type DocChaseSequenceStatus = "active" | "completed" | "cancelled";
 export type DocChaseMessageStatus = "scheduled" | "processing" | "sent" | "cancelled";
 
 export const DOCUMENT_TYPES = [
+  // Applications & forms
   "Signed Application",
-  "Loss Runs",
-  "Signed ACORD 130",
-  "Signed ACORD 125",
+  "Signed ACORD 125 (Commercial Insurance Application)",
+  "Signed ACORD 126 (General Liability Section)",
+  "Signed ACORD 127 (Business Auto Section)",
+  "Signed ACORD 130 (Workers Compensation Application)",
+  "Signed ACORD 140 (Property Section)",
+  // Loss history
+  "Loss Runs (3 years)",
+  "Loss Runs (5 years)",
+  "Claims History Summary",
+  // Policy & coverage docs
   "Expiring Policy Declaration",
-  "Driver Schedule",
+  "Prior Policy Declarations",
+  "Prior Carrier Information",
+  // Schedules
+  "Driver Schedule / MVR Authorization",
+  "Vehicle Schedule",
+  "Schedule of Values / Statement of Values",
+  "Schedule of Locations",
+  // Financials & payroll
+  "Payroll Records / Payroll Audit",
+  "Workers Comp Experience Modification Worksheet",
+  "Financial Statements",
+  // Agreements & compliance
+  "Subcontractor Agreement / Hold Harmless",
+  "Safety Manual / Loss Control Documents",
+  "Completed Questionnaire",
+  // Other
   "Other (specify)",
 ] as const;
 
@@ -31,6 +54,8 @@ export interface DocChaseRequest {
   received_at: string | null;
   escalation_level: "email" | "sms" | "phone_script";
   escalation_updated_at: string | null;
+  last_client_reply: string | null;
+  last_client_reply_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +111,7 @@ export interface CreateDocChaseBody {
   notes?: string;
   agent_name?: string;
   agent_email?: string;
+  touch_delays?: [number, number, number, number];
 }
 
 export interface PatchDocChaseBody {

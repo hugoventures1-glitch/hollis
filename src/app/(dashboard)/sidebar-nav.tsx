@@ -16,6 +16,7 @@ import {
   User,
   Search,
   Inbox,
+  FolderSearch,
 } from "lucide-react";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
 
@@ -83,6 +84,9 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
   const approvalQueueCount = useHollisStore(s => s.approvalQueueCount);
 
   const renewalCount = policies.filter(p => { const d = daysUntilExpiry(p.expiration_date); return d >= 0 && d <= 60; }).length;
+
+  const docChaseRequests = useHollisStore(s => s.docChaseRequests);
+  const docChaseCount = docChaseRequests.filter(r => r.status === "active").length;
 
   // Derive initials and agencyName from server-provided profile
   const first    = profile.firstName?.[0] ?? "";
@@ -168,8 +172,9 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
         <RailIcon href="/overview"  icon={LayoutDashboard} label="Overview" pathname={pathname} />
         <RailIcon href="/inbox"     icon={Inbox}           label="Inbox"    pathname={pathname} badge={approvalQueueCount} />
         <RailIcon href="/activity"  icon={Activity}        label="Activity" pathname={pathname} />
-        <RailIcon href="/renewals"  icon={RefreshCcw}      label="Renewals" pathname={pathname} badge={renewalCount} />
-        <RailIcon href="/clients"   icon={Users}           label="Clients"  pathname={pathname} />
+        <RailIcon href="/renewals"   icon={RefreshCcw}      label="Renewals"   pathname={pathname} badge={renewalCount} />
+        <RailIcon href="/documents" icon={FolderSearch}    label="Documents"  pathname={pathname} badge={docChaseCount} />
+        <RailIcon href="/clients"   icon={Users}           label="Clients"    pathname={pathname} />
         <RailIcon href="/settings"  icon={Settings}        label="Settings" pathname={pathname} />
       </nav>
 

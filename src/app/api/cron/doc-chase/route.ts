@@ -177,18 +177,23 @@ export async function GET(request: NextRequest) {
   const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
   const nowIso = new Date().toISOString();
 
-  // Build sender name cache for all unique broker IDs in this batch
+  // Build sender name + reply_to cache for all unique broker IDs in this batch
   const uniqueUserIds = [...new Set(active.map((m) => m.doc_chase_sequences.doc_chase_requests.user_id))];
   const senderNameCache = new Map<string, string>();
+  const replyToCache = new Map<string, string | undefined>();
   if (uniqueUserIds.length > 0) {
     const { data: profiles } = await supabase
       .from("agent_profiles")
-      .select("user_id, email_from_name")
+      .select("user_id, email_from_name, signal_token")
       .in("user_id", uniqueUserIds);
     for (const p of profiles ?? []) {
       senderNameCache.set(
         p.user_id,
         p.email_from_name ? `${p.email_from_name} <${baseFrom}>` : baseFrom
+      );
+      replyToCache.set(
+        p.user_id,
+        p.signal_token ? `${p.signal_token}@ildaexi.resend.app` : undefined
       );
     }
   }
@@ -321,11 +326,13 @@ export async function GET(request: NextRequest) {
       } else {
         const { Resend } = await import("resend");
         const resend = new Resend(resendKey);
+        const replyTo = replyToCache.get(req.user_id);
         await resend.emails.send({
           from: senderNameCache.get(req.user_id) ?? baseFrom,
           to: req.client_email,
           subject: msg.subject,
           text: msg.body,
+          ...(replyTo ? { reply_to: replyTo } : {}),
         });
       }
 
