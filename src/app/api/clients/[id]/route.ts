@@ -118,6 +118,51 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Fetch client first so we can cascade-delete their policies (no FK exists)
+  const { data: client } = await supabase
+    .from("clients")
+    .select("email, name")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (client) {
+    const admin = createAdminClient();
+
+    // Fetch policy IDs for this client so we can clean up approval_queue items
+    const { data: policies } = await supabase
+      .from("policies")
+      .select("id, client_email, client_name")
+      .eq("user_id", user.id);
+
+    const policyIds = (policies ?? [])
+      .filter((p: { id: string; client_email: string | null; client_name: string }) => {
+        // Match by email (exact, reliable) when available; fall back to name
+        if (client.email) {
+          return p.client_email === client.email;
+        }
+        return p.client_name === client.name;
+      })
+      .map((p: { id: string }) => p.id);
+
+    // Delete approval_queue items for these policies
+    if (policyIds.length > 0) {
+      await admin
+        .from("approval_queue")
+        .delete()
+        .in("policy_id", policyIds)
+        .eq("user_id", user.id);
+    }
+
+    // Delete policies
+    const policyDelete = admin.from("policies").delete().eq("user_id", user.id);
+    if (client.email) {
+      await policyDelete.eq("client_email", client.email);
+    } else {
+      await policyDelete.eq("client_name", client.name);
+    }
+  }
+
   const { error } = await supabase
     .from("clients")
     .delete()

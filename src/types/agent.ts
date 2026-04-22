@@ -51,6 +51,7 @@ export type AutonomousIntent = (typeof KNOWN_AUTONOMOUS_INTENTS)[number];
 // Learning cannot graduate these to Tier 1.
 export const ALWAYS_BROKER_REVIEW_INTENTS: string[] = [
   "renewal_with_changes",
+  "document_required",  // Agent detected a document is needed — broker approves before chase starts
 ];
 
 // Intents that ALWAYS escalate to Tier 3, regardless of confidence score.
@@ -81,6 +82,7 @@ export interface ClassificationResult {
   premium_increase_pct: number | null;  // extracted value if a premium increase was detected
   reasoning: string;              // brief explanation for audit trail
   changes_requested?: string[];   // populated when intent is renewal_with_changes
+  document_type_needed?: string | null; // populated when intent is document_required
 }
 
 // ── Inbound Signals ────────────────────────────────────────────────────────────

@@ -112,11 +112,22 @@ function buildProposedAction(intent: string, classification: ClassificationResul
         "Draft verification email to the third-party contact to confirm identity and authority before proceeding",
       action_type: "send_verification_email",
     },
+    document_required: {
+      description: "Agent identified a required document — approve to start a doc chase sequence for this client",
+      action_type: "create_doc_chase_request",
+    },
   };
 
   const mapped = actionMap[intent];
+
+  // For document_required, include the document type in the description so the
+  // broker knows exactly what they're approving before they click.
+  const description = intent === "document_required" && classification.document_type_needed
+    ? `Document needed: "${classification.document_type_needed}" — approve to start a doc chase sequence for this client`
+    : (mapped?.description ?? `Handle "${intent}" intent — ${classification.reasoning}`);
+
   return {
-    description: mapped?.description ?? `Handle "${intent}" intent — ${classification.reasoning}`,
+    description,
     action_type: mapped?.action_type ?? "advance_sequence",
     payload: {
       intent: classification.intent,
@@ -124,6 +135,12 @@ function buildProposedAction(intent: string, classification: ClassificationResul
       reasoning: classification.reasoning,
       ...(intent === "renewal_with_changes" && classification.changes_requested?.length
         ? { changes: classification.changes_requested }
+        : {}),
+      ...(intent === "document_required"
+        ? {
+            document_type: classification.document_type_needed ?? null,
+            notes: classification.reasoning,  // pass reasoning as notes so Claude has context when drafting chase emails
+          }
         : {}),
     },
   };

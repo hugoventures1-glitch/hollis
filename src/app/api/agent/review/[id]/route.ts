@@ -179,14 +179,86 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       const recipientPhone = (payload.recipient_phone as string  | null) ?? null;
 
       const STAGE_MAP: Record<string, string> = {
-        email_90:  "email_90_sent",
-        email_60:  "email_60_sent",
-        sms_30:    "sms_30_sent",
-        script_14: "script_14_ready",
+        email_90:          "email_90_sent",
+        email_60:          "email_60_sent",
+        sms_30:            "sms_30_sent",
+        script_14:         "script_14_ready",
+        questionnaire_90:  "questionnaire_sent",
+        submission_60:     "submission_sent",
+        recommendation_30: "recommendation_sent",
       };
 
       try {
-        if (channel === "email" && recipientEmail && finalBody) {
+        if (touchpointType === "questionnaire_90" && channel === "email" && recipientEmail) {
+          // Generate a unique token, insert the questionnaire record, then send
+          const token = crypto.randomUUID();
+          const expiryDate = new Date(Date.now() + 30 * 86_400_000).toISOString();
+
+          await admin.from("renewal_questionnaires").insert({
+            policy_id: queueItem.policy_id,
+            user_id: user.id,
+            token,
+            expires_at: expiryDate,
+            status: "pending",
+          });
+
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hollisai.com.au";
+          const questionnaireUrl = `${appUrl}/q/${token}`;
+
+          let bodyWithUrl = finalBody ?? "";
+          if (bodyWithUrl.includes("{{QUESTIONNAIRE_URL}}")) {
+            bodyWithUrl = bodyWithUrl.replace("{{QUESTIONNAIRE_URL}}", questionnaireUrl);
+          } else {
+            bodyWithUrl = bodyWithUrl + `\n\n${questionnaireUrl}`;
+          }
+
+          const resend = getResendClient();
+          const { data: brokerProfile } = await admin
+            .from("agent_profiles")
+            .select("email_from_name")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+          const from = brokerProfile?.email_from_name
+            ? `${brokerProfile.email_from_name} <${baseFrom}>`
+            : baseFrom;
+
+          const { data: qSent } = await resend.emails.send({
+            from,
+            to: recipientEmail,
+            subject: subject ?? `Your renewal questionnaire`,
+            text: bodyWithUrl,
+          });
+
+          if (touchpointId) {
+            await admin
+              .from("campaign_touchpoints")
+              .update({ status: "sent", subject, content: bodyWithUrl, sent_at: resolvedAt })
+              .eq("id", touchpointId);
+          }
+
+          await admin.from("send_logs").insert({
+            policy_id: queueItem.policy_id,
+            touchpoint_id: touchpointId,
+            user_id: user.id,
+            channel: "email",
+            recipient: recipientEmail,
+            status: "sent",
+            provider_message_id: (qSent as { id?: string } | null)?.id ?? null,
+            sent_at: resolvedAt,
+          });
+
+          if (STAGE_MAP[touchpointType]) {
+            await admin
+              .from("policies")
+              .update({
+                campaign_stage: STAGE_MAP[touchpointType],
+                last_contact_at: resolvedAt.slice(0, 10),
+              })
+              .eq("id", queueItem.policy_id as string);
+          }
+        } else if (channel === "email" && recipientEmail && finalBody) {
           const resend = getResendClient();
 
           const { data: brokerProfile } = await admin
@@ -370,6 +442,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           })
           .eq("id", queueItem.policy_id as string);
 
+        // Auto-reject any other pending queue items for this policy — renewal is done
+        await admin
+          .from("approval_queue")
+          .update({ status: "rejected" })
+          .eq("policy_id", queueItem.policy_id as string)
+          .neq("id", queueItemId)
+          .eq("status", "pending");
+
         void logAction({
           broker_id: user.id,
           policy_id: queueItem.policy_id as string,
@@ -442,6 +522,137 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       } catch (execErr) {
         console.error(
           "[agent/review] Failed to execute log_document:",
+          execErr instanceof Error ? execErr.message : execErr
+        );
+      }
+    }
+
+    // ── Execute: broker approved document required — create doc chase request ──────
+    // The renewal agent surfaced a missing document. Broker approved. We now create
+    // the full doc_chase_request + sequence + 4 messages using the same logic as
+    // POST /api/doc-chase, but via admin client so it can run server-side.
+    if (
+      (action === "approved" || action === "edited") &&
+      (queueItem.proposed_action as { action_type?: string })?.action_type === "create_doc_chase_request"
+    ) {
+      const payload = (queueItem.proposed_action as { payload?: Record<string, unknown> })?.payload ?? {};
+      const documentType = (payload.document_type as string | null) ?? null;
+
+      try {
+        const { data: policy } = await admin
+          .from("policies")
+          .select("client_name, client_email, client_phone, expiration_date, agent_name, agent_email")
+          .eq("id", queueItem.policy_id as string)
+          .single();
+
+        if (policy && documentType) {
+          const { draftDocumentChaseSequence } = await import("@/lib/doc-chase/generate");
+
+          // Compute days until expiry for touch cadence
+          let daysUntilExpiry: number | null = null;
+          if (policy.expiration_date) {
+            const exp = new Date((policy.expiration_date as string) + "T00:00:00");
+            const nowDate = new Date();
+            nowDate.setHours(0, 0, 0, 0);
+            daysUntilExpiry = Math.ceil((exp.getTime() - nowDate.getTime()) / 86_400_000);
+          }
+
+          const touchDelays: [number, number, number, number] =
+            daysUntilExpiry !== null && daysUntilExpiry <= 7  ? [0, 1, 2, 4]  :
+            daysUntilExpiry !== null && daysUntilExpiry <= 14 ? [0, 2, 4, 7]  :
+            daysUntilExpiry !== null && daysUntilExpiry <= 30 ? [0, 3, 6, 12] :
+            daysUntilExpiry !== null && daysUntilExpiry <= 60 ? [0, 5, 10, 20] :
+            [0, 7, 14, 28];
+
+          const chaseNotes = (payload.notes as string | null) ?? null;
+
+          const touches = await draftDocumentChaseSequence(
+            policy.client_name as string,
+            documentType,
+            (policy.agent_name as string | null) ?? "Your Agent",
+            (policy.agent_email as string | null) ?? (process.env.FROM_EMAIL ?? ""),
+            chaseNotes,
+            (policy.client_phone as string | null) ?? null,
+            daysUntilExpiry
+          );
+
+          const { data: chaseReq } = await admin
+            .from("doc_chase_requests")
+            .insert({
+              user_id: user.id,
+              client_name: policy.client_name,
+              client_email: (policy.client_email as string).toLowerCase(),
+              client_phone: (policy.client_phone as string | null) ?? null,
+              document_type: documentType,
+              policy_id: queueItem.policy_id,
+              notes: chaseNotes,
+              status: "active",
+              escalation_level: "email",
+            })
+            .select()
+            .single();
+
+          if (chaseReq) {
+            const { data: chaseSeq } = await admin
+              .from("doc_chase_sequences")
+              .insert({ user_id: user.id, request_id: chaseReq.id, sequence_status: "active" })
+              .select()
+              .single();
+
+            if (chaseSeq) {
+              const now = new Date();
+              await admin.from("doc_chase_messages").insert(
+                touches.map((touch, i) => ({
+                  sequence_id: chaseSeq.id,
+                  touch_number: i + 1,
+                  scheduled_for: new Date(now.getTime() + touchDelays[i] * 86_400_000).toISOString(),
+                  status: "scheduled",
+                  subject: touch.subject ?? "",
+                  body: touch.body,
+                  channel: touch.channel,
+                  phone_script: touch.channel === "phone_script" ? (touch.phone_script ?? null) : null,
+                }))
+              );
+            }
+
+            await writeAuditLog({
+              supabase: admin,
+              policy_id: queueItem.policy_id as string,
+              user_id: user.id,
+              event_type: "doc_requested",
+              channel: "email",
+              recipient: (policy.client_email as string).toLowerCase(),
+              content_snapshot: `Document requested: ${documentType}${chaseNotes ? ` — ${chaseNotes}` : ""}`,
+              metadata: {
+                doc_chase_request_id: chaseReq.id,
+                document_type: documentType,
+                client_name: policy.client_name,
+                triggered_by: "renewal_agent",
+              },
+              actor_type: "agent",
+            });
+
+            void logAction({
+              broker_id: user.id,
+              policy_id: queueItem.policy_id as string,
+              action_type: "doc_chase_created",
+              tier: "2",
+              trigger_reason: `Broker approved document_required — doc chase started for "${documentType}" from ${policy.client_name}.`,
+              payload: {
+                doc_chase_request_id: chaseReq.id,
+                document_type: documentType,
+                client_name: policy.client_name,
+                client_email: policy.client_email,
+              },
+              metadata: { queue_item_id: queueItemId, signal_id: queueItem.signal_id },
+              outcome: "sent",
+              retain_until: retainStandard(),
+            });
+          }
+        }
+      } catch (execErr) {
+        console.error(
+          "[agent/review] Failed to execute create_doc_chase_request:",
           execErr instanceof Error ? execErr.message : execErr
         );
       }

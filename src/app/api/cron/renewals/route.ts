@@ -283,6 +283,14 @@ export async function GET(request: NextRequest) {
         .from("policies")
         .update({ status: "expired", campaign_stage: "lapsed", lapsed_at: new Date().toISOString() })
         .eq("id", policy.id);
+
+      // Auto-reject pending approval_queue items since policy has lapsed
+      await supabase
+        .from("approval_queue")
+        .update({ status: "rejected" })
+        .eq("policy_id", policy.id)
+        .eq("status", "pending");
+
       continue;
     }
 
@@ -500,6 +508,9 @@ export async function GET(request: NextRequest) {
             });
             draftSubject = t2Generated.subject;
             draftBody = t2Generated.body;
+          } else if (type === "questionnaire_90") {
+            draftSubject = `Your renewal questionnaire — ${policy.policy_name}`;
+            draftBody = `Dear ${policy.client_name},\n\nAs your ${policy.policy_name} renewal is approaching on ${new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}, we would like to make sure your cover still matches your needs.\n\nPlease take a few minutes to complete the renewal questionnaire below:\n\n{{QUESTIONNAIRE_URL}}\n\nThis link will expire in 30 days. Your responses help us ensure we secure the right cover for you at the best available terms.\n\nIf you have any questions, please do not hesitate to get in touch.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
           } else if (type === "recommendation_30") {
             const [{ data: t2RecTerms }, { data: t2RecProfile }] = await Promise.all([
               supabase.from("insurer_terms").select("*").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: true }),
@@ -530,7 +541,7 @@ export async function GET(request: NextRequest) {
           signal_id: null,
           classified_intent: `send_${type}`,
           confidence_score: null,
-          raw_signal_snippet: tierReason,
+          raw_signal_snippet: `${TOUCHPOINT_TYPE_LABELS[type] ?? type} · ${policy.client_name}`,
           proposed_action: {
             description: `Send ${touchpointLabel} to ${policy.client_name} (${draftChannel === "sms" ? (policy.client_phone ?? "no phone") : (policy.client_email ?? "no email")}). Flagged: ${tierReason}.`,
             action_type: "send_renewal_email",

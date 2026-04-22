@@ -45,6 +45,14 @@ export async function POST(
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
 
+  // Auto-reject any pending queue items for this policy — renewal is done
+  await supabase
+    .from("approval_queue")
+    .update({ status: "rejected" })
+    .eq("policy_id", id)
+    .eq("user_id", user.id)
+    .eq("status", "pending");
+
   await writeAuditLog({
     supabase,
     policy_id: id,

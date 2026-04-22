@@ -56,8 +56,24 @@ export interface DocChaseRequest {
   escalation_updated_at: string | null;
   last_client_reply: string | null;
   last_client_reply_at: string | null;
+  // Document attachment + validation (populated on receipt)
+  received_attachment_path: string | null;
+  received_attachment_filename: string | null;
+  received_attachment_content_type: string | null;
+  validation_status: "pass" | "fail" | "partial" | "unreadable" | null;
+  validation_summary: string | null;
+  validation_issues: string[] | null;
+  validation_confidence: "high" | "medium" | "low" | null;
+  validated_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DocChaseValidationResult {
+  verdict: "pass" | "fail" | "partial" | "unreadable";
+  summary: string;
+  issues: string[];
+  confidence: "high" | "medium" | "low";
 }
 
 export interface DocChaseSequence {

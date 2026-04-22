@@ -245,11 +245,13 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
+    const isFirstMessage = messages.length === 0;
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text.trim() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
     if (!expanded) setExpanded(true);
+    if (isFirstMessage) setMaximized(true);
 
     try {
       const historyForApi = messages.slice(-4).map((m) => ({ role: m.role, content: m.content }));

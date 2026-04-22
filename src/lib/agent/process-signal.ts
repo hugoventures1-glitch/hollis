@@ -261,6 +261,13 @@ export async function processInboundSignal(
                 last_contact_at: new Date().toISOString().slice(0, 10),
               })
               .eq("id", policyId);
+
+            // Auto-reject any pending queue items — renewal is done
+            await admin
+              .from("approval_queue")
+              .update({ status: "rejected" })
+              .eq("policy_id", policyId)
+              .eq("status", "pending");
           } else if (intent === "request_callback") {
             await admin.from("policies").update({ renewal_paused: true }).eq("id", policyId);
           }

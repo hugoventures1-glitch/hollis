@@ -145,11 +145,18 @@ export async function GET(request: NextRequest) {
       sent_at: new Date().toISOString(),
     });
 
-    // Advance stage
+    // Advance stage and clean up pending queue items
     await supabase
       .from("policies")
       .update({ campaign_stage: "final_notice_sent", last_contact_at: today })
       .eq("id", policy.id);
+
+    // Auto-reject pending approval_queue items since policy is moving to final notice
+    await supabase
+      .from("approval_queue")
+      .update({ status: "rejected" })
+      .eq("policy_id", policy.id)
+      .eq("status", "pending");
 
     // Write audit log
     await writeAuditLog({

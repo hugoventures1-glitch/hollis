@@ -52,9 +52,14 @@ const CLASSIFY_TOOL = {
         description:
           "When intent is renewal_with_changes: a list of specific changes the client is requesting before they will renew (e.g. 'Update business address to 123 Main St'). Empty array for all other intents.",
       },
+      document_type_needed: {
+        type: ["string", "null"],
+        description:
+          "When intent is document_required: the specific document type needed (e.g. 'Loss Runs', 'Certificate of Currency', 'Signed ACORD 25 Form'). Null for all other intents.",
+      },
     },
     // Mutable array required by Anthropic SDK types
-    required: ["intent", "confidence", "flags_detected", "premium_increase_pct", "reasoning", "changes_requested"] as string[],
+    required: ["intent", "confidence", "flags_detected", "premium_increase_pct", "reasoning", "changes_requested", "document_type_needed"] as string[],
   },
 };
 
@@ -71,8 +76,9 @@ Autonomous intents (can be handled without broker intervention if confidence is 
 - soft_query: Client has a general question that does not involve claims, disputes, or sensitive changes
 - out_of_office: Detected auto-reply or out-of-office response — no human intent present
 
-Broker action required intents (always Tier 2 — broker must complete real-world tasks):
+Broker action required intents (always Tier 2 — broker must confirm before agent acts):
 - renewal_with_changes: Client confirms they want to renew BUT requests specific changes first (e.g. update address, increase a coverage limit, add/remove an item). Use this whenever a renewal confirmation comes with any conditions or modification requests. Extract each change as a separate item in changes_requested.
+- document_required: A specific document is needed from the client to proceed with the renewal (e.g. loss runs, certificate of currency, signed ACORD form, proof of payroll, financial statements). Use this when the broker or renewal process identifies a missing or required document. Extract the document type in document_type_needed.
 
 Escalation intents (ALWAYS require broker review regardless of confidence):
 - active_claim_mentioned: Signal contains ANY mention of a claim, incident, accident, loss, or damage — even historical
@@ -146,6 +152,7 @@ export async function classifyIntent(
     premium_increase_pct: number | null;
     reasoning: string;
     changes_requested?: string[];
+    document_type_needed?: string | null;
   };
 
   // Validate and clamp
@@ -158,6 +165,7 @@ export async function classifyIntent(
     changes_requested: Array.isArray(raw.changes_requested) && raw.changes_requested.length > 0
       ? raw.changes_requested
       : undefined,
+    document_type_needed: raw.document_type_needed ?? null,
   };
 
   // Safety: if intent is in the escalation list, floor confidence to ensure

@@ -92,6 +92,13 @@ export async function POST(
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
+    // Auto-reject pending approval_queue items since campaign is now complete
+    await supabase
+      .from("approval_queue")
+      .update({ status: "rejected" })
+      .eq("policy_id", policy.id)
+      .eq("status", "pending");
+
     return NextResponse.json({
       success: true,
       channel: "internal",
@@ -125,7 +132,7 @@ export async function POST(
       { status: 403 },
     );
   }
-  if (tierResult.tier === 2 && !override) {
+  if (tierResult.tier === 2 && (!override || tierResult.mode === "learning")) {
     return NextResponse.json(
       { flagged: true, tier: 2, reason: tierResult.reason, mode: tierResult.mode },
       { status: 200 },

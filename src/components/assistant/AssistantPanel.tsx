@@ -819,7 +819,7 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                                 >
                                   <Link
                                     href={rowHref}
-                                    onClick={condenseToSide}
+                                    onClick={inChatMode ? condenseToSide : closeAndClear}
                                     className="min-w-0 flex-1 text-left"
                                   >
                                     <div className="text-[14px] font-medium text-zinc-300 truncate group-hover:text-[#0C0C0C] transition-colors">

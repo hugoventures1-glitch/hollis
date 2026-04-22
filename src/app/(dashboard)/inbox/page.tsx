@@ -33,6 +33,7 @@ export interface InboxItem {
     policy_name: string;
     expiration_date: string;
     carrier: string | null;
+    campaign_stage: string | null;
   } | null;
 }
 
@@ -56,17 +57,19 @@ export default async function InboxPage() {
       proposed_action,
       status,
       created_at,
-      policies (
+      policies!inner (
         id,
         client_name,
         policy_name,
         expiration_date,
-        carrier
+        carrier,
+        campaign_stage
       )
     `
     )
     .eq("user_id", user.id)
     .eq("status", "pending")
+    .not("policies.campaign_stage", "in", '("confirmed","lapsed","final_notice_sent","complete")')
     .order("created_at", { ascending: false });
 
   // Normalise — all approval_queue items are Tier 2 for now

@@ -53,9 +53,7 @@ function sourceBadge(item: InboxItem): { label: string; color: string; showSuffi
     // Cron-generated item
     const flagReason = item.proposed_action?.payload?.flag_reason as string | undefined;
     const snippet = item.raw_signal_snippet ?? "";
-    const isLearning =
-      (typeof flagReason === "string" && flagReason.toLowerCase().includes("learning")) ||
-      snippet.toLowerCase().includes("learning");
+    const isLearning = typeof flagReason === "string" && flagReason.toLowerCase().includes("learning");
     if (isLearning) {
       return { label: "Learning", color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20", showSuffix: false };
     }
@@ -167,6 +165,7 @@ interface DetailPanelProps {
   item: InboxItem;
   busy: boolean;
   sent: boolean;
+  sentAction?: "approved" | "rejected" | "edited";
   onApprove: () => void;
   onReject: () => void;
   onEdit: () => void;
@@ -185,6 +184,7 @@ function DetailPanel({
   item,
   busy,
   sent,
+  sentAction,
   onApprove,
   onReject,
   onEdit,
@@ -427,25 +427,31 @@ function DetailPanel({
       {sent ? (
         <div
           className="px-6 py-5 shrink-0"
-          style={{ borderTop: "1px solid rgba(184,244,0,0.15)", background: "rgba(184,244,0,0.05)" }}
+          style={{
+            borderTop: `1px solid ${sentAction === "rejected" ? "rgba(220,38,38,0.15)" : "rgba(184,244,0,0.15)"}`,
+            background: sentAction === "rejected" ? "rgba(220,38,38,0.05)" : "rgba(184,244,0,0.05)",
+          }}
         >
           <div className="flex items-center gap-3 mb-1">
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "rgba(184,244,0,0.12)", border: "1px solid rgba(184,244,0,0.25)" }}
+              style={{
+                background: sentAction === "rejected" ? "rgba(220,38,38,0.12)" : "rgba(184,244,0,0.12)",
+                border: `1px solid ${sentAction === "rejected" ? "rgba(220,38,38,0.25)" : "rgba(184,244,0,0.25)"}`,
+              }}
             >
-              <CheckCircle2 size={13} style={{ color: "#B8F400" }} />
+              <CheckCircle2 size={13} style={{ color: sentAction === "rejected" ? "#f87171" : "#B8F400" }} />
             </div>
-            <span className="text-[14px] font-semibold" style={{ color: "#B8F400" }}>
-              Renewal approved
+            <span className="text-[14px] font-semibold" style={{ color: sentAction === "rejected" ? "#f87171" : "#B8F400" }}>
+              {sentAction === "rejected" ? "Renewal rejected" : sentAction === "edited" ? "Changes saved" : "Renewal approved"}
             </span>
           </div>
           <p className="text-[12px] pl-9 leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-            Hollis has dispatched the outreach to{" "}
-            <span style={{ color: "var(--text-secondary)" }}>
-              {item.policies?.client_name ?? "the client"}
-            </span>
-            . The renewal is now in motion.
+            {sentAction === "rejected"
+              ? `This action has been rejected. No outreach will be sent to ${item.policies?.client_name ?? "the client"}.`
+              : sentAction === "edited"
+                ? `Your changes have been saved and approved. Hollis will dispatch the updated outreach to ${item.policies?.client_name ?? "the client"}.`
+                : `Hollis has dispatched the outreach to ${item.policies?.client_name ?? "the client"}. The renewal is now in motion.`}
           </p>
         </div>
       ) : (
@@ -809,6 +815,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
   const [busy,        setBusy]        = useState(false);
   const [errorMsg,    setErrorMsg]    = useState<string | null>(null);
   const [sentId,      setSentId]      = useState<string | null>(null);
+  const [sentAction,  setSentAction]  = useState<"approved" | "rejected" | "edited" | null>(null);
   const [checkedMap,  setCheckedMap]  = useState<Record<string, Set<number>>>({});
   const posthog = usePostHog();
 
@@ -848,8 +855,10 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
       });
       // Flash success state briefly before removing
       setSentId(id);
+      setSentAction(action);
       await new Promise((r) => setTimeout(r, 900));
       setSentId(null);
+      setSentAction(null);
       const remaining = items.filter((i) => i.id !== id);
       setItems(remaining);
       const remainingActive = remaining.filter((i) =>
@@ -1061,6 +1070,7 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
             item={selectedItem}
             busy={busy}
             sent={sentId === selectedItem.id}
+            sentAction={sentId === selectedItem.id ? sentAction ?? undefined : undefined}
             onApprove={() => resolve(selectedItem.id, "approved")}
             onReject={() => resolve(selectedItem.id, "rejected")}
             onEdit={() => startEdit(selectedItem)}

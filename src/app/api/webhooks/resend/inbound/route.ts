@@ -17,6 +17,7 @@ import { Webhook, WebhookVerificationError } from "svix";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processInboundSignal } from "@/lib/agent/process-signal";
 import { logWebhookEvent } from "@/lib/webhooks/log-event";
+import { validateDocumentForChase } from "@/lib/doc-chase/validate";
 import type { ParserOutcome } from "@/types/agent";
 
 const ENDPOINT = "resend_inbound";
@@ -33,6 +34,13 @@ interface ResendInboundPayload {
   };
 }
 
+interface ResendInboundAttachment {
+  filename: string;
+  content_type: string;
+  size: number;
+  url: string;
+}
+
 interface ResendReceivedEmail {
   id: string;
   from: string;
@@ -40,6 +48,7 @@ interface ResendReceivedEmail {
   subject: string;
   text?: string | null;
   html?: string | null;
+  attachments?: ResendInboundAttachment[] | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -365,6 +374,112 @@ export async function POST(request: NextRequest) {
         sender_email: senderEmail,
         detail: { doc_chase_request_ids: ids, reply_length: rawSignal.length },
       });
+
+      // ── Attachment processing ─────────────────────────────────────────────
+      // If the reply includes file attachments, validate the first supported one
+      // against each active chase and auto-close any that pass.
+      const supportedMimeTypes = new Set([
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ]);
+
+      const attachments = emailContent.attachments ?? [];
+      const firstAttachment = attachments.find((a) => supportedMimeTypes.has(a.content_type));
+
+      if (firstAttachment && resendApiKey) {
+        try {
+          // Download attachment bytes from Resend
+          const attachRes = await fetch(firstAttachment.url, {
+            headers: { Authorization: `Bearer ${resendApiKey}` },
+          });
+
+          if (attachRes.ok) {
+            const attachBuffer = Buffer.from(await attachRes.arrayBuffer());
+            const base64 = attachBuffer.toString("base64");
+
+            // Fetch full chase rows to get document_type + notes
+            const { data: chaseRows } = await admin
+              .from("doc_chase_requests")
+              .select("id, document_type, notes, policy_id, user_id, client_email")
+              .in("id", ids);
+
+            for (const chase of chaseRows ?? []) {
+              const result = await validateDocumentForChase(
+                base64,
+                firstAttachment.content_type,
+                chase.document_type,
+                chase.notes
+              );
+
+              const nowIso = new Date().toISOString();
+              const isPass = result.verdict === "pass";
+
+              const uuid = crypto.randomUUID();
+              const safeName = firstAttachment.filename.replace(/[^a-z0-9._-]/gi, "_").slice(0, 100);
+              const storagePath = `${chase.user_id}/${chase.id}/${uuid}-${safeName}`;
+
+              // Upload to storage
+              const { error: uploadErr } = await admin.storage
+                .from("doc-chase-attachments")
+                .upload(storagePath, attachBuffer, {
+                  contentType: firstAttachment.content_type,
+                  upsert: false,
+                });
+
+              if (uploadErr) {
+                console.error("[webhook/resend/inbound] Attachment storage upload failed:", uploadErr.message);
+              }
+
+              const updatePayload: Record<string, unknown> = {
+                received_attachment_path: uploadErr ? null : storagePath,
+                received_attachment_filename: firstAttachment.filename,
+                received_attachment_content_type: firstAttachment.content_type,
+                validation_status: result.verdict,
+                validation_summary: result.summary,
+                validation_issues: result.issues.length > 0 ? result.issues : null,
+                validation_confidence: result.confidence,
+                validated_at: nowIso,
+              };
+
+              if (isPass) {
+                updatePayload.status = "received";
+              }
+
+              await admin
+                .from("doc_chase_requests")
+                .update(updatePayload)
+                .eq("id", chase.id);
+            }
+
+            await logWebhookEvent({
+              endpoint: ENDPOINT,
+              gate: "doc_chase_attachment_validated",
+              email_id,
+              sender_email: senderEmail,
+              detail: {
+                filename: firstAttachment.filename,
+                content_type: firstAttachment.content_type,
+                chase_ids: ids,
+              },
+            });
+          }
+        } catch (attachErr) {
+          console.error("[webhook/resend/inbound] Attachment validation failed:", attachErr);
+          await logWebhookEvent({
+            endpoint: ENDPOINT,
+            gate: "pipeline_error",
+            email_id,
+            sender_email: senderEmail,
+            detail: {
+              error: "attachment_validation_failed",
+              message: attachErr instanceof Error ? attachErr.message : String(attachErr),
+            },
+          });
+        }
+      }
     }
 
     return NextResponse.json({ ok: true });
