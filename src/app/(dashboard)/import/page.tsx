@@ -15,14 +15,12 @@
  * Pre-computed facts are passed to the AI as ground truth; it must not re-estimate.
  */
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Upload,
   CheckCircle2,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   ArrowRight,
   Check,
@@ -554,6 +552,9 @@ export default function FullBookImportPage() {
     errors: [],
   });
 
+  // Confirm screen tab: "policy_schedule" | "unique"
+  const [confirmTab, setConfirmTab] = useState<"policy_schedule" | "unique">("policy_schedule");
+
   // Pre-fill ambiguity choices with the resolved AI suggestion
   useEffect(() => {
     if (!aiAnalysis?.ambiguous_columns?.length) return;
@@ -790,6 +791,93 @@ export default function FullBookImportPage() {
     return "";
   };
 
+  // Policies due within 30 days (computed client-side from parsed rows)
+  const renewalsIn30Days = useMemo(() => {
+    if (!parsedFile || !aiAnalysis) return null;
+    const m = aiAnalysis.column_mapping;
+    const renewalCol = m.renewal_date ?? m.expiry_date ?? null;
+    if (!renewalCol) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    let count = 0;
+    for (const row of parsedFile.allRows) {
+      const d = parseImportDate(row[renewalCol]);
+      if (d && d >= today && d <= in30) count++;
+    }
+    return count;
+  }, [parsedFile, aiAnalysis]);
+
+  // Preview rows for the confirm table
+  const previewRows = useMemo(() => {
+    if (!parsedFile || !aiAnalysis) return [];
+    const m = aiAnalysis.column_mapping;
+    const get = (row: Record<string, string>, field: keyof ColumnMapping): string => {
+      const col = m[field];
+      return col ? (row[col] ?? "").trim() : "";
+    };
+    const fmtExpiry = (raw: string): string => {
+      if (!raw) return "—";
+      const d = parseImportDate(raw);
+      if (!d) return raw;
+      return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "2-digit" })
+        .replace(",", "");
+    };
+    const fmtPremium = (raw: string): string => {
+      if (!raw) return "—";
+      const n = parseFloat(raw.replace(/[^0-9.]/g, ""));
+      if (isNaN(n)) return raw;
+      return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const rows = parsedFile.allRows
+      .map((row) => {
+        const rawDate = get(row, "renewal_date") || get(row, "expiry_date") || get(row, "inception_date");
+        const d = parseImportDate(rawDate);
+        return {
+          client: get(row, "client_name") || "—",
+          policyClass: get(row, "policy_type") || "—",
+          insurer: get(row, "insurer") || "—",
+          expiry: fmtExpiry(rawDate),
+          expiryDate: d,
+          premium: fmtPremium(get(row, "premium")),
+          isUrgent: d ? d >= today && d <= in30 : false,
+        };
+      })
+      .filter((r) => r.client !== "—" || r.policyClass !== "—");
+
+    if (confirmTab === "unique") {
+      // One row per client: earliest expiry, total premium (show class as "N policies")
+      const byClient = new Map<string, typeof rows[0] & { count: number; totalPremium: number }>();
+      for (const r of rows) {
+        const key = r.client.toLowerCase();
+        const existing = byClient.get(key);
+        const rawPremium = parseFloat(r.premium.replace(/[^0-9.]/g, "")) || 0;
+        if (!existing) {
+          byClient.set(key, { ...r, count: 1, totalPremium: rawPremium });
+        } else {
+          existing.count++;
+          existing.totalPremium += rawPremium;
+          if (r.expiryDate && (!existing.expiryDate || r.expiryDate < existing.expiryDate)) {
+            existing.expiryDate = r.expiryDate;
+            existing.expiry = r.expiry;
+            existing.isUrgent = r.isUrgent;
+          }
+        }
+      }
+      return Array.from(byClient.values()).map((r) => ({
+        ...r,
+        policyClass: `${r.count} ${r.count === 1 ? "policy" : "policies"}`,
+        premium: r.totalPremium > 0
+          ? `$${r.totalPremium.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+          : "—",
+      }));
+    }
+
+    return rows;
+  }, [parsedFile, aiAnalysis, confirmTab]);
+
   // ── Render ────────────────────────────────────────────────────
 
   return (
@@ -798,14 +886,24 @@ export default function FullBookImportPage() {
       {/* Header */}
       <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center px-10 gap-3">
         <div className="flex items-center gap-2 text-[13px]">
-          <span className="text-[#6b6b6b]">Import</span>
-          <span className="text-[#1C1C1C]">/</span>
-          <span className="text-[#FAFAFA] font-medium">Full Book Import</span>
+          <span className="text-[#6b6b6b]">settings</span>
+          <span className="text-[#3b3b3b]">/</span>
+          <span className="text-[#6b6b6b]">import</span>
+          {step !== "confirm" && (
+            <>
+              <span className="text-[#3b3b3b]">/</span>
+              <span className="text-[#FAFAFA] font-medium">
+                {step === "drop" ? "upload" : step === "analysing" ? "analysing" : step === "importing" ? "importing" : "done"}
+              </span>
+            </>
+          )}
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Zap size={13} className="text-[#FAFAFA]" />
-          <span className="text-[12px] text-[#6b6b6b] font-medium">AI-Powered</span>
-        </div>
+        {step !== "confirm" && (
+          <div className="ml-auto flex items-center gap-2">
+            <Zap size={13} className="text-[#FAFAFA]" />
+            <span className="text-[12px] text-[#6b6b6b] font-medium">AI-Powered</span>
+          </div>
+        )}
       </header>
 
       {/* ── Step: Drop ──────────────────────────────────────────── */}
@@ -1006,262 +1104,163 @@ export default function FullBookImportPage() {
       {/* ── Step: Confirm ───────────────────────────────────────── */}
       {step === "confirm" && aiAnalysis && parsedFile && (
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[820px] mx-auto px-10 py-10">
+          <div className="max-w-[720px] mx-auto px-10 py-10">
 
-            {/* Headline */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-2">
-                <FileSpreadsheet size={18} className="text-[#FAFAFA]" />
-                <h1 className="text-[22px] font-bold text-[#FAFAFA] tracking-tight">
-                  Hollis detected{" "}
-                  <span className="text-[#FAFAFA]">
-                    {aiAnalysis.summary.clients_detected} clients
-                  </span>{" "}
-                  and{" "}
-                  <span className="text-[#FAFAFA]">
-                    {aiAnalysis.summary.policies_detected} policies
-                  </span>{" "}
-                  in your {aiAnalysis.detected_system} export.
-                </h1>
+            {/* Title row */}
+            <div className="flex items-start justify-between mb-1">
+              <h1 className="text-[32px] font-bold text-[#FAFAFA] tracking-tight leading-none">
+                review import
+              </h1>
+              {/* View tabs */}
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={() => setConfirmTab("unique")}
+                  className={`text-[12px] transition-colors ${
+                    confirmTab === "unique" ? "text-[#FAFAFA]" : "text-[#6b6b6b] hover:text-[#FAFAFA]"
+                  }`}
+                >
+                  unique
+                </button>
+                <span className="text-[#1C1C1C]">·</span>
+                <button
+                  onClick={() => setConfirmTab("policy_schedule")}
+                  className={`text-[12px] transition-colors ${
+                    confirmTab === "policy_schedule" ? "text-[#FAFAFA]" : "text-[#6b6b6b] hover:text-[#FAFAFA]"
+                  }`}
+                >
+                  policy schedule
+                </button>
               </div>
-              <p className="text-[14px] text-[#6b6b6b]">
-                Review the mapping below, resolve any flagged fields, then confirm to import.
-              </p>
             </div>
 
-            {/* Low confidence warning */}
-            {aiAnalysis.confidence === "low" && (
-              <div className="flex items-start gap-3 rounded-xl bg-[#1C1C1C] border border-[#1C1C1C] px-5 py-4 mb-6">
-                <AlertTriangle size={16} className="text-[#9e9e9e] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[13px] font-semibold text-[#9e9e9e] mb-0.5">Low confidence mapping</p>
-                  <p className="text-[13px] text-[#9e9e9e]/80">
-                    The field mapping is uncertain. Review carefully before importing.
-                  </p>
+            {/* Filename */}
+            <p className="text-[11px] text-[#6b6b6b] font-mono mb-6">{parsedFile.name}</p>
+
+            {/* Stats row */}
+            <div className="flex items-end gap-10 mb-8 pb-6 border-b border-[#1C1C1C]">
+              {[
+                { value: aiAnalysis.summary.clients_detected, label: "clients" },
+                { value: aiAnalysis.summary.policies_detected, label: "policies" },
+                { value: aiAnalysis.summary.renewals_in_90_days, label: "due 90 days" },
+                { value: renewalsIn30Days ?? aiAnalysis.summary.overdue_renewals ?? 0, label: "≤ 30 days" },
+              ].map(({ value, label }) => (
+                <div key={label} className="flex flex-col">
+                  <span className="text-[52px] font-bold text-[#FAFAFA] leading-none tabular-nums">
+                    {value}
+                  </span>
+                  <span className="text-[11px] text-[#6b6b6b] mt-1.5">{label}</span>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
 
             {/* Import error */}
             {importError && (
-              <div className="flex items-start gap-3 rounded-xl bg-red-950/30 border border-red-700/40 px-5 py-4 mb-6">
-                <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
-                <p className="text-[13px] text-red-300 flex-1">{importError}</p>
+              <div className="flex items-start gap-3 rounded-lg bg-red-950/30 border border-red-700/40 px-4 py-3 mb-5">
+                <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
+                <p className="text-[12px] text-red-300 flex-1">{importError}</p>
                 <button onClick={() => setImportError(null)}>
-                  <X size={13} className="text-red-400 hover:text-red-300" />
+                  <X size={12} className="text-red-400 hover:text-red-300" />
                 </button>
               </div>
             )}
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-5 gap-3 mb-8">
-              <SummaryCard
-                label="Clients"
-                value={aiAnalysis.summary.clients_detected}
-                sub="unique clients"
-                accent="text-[#FAFAFA]"
-              />
-              <SummaryCard
-                label="Policies"
-                value={aiAnalysis.summary.policies_detected}
-                sub="total policies"
-                accent="text-[#FAFAFA]"
-              />
-              <SummaryCard
-                label="Due in 90 days"
-                value={aiAnalysis.summary.renewals_in_90_days}
-                sub="upcoming renewals"
-                accent={aiAnalysis.summary.renewals_in_90_days > 0 ? "text-[#ff6b35]" : "text-[#6b6b6b]"}
-              />
-              <SummaryCard
-                label="At Risk"
-                value={aiAnalysis.summary.overdue_renewals ?? "—"}
-                sub="overdue renewals"
-                accent={
-                  (aiAnalysis.summary.overdue_renewals ?? 0) > 0
-                    ? "text-red-400"
-                    : "text-[#6b6b6b]"
-                }
-              />
-              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-5 flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
-                  Detected System
-                </span>
-                <span className="text-[20px] font-bold text-[#FAFAFA] leading-tight mt-0.5">
-                  {aiAnalysis.detected_system}
-                </span>
-                <span
-                  className={`self-start text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                    CONFIDENCE_STYLES[aiAnalysis.confidence].className
-                  }`}
-                >
-                  {CONFIDENCE_STYLES[aiAnalysis.confidence].label}
-                </span>
-              </div>
+            {/* Policy table */}
+            <table className="w-full mb-5">
+              <thead>
+                <tr className="border-b border-[#1C1C1C]">
+                  {(confirmTab === "unique"
+                    ? ["CLIENT", "POLICIES", "NEXT EXPIRY", "TOTAL PREMIUM", "STATUS"]
+                    : ["CLIENT", "CLASS", "INSURER", "EXPIRY", "PREMIUM", "STATUS"]
+                  ).map((col) => (
+                    <th
+                      key={col}
+                      className="pb-2 pt-0 text-left text-[10px] font-medium text-[#6b6b6b] uppercase tracking-wider pr-5 last:pr-0"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, i) => (
+                  <tr key={i} className="border-b border-[#1C1C1C]/30 last:border-b-0">
+                    <td className="py-2.5 pr-5 text-[13px] font-medium text-[#FAFAFA] max-w-[180px] truncate">
+                      {row.client}
+                    </td>
+                    <td className="py-2.5 pr-5 text-[13px] text-[#8a8a8a]">
+                      {row.policyClass}
+                    </td>
+                    {confirmTab === "policy_schedule" && (
+                      <td className="py-2.5 pr-5 text-[13px] text-[#8a8a8a]">
+                        {row.insurer}
+                      </td>
+                    )}
+                    <td className={`py-2.5 pr-5 text-[13px] font-medium ${row.isUrgent ? "text-[#FAFAFA]" : "text-[#8a8a8a]"}`}>
+                      {row.expiry}
+                    </td>
+                    <td className="py-2.5 pr-5 text-[13px] text-[#8a8a8a]">
+                      {row.premium}
+                    </td>
+                    <td className="py-2.5">
+                      <span className="text-[11px] text-[#6b6b6b]">pending</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Notes */}
+            <div className="space-y-1 mb-7">
+              {aiAnalysis.warnings.map((w, i) => (
+                <p key={i} className="text-[12px] text-[#6b6b6b] flex items-start gap-2">
+                  <span className="shrink-0">→</span>
+                  <span>{w}</span>
+                </p>
+              ))}
+              {mappedFields.some(([f]) => f === "coverage_description") && (
+                <p className="text-[12px] text-[#6b6b6b] flex items-start gap-2">
+                  <span className="shrink-0">→</span>
+                  <span>
+                    import / description mapped to policy_notes —{" "}
+                    <button className="underline hover:text-[#FAFAFA] transition-colors">
+                      adjust if incorrect
+                    </button>
+                  </span>
+                </p>
+              )}
+              {aiAnalysis.confidence === "low" && (
+                <p className="text-[12px] text-[#6b6b6b] flex items-start gap-2">
+                  <span className="shrink-0">→</span>
+                  <span>low confidence mapping — review column assignments before confirming</span>
+                </p>
+              )}
             </div>
 
-            {/* Field mapping table */}
-            {mappedFields.length > 0 && (
-              <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
-                <div className="px-5 py-3 border-b border-[#1C1C1C] bg-[#0C0C0C]">
-                  <span className="text-[12px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
-                    Field Mapping — {mappedFields.length} fields detected
-                  </span>
-                </div>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#1C1C1C]">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider w-[200px]">
-                        Hollis Field
-                      </th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">
-                        Detected From
-                      </th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">
-                        Sample Value
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mappedFields.map(([field, col]) => (
-                      <MappingRow
-                        key={field}
-                        field={field}
-                        header={col as string}
-                        sample={sampleFor(col)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Ambiguous columns */}
-            {aiAnalysis.ambiguous_columns.length > 0 && (
-              <div className="rounded-xl border border-[#1C1C1C] bg-[#1C1C1C] overflow-hidden mb-6">
-                <div className="px-5 py-3 border-b border-[#1C1C1C] flex items-center gap-2.5">
-                  <AlertTriangle size={13} className="text-[#9e9e9e]" />
-                  <span className="text-[12px] font-bold text-[#9e9e9e]/80 uppercase tracking-[0.1em]">
-                    {aiAnalysis.ambiguous_columns.length} field{aiAnalysis.ambiguous_columns.length !== 1 ? "s" : ""} need clarification
-                  </span>
-                </div>
-                <div className="divide-y divide-[#1C1C1C]">
-                  {aiAnalysis.ambiguous_columns.map((col) => (
-                    <div key={col.header} className="px-5 py-4 flex items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[13px] font-mono text-[#FAFAFA] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
-                            {col.header}
-                          </span>
-                          <span className="text-[12px] text-[#9e9e9e]/70">
-                            is ambiguous
-                          </span>
-                        </div>
-                        <p className="text-[12px] text-[#6b6b6b]">
-                          AI suggests: <span className="text-[#9e9e9e]">{col.recommendation}</span>
-                        </p>
-                      </div>
-                      <select
-                        value={ambiguityChoices[col.header] ?? ""}
-                        onChange={(e) =>
-                          setAmbiguityChoices((prev) => ({
-                            ...prev,
-                            [col.header]: e.target.value,
-                          }))
-                        }
-                        className="bg-[#141414] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[12px] text-[#FAFAFA] outline-none focus:border-[#555555] shrink-0"
-                      >
-                        <option value="">— ignore this column —</option>
-                        {col.possible_meanings.map((m) => {
-                          const isAI = m === resolveAISuggestion(col);
-                          return (
-                            <option key={m} value={m}>
-                              {isAI ? "✓ " : ""}{HOLLIS_FIELD_LABELS[m] ?? m}{isAI ? " (AI suggestion)" : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Warnings */}
-            {aiAnalysis.warnings.length > 0 && (
-              <div className="space-y-2.5 mb-6">
-                {aiAnalysis.warnings.map((w, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3"
-                  >
-                    <AlertTriangle size={13} className="text-[#9e9e9e] shrink-0 mt-0.5" />
-                    <p className="text-[13px] text-[#9e9e9e]/90">{w}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Unmapped columns — collapsible */}
-            {aiAnalysis.unmapped_columns.length > 0 && (
-              <div className="rounded-xl border border-[#1C1C1C] bg-[#0C0C0C] overflow-hidden mb-8">
-                <button
-                  onClick={() => setUnmappedOpen((v) => !v)}
-                  className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[12px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
-                      {aiAnalysis.unmapped_columns.length} columns won&apos;t be imported
-                    </span>
-                  </div>
-                  {unmappedOpen ? (
-                    <ChevronUp size={14} className="text-[#6b6b6b]" />
-                  ) : (
-                    <ChevronDown size={14} className="text-[#6b6b6b]" />
-                  )}
-                </button>
-                {unmappedOpen && (
-                  <div className="border-t border-[#1C1C1C] px-5 py-4">
-                    <p className="text-[12px] text-[#6b6b6b] mb-3">
-                      These columns don&apos;t match any Hollis field and will be skipped.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {aiAnalysis.unmapped_columns.map((col) => (
-                        <span
-                          key={col}
-                          className="text-[11px] font-mono text-[#6b6b6b] bg-[#111111] border border-[#1C1C1C] px-2 py-0.5 rounded"
-                        >
-                          {col}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-3 pt-2 pb-8">
+            {/* Confirm button */}
+            <div className="flex items-center gap-4 mb-3">
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
+                className="flex-1 h-11 rounded-lg bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-medium hover:bg-[#E8E8E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {importing ? (
-                  <Loader2 size={15} className="animate-spin" />
+                  <Loader2 size={13} className="animate-spin" />
                 ) : (
-                  <ArrowRight size={15} strokeWidth={2.5} />
+                  `confirm · ${aiAnalysis.summary.clients_detected} clients · ${aiAnalysis.summary.policies_detected} policies`
                 )}
-                Import {aiAnalysis.summary.clients_detected} Clients &amp;{" "}
-                {aiAnalysis.summary.policies_detected} Policies
               </button>
               <button
                 onClick={reset}
-                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                className="text-[13px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors shrink-0"
               >
-                Cancel
+                cancel
               </button>
             </div>
+
+            {/* Footer note */}
+            <p className="text-[11px] text-[#6b6b6b]/50">
+              hollis will not start sequences until confirmation. this action can be undone from the client list.
+            </p>
 
           </div>
         </div>
