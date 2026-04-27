@@ -267,15 +267,52 @@ async function parseFile(file: File): Promise<ParsedFile> {
     wb = XLSX.read(new Uint8Array(ab), { type: "array", cellDates: false });
   }
 
-  // Pick the sheet with the most rows — avoids summary/cover sheets that
-  // some AMS exports place first (e.g. WinBEAT "Cover" tab before data tab).
-  const sheetName = wb.SheetNames.reduce((best, name) => {
-    const range = XLSX.utils.decode_range(wb.Sheets[name]["!ref"] || "A1:A1");
-    const bestRange = XLSX.utils.decode_range(
-      wb.Sheets[best]["!ref"] || "A1:A1"
-    );
-    return range.e.r > bestRange.e.r ? name : best;
-  }, wb.SheetNames[0]);
+  // For Excel files, use AI to identify the policy schedule sheet.
+  // For CSV files, use the only sheet present.
+  let sheetName: string | null;
+
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    sheetName = wb.SheetNames[0];
+  } else {
+    // Extract first 3 rows from each sheet to send to AI for identification
+    const sheetSamples: Record<string, string[][]> = {};
+    for (const name of wb.SheetNames) {
+      const ws = wb.Sheets[name];
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, {
+        header: 1,
+        defval: "",
+        raw: false,
+      }).slice(0, 3) as string[][];
+      sheetSamples[name] = rows;
+    }
+
+    const idRes = await fetch("/api/import/identify-sheet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetNames: wb.SheetNames, sheetSamples }),
+    });
+
+    if (!idRes.ok) {
+      throw new Error(
+        "Could not identify a policy schedule in this file. Please try again."
+      );
+    }
+
+    const { sheetName: identified, confidence, reason } = await idRes.json() as {
+      sheetName: string | null;
+      confidence: number;
+      reason: string;
+    };
+
+    if (!identified || confidence < 0.8) {
+      throw new Error(
+        `Could not identify a policy schedule in this file. ${reason ?? ""} ` +
+        `Available sheets: ${wb.SheetNames.map((n) => `"${n}"`).join(", ")}.`
+      );
+    }
+
+    sheetName = identified;
+  }
 
   const ws = wb.Sheets[sheetName];
 
@@ -491,6 +528,10 @@ export default function FullBookImportPage() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [analysingPhase, setAnalysingPhase] = useState(0); // 1=parsing, 2=AI, 3=done
 
+  // Staged files (queue before Transfer)
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
+
   // Data
   const [parsedFile, setParsedFile] = useState<ParsedFile | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
@@ -504,6 +545,14 @@ export default function FullBookImportPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Cumulative result across all files
+  const [cumulativeResult, setCumulativeResult] = useState<ImportResult>({
+    clients: { inserted: 0, duplicates: 0 },
+    policies: { inserted: 0, duplicates: 0 },
+    certificates: { inserted: 0, duplicates: 0 },
+    errors: [],
+  });
 
   // Pre-fill ambiguity choices with the resolved AI suggestion
   useEffect(() => {
@@ -592,11 +641,41 @@ export default function FullBookImportPage() {
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) processFile(file);
+      const dropped = Array.from(e.dataTransfer.files).filter((f) => {
+        const ext = f.name.toLowerCase().split(".").pop() ?? "";
+        return ["xlsx", "xls", "csv"].includes(ext);
+      });
+      if (dropped.length) setStagedFiles((prev) => [...prev, ...dropped]);
     },
-    [processFile]
+    []
   );
+
+  const startTransfer = useCallback(() => {
+    if (!stagedFiles.length) return;
+    setCurrentFileIndex(0);
+    setCumulativeResult({
+      clients: { inserted: 0, duplicates: 0 },
+      policies: { inserted: 0, duplicates: 0 },
+      certificates: { inserted: 0, duplicates: 0 },
+      errors: [],
+    });
+    processFile(stagedFiles[0]);
+  }, [stagedFiles, processFile]);
+
+  const advanceToNextFile = useCallback(() => {
+    const nextIndex = currentFileIndex + 1;
+    setCurrentFileIndex(nextIndex);
+    setParsedFile(null);
+    setAiAnalysis(null);
+    setAmbiguityChoices({});
+    setImportResult(null);
+    setImportError(null);
+    setFileError(null);
+    setAnalysisError(null);
+    setAnalysingPhase(0);
+    setUnmappedOpen(false);
+    processFile(stagedFiles[nextIndex]);
+  }, [currentFileIndex, stagedFiles, processFile]);
 
   const handleImport = useCallback(async () => {
     if (!parsedFile || !aiAnalysis) return;
@@ -642,7 +721,23 @@ export default function FullBookImportPage() {
         localStorage.setItem("hollis_import_counts", JSON.stringify(existing));
       }
 
-      setImportResult(data as ImportResult);
+      const result = data as ImportResult;
+      setImportResult(result);
+      setCumulativeResult((prev) => ({
+        clients: {
+          inserted: prev.clients.inserted + (result.clients?.inserted ?? 0),
+          duplicates: prev.clients.duplicates + (result.clients?.duplicates ?? 0),
+        },
+        policies: {
+          inserted: prev.policies.inserted + (result.policies?.inserted ?? 0),
+          duplicates: prev.policies.duplicates + (result.policies?.duplicates ?? 0),
+        },
+        certificates: {
+          inserted: prev.certificates.inserted + (result.certificates?.inserted ?? 0),
+          duplicates: prev.certificates.duplicates + (result.certificates?.duplicates ?? 0),
+        },
+        errors: [...prev.errors, ...(result.errors ?? [])],
+      }));
       setStep("done");
       // Invalidate the cache so navigating to /clients shows the new data immediately
       useHollisStore.setState({ lastFetched: null });
@@ -666,6 +761,14 @@ export default function FullBookImportPage() {
     setAnalysisError(null);
     setAnalysingPhase(0);
     setUnmappedOpen(false);
+    setStagedFiles([]);
+    setCurrentFileIndex(0);
+    setCumulativeResult({
+      clients: { inserted: 0, duplicates: 0 },
+      policies: { inserted: 0, duplicates: 0 },
+      certificates: { inserted: 0, duplicates: 0 },
+      errors: [],
+    });
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -726,30 +829,32 @@ export default function FullBookImportPage() {
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`relative flex flex-col items-center justify-center min-h-[280px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
+              className={`relative flex flex-col items-center justify-center min-h-[200px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 dragging
                   ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04] shadow-[0_0_60px_rgba(0,212,170,0.08)]"
+                  : stagedFiles.length > 0
+                  ? "border-[#3e3e4a] bg-[#111111] hover:border-[#555555]"
                   : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#111820]"
               }`}
             >
               <div
-                className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-colors ${
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
                   dragging
                     ? "bg-[#FAFAFA]/[0.08] border border-[#1C1C1C]"
                     : "bg-[#1a1a24] border border-[#1C1C1C]"
                 }`}
               >
                 <Upload
-                  size={26}
+                  size={22}
                   className={`transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}`}
                 />
               </div>
 
-              <p className={`text-[17px] font-semibold mb-1 transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#FAFAFA]"}`}>
-                {dragging ? "Release to analyse" : "Drop file here"}
+              <p className="text-[16px] font-semibold mb-1 text-[#FAFAFA]">
+                {dragging ? "Release to add" : stagedFiles.length > 0 ? "Drop more files" : "Drop files here"}
               </p>
-              <p className="text-[13px] text-[#6b6b6b] mb-6">
-                Excel (.xlsx, .xls) or CSV · max 10 MB
+              <p className="text-[13px] text-[#6b6b6b] mb-5">
+                Excel (.xlsx, .xls) or CSV · max 10 MB each
               </p>
 
               <div
@@ -763,13 +868,57 @@ export default function FullBookImportPage() {
                 ref={fileInputRef}
                 type="file"
                 accept=".xlsx,.xls,.csv"
+                multiple
                 className="sr-only"
                 onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) processFile(f);
+                  const files = Array.from(e.target.files ?? []);
+                  if (files.length) setStagedFiles((prev) => [...prev, ...files]);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
                 }}
               />
             </div>
+
+            {/* Staged file list */}
+            {stagedFiles.length > 0 && (
+              <div className="mt-4 rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-[#1C1C1C] bg-[#0C0C0C]">
+                  <span className="text-[11px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
+                    {stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""} ready to transfer
+                  </span>
+                </div>
+                <ul className="divide-y divide-[#1C1C1C]">
+                  {stagedFiles.map((f, i) => (
+                    <li key={i} className="flex items-center gap-3 px-4 py-3">
+                      <FileSpreadsheet size={14} className="text-[#6b6b6b] shrink-0" />
+                      <span className="flex-1 text-[13px] text-[#FAFAFA] truncate">{f.name}</span>
+                      <span className="text-[11px] text-[#6b6b6b] shrink-0">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStagedFiles((prev) => prev.filter((_, idx) => idx !== i));
+                        }}
+                        className="text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors shrink-0"
+                      >
+                        <X size={13} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Transfer button */}
+            {stagedFiles.length > 0 && (
+              <button
+                onClick={startTransfer}
+                className="mt-4 w-full h-12 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center justify-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
+              >
+                <ArrowRight size={15} strokeWidth={2.5} />
+                Transfer {stagedFiles.length > 1 ? `${stagedFiles.length} Files` : "File"}
+              </button>
+            )}
 
             {/* Error */}
             {(fileError || analysisError) && (
@@ -811,9 +960,15 @@ export default function FullBookImportPage() {
             <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
               {analysingPhase <= 1 ? "Reading your file…" : analysingPhase === 2 ? "Analysing format…" : "Building mapping…"}
             </h2>
-            <p className="text-[13px] text-[#6b6b6b] mb-10">
-              {parsedFile?.name ?? "Processing"}
+            <p className="text-[13px] text-[#6b6b6b] mb-1">
+              {stagedFiles[currentFileIndex]?.name ?? parsedFile?.name ?? "Processing"}
             </p>
+            {stagedFiles.length > 1 && (
+              <p className="text-[12px] text-[#6b6b6b]/60 mb-10">
+                File {currentFileIndex + 1} of {stagedFiles.length}
+              </p>
+            )}
+            {stagedFiles.length <= 1 && <div className="mb-10" />}
 
             {/* Step indicators */}
             <div className="space-y-3 text-left">
@@ -1142,88 +1297,98 @@ export default function FullBookImportPage() {
             </div>
 
             <h1 className="text-[26px] font-bold text-[#FAFAFA] text-center tracking-tight mb-8">
-              Import complete
+              {stagedFiles.length > 1 && currentFileIndex >= stagedFiles.length - 1
+                ? `All ${stagedFiles.length} files imported`
+                : stagedFiles.length > 1
+                ? `File ${currentFileIndex + 1} of ${stagedFiles.length} imported`
+                : "Import complete"}
             </h1>
 
-            {/* Result cards */}
-            <div className="space-y-3 mb-8">
-              {[
-                {
-                  label: "Clients",
-                  inserted: importResult.clients.inserted,
-                  dupes: importResult.clients.duplicates,
-                  color: "text-[#FAFAFA]",
-                },
-                {
-                  label: "Policies",
-                  inserted: importResult.policies.inserted,
-                  dupes: importResult.policies.duplicates,
-                  color: "text-[#FAFAFA]",
-                },
-              ].map(({ label, inserted, dupes, color }) => (
-                <div
-                  key={label}
-                  className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-4 flex items-center justify-between"
-                >
-                  <span className="text-[14px] font-semibold text-[#8a8a8a]">
-                    {label}
-                  </span>
-                  <div className="flex items-baseline gap-4">
-                    <div className="text-right">
-                      <span className={`text-[22px] font-bold tabular-nums ${color}`}>
-                        {inserted}
-                      </span>
-                      <span className="text-[12px] text-[#6b6b6b] ml-1.5">added</span>
-                    </div>
-                    {dupes > 0 && (
-                      <div className="text-right">
-                        <span className="text-[16px] font-bold tabular-nums text-[#6b6b6b]">
-                          {dupes}
-                        </span>
-                        <span className="text-[12px] text-[#6b6b6b] ml-1">skipped</span>
+            {/* Result cards — show cumulative on final file, per-file otherwise */}
+            {(() => {
+              const isLastFile = currentFileIndex >= stagedFiles.length - 1;
+              const displayResult = (stagedFiles.length > 1 && isLastFile) ? cumulativeResult : importResult;
+              return (
+                <>
+                  <div className="space-y-3 mb-8">
+                    {[
+                      { label: "Clients", inserted: displayResult.clients.inserted, dupes: displayResult.clients.duplicates },
+                      { label: "Policies", inserted: displayResult.policies.inserted, dupes: displayResult.policies.duplicates },
+                    ].map(({ label, inserted, dupes }) => (
+                      <div key={label} className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-4 flex items-center justify-between">
+                        <span className="text-[14px] font-semibold text-[#8a8a8a]">{label}</span>
+                        <div className="flex items-baseline gap-4">
+                          <div className="text-right">
+                            <span className="text-[22px] font-bold tabular-nums text-[#FAFAFA]">{inserted}</span>
+                            <span className="text-[12px] text-[#6b6b6b] ml-1.5">added</span>
+                          </div>
+                          {dupes > 0 && (
+                            <div className="text-right">
+                              <span className="text-[16px] font-bold tabular-nums text-[#6b6b6b]">{dupes}</span>
+                              <span className="text-[12px] text-[#6b6b6b] ml-1">skipped</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
 
-            {/* Row errors */}
-            {importResult.errors.length > 0 && (
-              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-5 py-4 mb-6">
-                <p className="text-[12px] text-[#6b6b6b] mb-2">
-                  {importResult.errors.length} row{importResult.errors.length !== 1 ? "s" : ""} couldn&apos;t be imported and were skipped.
-                </p>
-                <ul className="space-y-1 max-h-24 overflow-y-auto">
-                  {importResult.errors.slice(0, 5).map((err, i) => (
-                    <li key={i} className="text-[11px] text-[#6b6b6b] font-mono">
-                      Row {err.row}: {err.reason}
-                    </li>
-                  ))}
-                  {importResult.errors.length > 5 && (
-                    <li className="text-[11px] text-[#6b6b6b]">
-                      + {importResult.errors.length - 5} more
-                    </li>
+                  {displayResult.errors.length > 0 && (
+                    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-5 py-4 mb-6">
+                      <p className="text-[12px] text-[#6b6b6b] mb-2">
+                        {displayResult.errors.length} row{displayResult.errors.length !== 1 ? "s" : ""} couldn&apos;t be imported and were skipped.
+                      </p>
+                      <ul className="space-y-1 max-h-24 overflow-y-auto">
+                        {displayResult.errors.slice(0, 5).map((err, i) => (
+                          <li key={i} className="text-[11px] text-[#6b6b6b] font-mono">
+                            Row {err.row}: {err.reason}
+                          </li>
+                        ))}
+                        {displayResult.errors.length > 5 && (
+                          <li className="text-[11px] text-[#6b6b6b]">+ {displayResult.errors.length - 5} more</li>
+                        )}
+                      </ul>
+                    </div>
                   )}
-                </ul>
-              </div>
-            )}
+                </>
+              );
+            })()}
 
             {/* Actions */}
             <div className="flex items-center justify-center gap-3">
-              <Link
-                href="/clients"
-                className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
-              >
-                View your book
-                <ArrowRight size={14} strokeWidth={2.5} />
-              </Link>
-              <button
-                onClick={reset}
-                className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
-              >
-                Import another file
-              </button>
+              {currentFileIndex < stagedFiles.length - 1 ? (
+                <>
+                  <button
+                    onClick={advanceToNextFile}
+                    className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
+                  >
+                    <ArrowRight size={14} strokeWidth={2.5} />
+                    Next file ({currentFileIndex + 2} of {stagedFiles.length})
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                  >
+                    Stop
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/clients"
+                    className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
+                  >
+                    View your book
+                    <ArrowRight size={14} strokeWidth={2.5} />
+                  </Link>
+                  <button
+                    onClick={reset}
+                    className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                  >
+                    Import more files
+                  </button>
+                </>
+              )}
             </div>
 
           </div>

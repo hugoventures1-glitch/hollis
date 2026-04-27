@@ -14,13 +14,16 @@ export type BriefingItemType =
 /**
  * A single briefing bullet point.
  *
- * - text: the human-readable sentence shown in the UI
- * - type: routing metadata — determines which page "View →" links to
- * - id:   UUID of the specific record (policy, certificate) for deep-linking;
- *         null for list-level links (COI queue, documents, import)
+ * - text:    the human-readable sentence shown in the UI
+ * - type:    routing metadata — determines which page "View →" links to
+ * - id:      UUID of the specific record (policy, certificate) for deep-linking;
+ *            null for list-level links (COI queue, documents, import)
+ * - urgency: "high" = red dot in UI, needs action today;
+ *            "normal" = informational (default when absent)
  */
 export interface BriefingItem {
   text: string;
   type: BriefingItemType;
   id: string | null;
+  urgency?: "high" | "normal";
 }

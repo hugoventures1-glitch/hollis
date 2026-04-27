@@ -5,13 +5,16 @@
  *
  * Renders an ambient morning briefing above the stats bar on the Overview page.
  * Fetches from /api/briefing on mount; shows an animated skeleton while loading.
- * Collapses after being viewed (in viewport for 2s); persists collapse state per day.
+ * Collapses after being viewed (in viewport for 6s); persists collapse state per day.
  *
  * Design principles:
  * - No card borders, no panel chrome — reads like prose on the page
  * - Left teal stripe as the only visual anchor
  * - Text at zinc-300, key entities bolded to white
+ * - High-urgency items get a small red dot on the left
  * - "View →" action link fades in on hover, routes based on item.type + id
+ * - Collapsed label shows "Today · N" count so item count is visible at a glance
+ * - All-clear state rendered explicitly instead of invisible null
  * - Degrades silently on error (shows nothing)
  */
 
@@ -20,7 +23,7 @@ import { useRouter } from "next/navigation";
 import { RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import type { BriefingItem, BriefingItemType } from "@/types/briefing";
 
-const VIEWED_DELAY_MS = 2000;
+const VIEWED_DELAY_MS = 6000;
 const STORAGE_KEY = "hollis-briefing-collapsed";
 
 function todayKey(): string {
@@ -201,12 +204,25 @@ export function DailyBriefing() {
     router.push(href);
   }
 
-  // Don't render the shell at all while loading AND items are empty (first paint)
+  // All-clear: loaded but no items — confirm positively rather than going invisible
   if (!loading && items.length === 0) {
-    return null;
+    return (
+      <div className="flex items-start gap-5 px-12 pt-8 pb-6">
+        <div
+          className="shrink-0 w-[2px] self-stretch rounded-full bg-[#FAFAFA]/10"
+          aria-hidden="true"
+        />
+        <p className="text-[14px] text-[#6b6b6b] leading-[1.7]">
+          Book looks clear — no urgent items today.
+        </p>
+      </div>
+    );
   }
 
   const toggleCollapsed = () => setCollapsed((c) => !c);
+
+  // Count label: show item count when collapsed and items are loaded
+  const countLabel = !loading && items.length > 0 ? ` · ${items.length}` : "";
 
   return (
     <div className="flex items-start gap-5 px-12 pt-8 pb-6">
@@ -226,7 +242,7 @@ export function DailyBriefing() {
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expand today's briefing" : "Collapse briefing"}
           >
-            Today
+            Today{countLabel}
             {collapsed ? (
               <ChevronDown size={12} className="opacity-70" />
             ) : (
@@ -260,7 +276,13 @@ export function DailyBriefing() {
                 key={i}
                 className="group flex items-baseline justify-between gap-6 py-[5px]"
               >
-                <p className="text-[15px] text-[#FAFAFA] leading-[1.7] min-w-0">
+                <p className="text-[15px] text-[#FAFAFA] leading-[1.7] min-w-0 flex items-baseline gap-2">
+                  {item.urgency === "high" && (
+                    <span
+                      className="shrink-0 inline-block w-[5px] h-[5px] rounded-full bg-red-500 translate-y-[-2px]"
+                      aria-label="High urgency"
+                    />
+                  )}
                   <HighlightedText text={item.text} />
                 </p>
 
@@ -276,8 +298,6 @@ export function DailyBriefing() {
             ))}
           </ul>
         )}
-
-        {/* All-clear — rendered by parent suppression (items.length === 0 → null above) */}
       </div>
     </div>
   );

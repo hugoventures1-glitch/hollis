@@ -58,6 +58,8 @@ export interface HollisStoreState {
   loading: boolean;
   /** True during a background refresh when cached data is already shown */
   backgroundRefreshing: boolean;
+  /** Remove a policy from the local cache (after archive/delete) */
+  removePolicy: (id: string) => void;
   /** Trigger a full refresh of all data */
   fetchAll: () => Promise<void>;
 }
@@ -77,6 +79,14 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
   lastFetched: null,
   loading: false,
   backgroundRefreshing: false,
+
+  removePolicy: (id: string) => {
+    set((s) => ({
+      policies: s.policies.filter((p) => p.id !== id),
+      renewals: s.renewals.filter((p) => p.id !== id),
+      completedPolicies: s.completedPolicies.filter((p) => p.id !== id),
+    }));
+  },
 
   fetchAll: async () => {
     const { loading, backgroundRefreshing, lastFetched } = get();

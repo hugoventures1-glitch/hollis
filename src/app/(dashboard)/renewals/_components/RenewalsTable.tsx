@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useMemo, memo } from "react";
+import { useState, useCallback, useEffect, useMemo, memo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, MessageSquare } from "lucide-react";
+import { ChevronRight, MessageSquare, Trash2 } from "lucide-react";
 import { ActionButton } from "@/components/actions/ActionButton";
 import { useToast } from "@/components/actions/MicroToast";
 import { SignalModal } from "@/components/renewals/SignalModal";
@@ -139,13 +139,22 @@ interface RowProps {
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
   onLogSignal: (policyId: string, clientName: string) => void;
+  onArchive: (id: string) => void;
 }
 
-const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage, onStageUpdate, onStageRevert, onLogSignal }: RowProps) {
+const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage, onStageUpdate, onStageRevert, onLogSignal, onArchive }: RowProps) {
   const { toast }          = useToast();
   const router             = useRouter();
   const [loading, setLoading] = useState(false);
   const [pendingOverride, setPendingOverride] = useState<string | null>(null);
+  const [archiveConfirm, setArchiveConfirm] = useState(false);
+
+  // Reset confirm state after 3s of no interaction
+  useEffect(() => {
+    if (!archiveConfirm) return;
+    const t = setTimeout(() => setArchiveConfirm(false), 3000);
+    return () => clearTimeout(t);
+  }, [archiveConfirm]);
 
   const days           = daysUntilExpiry(policy.expiration_date);
   const effectiveStage = optimisticStage ?? policy.campaign_stage;
@@ -332,8 +341,50 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
       <div
         className="shrink-0 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 flex items-center gap-2"
         onClick={(e) => e.stopPropagation()}
-        style={{ minWidth: 112 }}
+        style={{ minWidth: 140 }}
       >
+        {/* Archive button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (archiveConfirm) {
+              onArchive(policy.id);
+            } else {
+              setArchiveConfirm(true);
+            }
+          }}
+          title={archiveConfirm ? "Click again to archive" : "Archive policy"}
+          className="flex items-center justify-center h-7 rounded-md transition-all duration-150 shrink-0"
+          style={{
+            background: archiveConfirm ? "#2A0A0A" : "#141414",
+            color: archiveConfirm ? "#FF6666" : "#444",
+            border: `1px solid ${archiveConfirm ? "#FF444433" : "#222"}`,
+            width: archiveConfirm ? 80 : 28,
+            gap: 4,
+            fontSize: 11,
+            fontFamily: "var(--font-mono)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            paddingLeft: archiveConfirm ? 8 : 0,
+            paddingRight: archiveConfirm ? 8 : 0,
+          }}
+          onMouseEnter={(e) => {
+            if (!archiveConfirm) {
+              (e.currentTarget as HTMLElement).style.color = "#FF6666";
+              (e.currentTarget as HTMLElement).style.borderColor = "#FF444433";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!archiveConfirm) {
+              (e.currentTarget as HTMLElement).style.color = "#444";
+              (e.currentTarget as HTMLElement).style.borderColor = "#222";
+            }
+          }}
+        >
+          <Trash2 size={12} style={{ flexShrink: 0 }} />
+          {archiveConfirm && <span>confirm</span>}
+        </button>
+
         {/* Log response button */}
         <button
           onClick={(e) => { e.stopPropagation(); onLogSignal(policy.id, policy.client_name); }}
@@ -387,6 +438,7 @@ function PolicyGroup({
   onStageUpdate,
   onStageRevert,
   onLogSignal,
+  onArchive,
 }: {
   group: Group;
   optimisticStages: Record<string, CampaignStage>;
@@ -394,6 +446,7 @@ function PolicyGroup({
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
   onLogSignal: (policyId: string, clientName: string) => void;
+  onArchive: (id: string) => void;
 }) {
   if (group.policies.length === 0) return null;
 
@@ -442,6 +495,7 @@ function PolicyGroup({
           onStageUpdate={onStageUpdate}
           onStageRevert={onStageRevert}
           onLogSignal={onLogSignal}
+          onArchive={onArchive}
         />
       ))}
     </div>
@@ -460,7 +514,9 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
   const [optimisticStages, setOptimisticStages] = useState<Record<string, CampaignStage>>({});
   const [signalPolicy, setSignalPolicy] = useState<{ id: string; clientName: string } | null>(null);
 
+  const { toast } = useToast();
   const storeClients = useHollisStore(s => s.clients);
+  const removePolicy = useHollisStore(s => s.removePolicy);
   const clientIdByName = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of storeClients) map.set(c.name, c.id);
@@ -482,6 +538,28 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
   const openSignal = useCallback((policyId: string, clientName: string) => {
     setSignalPolicy({ id: policyId, clientName });
   }, []);
+
+  const archivePolicy = useCallback(async (id: string) => {
+    // Optimistically remove from store immediately
+    removePolicy(id);
+    try {
+      const res = await fetch(`/api/renewals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "inactive" }),
+      });
+      if (!res.ok) {
+        toast("Failed to archive policy", "error");
+        // Re-fetch to restore if it failed
+        useHollisStore.getState().fetchAll();
+      } else {
+        toast("Policy archived", "success");
+      }
+    } catch {
+      toast("Connection error", "error");
+      useHollisStore.getState().fetchAll();
+    }
+  }, [removePolicy, toast]);
 
   // Build groups based on view tab — single pass per group set, memoized
   const groups = useMemo<Group[]>(() => {
@@ -563,6 +641,7 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
             onStageUpdate={updateStage}
             onStageRevert={revertStage}
             onLogSignal={openSignal}
+            onArchive={archivePolicy}
           />
         ))}
       </div>

@@ -18,6 +18,7 @@ import { LoginTracker } from "@/components/analytics/LoginTracker";
 import { Sparkline } from "./_components/Sparkline";
 import { MiniBarChart } from "./_components/MiniBarChart";
 import { TodayActions } from "./_components/TodayActions";
+import { DailyBriefing } from "@/components/briefing/DailyBriefing";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Overview — Hollis" };
@@ -157,7 +158,7 @@ export default async function DashboardPage() {
     supabase
       .from("coi_requests")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
+      .eq("agent_id", user.id)
       .in("status", ["pending", "ready_for_approval", "needs_review"]),
 
     // Pending items in agent approval queue
@@ -234,6 +235,9 @@ export default async function DashboardPage() {
 
         {/* Import banner (client component — localStorage-driven) */}
         <ImportBanner />
+
+        {/* Morning briefing */}
+        <DailyBriefing />
 
         {/* Today's Actions */}
         <div className="mt-6">

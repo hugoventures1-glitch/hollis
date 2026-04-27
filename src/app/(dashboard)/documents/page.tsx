@@ -22,9 +22,14 @@ import {
   Search,
   Phone,
   MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  Upload,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PhoneScriptModal } from "@/components/doc-chase/PhoneScriptModal";
+import { ChaseRow } from "@/components/doc-chase/ChaseRow";
 import { DOCUMENT_TYPES } from "@/types/doc-chase";
 import type { DocChaseRequestSummary, DocChaseRequestStatus } from "@/types/doc-chase";
 import { useHollisData } from "@/hooks/useHollisData";
@@ -114,6 +119,84 @@ function ToastStack({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: nu
   );
 }
 
+// ── Chase Detail Drawer ───────────────────────────────────────────────────────
+
+function ChaseDetailDrawer({
+  request,
+  onClose,
+  onStatusChange,
+  onForceSent,
+}: {
+  request: DocChaseRequestSummary | undefined;
+  onClose: () => void;
+  onStatusChange?: (id: string, status: "received" | "cancelled") => void;
+  onForceSent?: () => void;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  if (!request) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+
+      {/* Drawer panel */}
+      <div
+        className="fixed inset-y-0 right-0 z-40 w-[520px] bg-[#0C0C0C] border-l border-[#1C1C1C] shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="shrink-0 flex items-start justify-between px-6 py-4 border-b border-[#1C1C1C]"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-semibold text-[#FAFAFA] leading-tight">
+              {request.client_name}
+            </div>
+            <div className="text-[12px] mt-1 flex items-center gap-2 flex-wrap">
+              <span style={{ color: "#8a8a8a" }}>{request.document_type}</span>
+              <span
+                className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full border"
+                style={{
+                  background: "#1A1A1A",
+                  border: "1px solid #252525",
+                  color: "#AAAAAA",
+                }}
+              >
+                {request.status}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors ml-4 flex-shrink-0"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          <ChaseRow
+            chase={request}
+            onForceSent={onForceSent}
+            onStatusChange={onStatusChange}
+            showHistory={true}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Create Drawer ─────────────────────────────────────────────────────────────
 
 interface Client {
@@ -136,9 +219,10 @@ interface CreateDrawerProps {
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
   onCreated: () => void;
+  policies?: Policy[];
 }
 
-function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDrawerProps) {
+function CreateDrawer({ open, onClose, onSuccess, onError, onCreated, policies: policiesProp = [] }: CreateDrawerProps) {
   const [form, setForm] = useState({
     client_name: "",
     client_email: "",
@@ -157,24 +241,17 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated }: CreateDr
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [savedCadence, setSavedCadence] = useState<[number, number, number, number] | null>(null);
   const [touchDelays, setTouchDelays] = useState<[number, number, number, number]>([0, 5, 10, 20]);
-  const [policies, setPolicies] = useState<Policy[]>([]);
+  const policies = policiesProp;
   const [policySearch, setPolicySearch] = useState("");
   const [policyDropdown, setPolicyDropdown] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch clients and policies when drawer opens
+  // Fetch clients when drawer opens
   useEffect(() => {
     if (!open) return;
     fetch("/api/clients")
       .then((r) => r.json())
       .then((d) => { if (Array.isArray(d)) setClients(d); })
-      .catch(() => {});
-    fetch("/api/policies?limit=200")
-      .then((r) => r.json())
-      .then((d) => {
-        if (Array.isArray(d.policies)) setPolicies(d.policies);
-        else if (Array.isArray(d)) setPolicies(d);
-      })
       .catch(() => {});
   }, [open]);
 
@@ -611,7 +688,7 @@ export default function DocumentsPage() {
   // ── Store integration ──────────────────────────────────────────────────────
   // useHollisData subscribes this component to the global store and triggers
   // a fetch if data is missing or stale.
-  const { docChaseRequests, loading: storeLoading, lastFetched: storeFetched, refetch, backgroundRefreshing } = useHollisData();
+  const { docChaseRequests, policies: storePolicies, loading: storeLoading, lastFetched: storeFetched, refetch, backgroundRefreshing } = useHollisData();
 
   // Lazy-initialise from store (gives instant data on back-navigation).
   const [requests, setRequests] = useState<DocChaseRequestSummary[]>(
@@ -631,6 +708,9 @@ export default function DocumentsPage() {
 
   // Phone script modal
   const [phoneScriptRequestId, setPhoneScriptRequestId] = useState<string | null>(null);
+
+  // Detail drawer
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   // Confirm state: { id, action }
   const [confirm, setConfirm] = useState<{
@@ -737,7 +817,7 @@ export default function DocumentsPage() {
 
   const activeCount = requests.filter((r) => {
     const eff = optimisticStatus[r.id] ?? r.status;
-    return eff === "active";
+    return eff === "pending" || eff === "active";
   }).length;
 
   const receivedThisMonth = requests.filter((r) => {
@@ -751,7 +831,7 @@ export default function DocumentsPage() {
 
   const overdueCount = requests.filter((r) => {
     const eff = optimisticStatus[r.id] ?? r.status;
-    return eff === "active" && r.touches_sent >= 4;
+    return eff === "active" && r.touches_sent >= r.touches_total;
   }).length;
 
   // ── Render ───────────────────────────────────────────────────
@@ -953,7 +1033,8 @@ export default function DocumentsPage() {
                 return (
                   <tr
                     key={req.id}
-                    className={`border-b border-[#1C1C1C]/60 hover:bg-white/[0.015] transition-colors ${
+                    onClick={() => setDetailId(req.id)}
+                    className={`border-b border-[#1C1C1C]/60 hover:bg-white/[0.015] transition-colors cursor-pointer ${
                       isOverdue ? "bg-red-950/[0.06]" : ""
                     }`}
                   >
@@ -1150,6 +1231,19 @@ export default function DocumentsPage() {
         onSuccess={(msg) => pushToast(msg, "success")}
         onError={(msg) => pushToast(msg, "error")}
         onCreated={() => { fetchRequests(); refetch(); }}
+        policies={storePolicies}
+      />
+
+      {/* Chase Detail Drawer */}
+      <ChaseDetailDrawer
+        request={requests.find((r) => r.id === detailId)}
+        onClose={() => setDetailId(null)}
+        onStatusChange={handleStatusChange}
+        onForceSent={() => {
+          fetchRequests();
+          refetch();
+          setDetailId(null);
+        }}
       />
 
       {/* Phone script modal */}
