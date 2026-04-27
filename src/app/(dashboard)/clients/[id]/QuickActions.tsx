@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 interface Policy {
   id: string;
@@ -12,9 +13,10 @@ interface Policy {
 interface QuickActionsProps {
   clientId: string;
   policies: Policy[];
+  renewalWorkspaceHref?: string;
 }
 
-export function QuickActions({ clientId, policies }: QuickActionsProps) {
+export function QuickActions({ clientId, policies, renewalWorkspaceHref }: QuickActionsProps) {
   const [activePanel, setActivePanel] = useState<"pause" | "questionnaire" | "note" | "force" | null>(null);
 
   // Pause renewal state
@@ -145,13 +147,14 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
   if (policies.length === 0) return null;
 
   return (
-    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-      <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-widest mb-4">Quick Actions</div>
+    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4">
+      <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-widest">Quick Actions</div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-col gap-2">
+        {/* Pause renewal — full width */}
         <button
           onClick={() => setActivePanel(activePanel === "pause" ? null : "pause")}
-          className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-colors ${
+          className={`w-full px-3 py-2 rounded-lg border text-[13px] font-medium transition-colors text-left ${
             activePanel === "pause"
               ? "border-[#555555] bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
               : "border-[#1C1C1C] text-[#8a8a8a] hover:border-[#3a3a3a] hover:text-[#FAFAFA]"
@@ -159,10 +162,12 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
         >
           Pause renewal
         </button>
+
+        {/* Send questionnaire — full width (conditional) */}
         {questionnairePolicies.length > 0 && (
           <button
             onClick={() => setActivePanel(activePanel === "questionnaire" ? null : "questionnaire")}
-            className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-colors ${
+            className={`w-full px-3 py-2 rounded-lg border text-[13px] font-medium transition-colors text-left ${
               activePanel === "questionnaire"
                 ? "border-[#555555] bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
                 : "border-[#1C1C1C] text-[#8a8a8a] hover:border-[#3a3a3a] hover:text-[#FAFAFA]"
@@ -171,28 +176,32 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
             Send questionnaire
           </button>
         )}
-        <button
-          onClick={() => setActivePanel(activePanel === "note" ? null : "note")}
-          className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-colors ${
-            activePanel === "note"
-              ? "border-[#555555] bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
-              : "border-[#1C1C1C] text-[#8a8a8a] hover:border-[#3a3a3a] hover:text-[#FAFAFA]"
-          }`}
-        >
-          Log a note
-        </button>
-        {forcePolicies.length > 0 && (
+
+        {/* Log a note + Force send — side by side */}
+        <div className="flex gap-2">
           <button
-            onClick={() => setActivePanel(activePanel === "force" ? null : "force")}
-            className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-colors ${
-              activePanel === "force"
-                ? "border-amber-600 bg-amber-900/20 text-amber-400"
-                : "border-amber-900/40 text-amber-600 hover:border-amber-600 hover:text-amber-400"
+            onClick={() => setActivePanel(activePanel === "note" ? null : "note")}
+            className={`flex-1 px-3 py-2 rounded-lg border text-[13px] font-medium transition-colors text-left ${
+              activePanel === "note"
+                ? "border-[#555555] bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
+                : "border-[#1C1C1C] text-[#8a8a8a] hover:border-[#3a3a3a] hover:text-[#FAFAFA]"
             }`}
           >
-            Force send
+            Log a note
           </button>
-        )}
+          {forcePolicies.length > 0 && (
+            <button
+              onClick={() => setActivePanel(activePanel === "force" ? null : "force")}
+              className={`px-3 py-2 rounded-lg border text-[13px] font-medium transition-colors ${
+                activePanel === "force"
+                  ? "border-red-600 bg-red-900/30 text-red-400"
+                  : "border-red-900/40 bg-red-950/20 text-red-500 hover:border-red-600 hover:text-red-400"
+              }`}
+            >
+              Force send
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Force send panel */}
@@ -336,6 +345,22 @@ export function QuickActions({ clientId, policies }: QuickActionsProps) {
             {noteLoading && <Loader2 size={12} className="animate-spin" />}
             Log note
           </button>
+        </div>
+      )}
+
+      {/* VIEW RENEWAL */}
+      {renewalWorkspaceHref && (
+        <div className="flex flex-col gap-2 pt-1 border-t border-[#1C1C1C]">
+          <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-widest">View Renewal</div>
+          <Link
+            href={renewalWorkspaceHref}
+            className="w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+            style={{ background: "#1A3A5C", color: "#7BAFD4", border: "1px solid #1E4A73" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#1E4A73"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#1A3A5C"; }}
+          >
+            Open renewal workspace →
+          </Link>
         </div>
       )}
     </div>
