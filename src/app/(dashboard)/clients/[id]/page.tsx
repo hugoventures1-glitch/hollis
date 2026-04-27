@@ -258,7 +258,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
       <div className="flex flex-col gap-4 px-6 py-6">
 
         {/* ── Top row: Identity | Renewal Status | Quick Actions ──────── */}
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-4 items-stretch">
 
           {/* Identity card */}
           <div className="flex-1 min-w-0 rounded-xl bg-[#111111] border border-[#1C1C1C] p-6 flex flex-col gap-5">
@@ -273,27 +273,21 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                 {activePolicies.length > 0 && (
                   <p className="text-[13px] text-[#555] mt-0.5">
                     {activePolicies.length} active {activePolicies.length === 1 ? "policy" : "policies"}
-                    {" | "}
-                    <span className="truncate">{activePolicies.map((p) => p.policy_name).join(", ")}</span>
                   </p>
                 )}
               </div>
               <ClientEditDrawer client={client} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-5">
               <InfoBlock label="Email"         value={client.email} />
               <InfoBlock label="Phone"         value={client.phone} />
               <InfoBlock label="State"         value={client.primary_state} />
               <InfoBlock label="Business Type" value={client.business_type?.replace(/_/g, " ")} />
               <InfoBlock label="Industry"      value={client.industry?.replace(/_/g, " ")} />
               <InfoBlock label="Employees"     value={client.num_employees} />
-              {client.num_locations && (
-                <InfoBlock label="Locations" value={client.num_locations} />
-              )}
-              {client.owns_vehicles !== undefined && client.owns_vehicles !== null && (
-                <InfoBlock label="Owns Vehicles" value={client.owns_vehicles ? "Yes" : "No"} />
-              )}
+              <InfoBlock label="Locations"     value={client.num_locations ?? null} />
+              <InfoBlock label="Owns Vehicles" value={client.owns_vehicles != null ? (client.owns_vehicles ? "Yes" : "No") : null} />
             </div>
 
             {client.notes && (
@@ -397,7 +391,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
 
           {/* Quick Actions */}
           {activePolicies.length > 0 && (
-            <div className="w-72 shrink-0">
+            <div className="w-72 shrink-0 flex flex-col">
               <QuickActions
                 clientId={client.id}
                 policies={activePolicies.map((p) => ({
@@ -406,16 +400,17 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                   campaign_stage: p.campaign_stage ?? null,
                 }))}
                 renewalWorkspaceHref={renewalWorkspaceHref}
+                className="h-full"
               />
             </div>
           )}
         </div>{/* end top row */}
 
         {/* ── Bottom row: Comms History | Doc Chase + Audit Log ───────── */}
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-4 items-stretch">
 
           {/* Comms History — left */}
-          <div className="flex-1 min-w-0 min-h-[320px]">
+          <div className="flex-1 min-w-0 min-h-[320px] flex flex-col">
             <CommsHistoryPanel entries={commsEntries} />
           </div>
 

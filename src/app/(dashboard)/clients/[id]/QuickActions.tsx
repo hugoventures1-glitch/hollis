@@ -14,9 +14,10 @@ interface QuickActionsProps {
   clientId: string;
   policies: Policy[];
   renewalWorkspaceHref?: string;
+  className?: string;
 }
 
-export function QuickActions({ clientId, policies, renewalWorkspaceHref }: QuickActionsProps) {
+export function QuickActions({ clientId, policies, renewalWorkspaceHref, className }: QuickActionsProps) {
   const [activePanel, setActivePanel] = useState<"pause" | "questionnaire" | "note" | "force" | null>(null);
 
   // Pause renewal state
@@ -147,7 +148,7 @@ export function QuickActions({ clientId, policies, renewalWorkspaceHref }: Quick
   if (policies.length === 0) return null;
 
   return (
-    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4">
+    <div className={`rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4${className ? ` ${className}` : ""}`}>
       <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-widest">Quick Actions</div>
 
       <div className="flex flex-col gap-2">

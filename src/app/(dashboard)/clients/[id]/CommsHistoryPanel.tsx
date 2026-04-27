@@ -36,7 +36,7 @@ export function CommsHistoryPanel({ entries }: CommsHistoryPanelProps) {
   );
 
   return (
-    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6 flex flex-col gap-4 h-full">
+    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6 flex flex-col gap-4 flex-1">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
