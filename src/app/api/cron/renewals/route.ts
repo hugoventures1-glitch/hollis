@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
 
         const { data: lapseProfile } = await supabase
           .from("agent_profiles")
-          .select("email_from_name, email")
+          .select("email_from_name, email, signal_token")
           .eq("user_id", policy.user_id)
           .maybeSingle();
         const lapseBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
@@ -220,7 +220,9 @@ export async function GET(request: NextRequest) {
             to: policy.client_email,
             subject: lapseSubject,
             text: lapseBody,
-            replyTo: process.env.INBOUND_EMAIL ?? lapseProfile?.email ?? undefined,
+            replyTo: lapseProfile?.signal_token
+              ? `${lapseProfile.signal_token}@ildaexi.resend.app`
+              : (process.env.INBOUND_EMAIL ?? lapseProfile?.email ?? undefined),
           });
           await supabase.from("send_logs").insert({
             policy_id: policy.id,
@@ -683,7 +685,7 @@ async function fireTouchpoint(
 
     const { data: brokerProfile } = await supabase
       .from("agent_profiles")
-      .select("email_from_name, email, email_signature")
+      .select("email_from_name, email, email_signature, signal_token")
       .eq("user_id", policy.user_id)
       .maybeSingle();
     const baseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
@@ -696,7 +698,9 @@ async function fireTouchpoint(
       to: policy.client_email,
       subject,
       text: content,
-      replyTo: process.env.INBOUND_EMAIL ?? brokerProfile?.email ?? undefined,
+      replyTo: brokerProfile?.signal_token
+        ? `${brokerProfile.signal_token}@ildaexi.resend.app`
+        : (process.env.INBOUND_EMAIL ?? brokerProfile?.email ?? undefined),
     });
     providerId = sent?.id ?? null;
     channel = "email";
@@ -849,7 +853,7 @@ async function fireTouchpoint(
     if (!policy.client_email) throw new Error("No client email on record for recommendation");
     const [{ data: recTerms }, { data: recProfile }] = await Promise.all([
       supabase.from("insurer_terms").select("*").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: true }),
-      supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, email_from_name, agency_afsl, email").eq("user_id", policy.user_id).maybeSingle(),
+      supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, email_from_name, agency_afsl, email, signal_token").eq("user_id", policy.user_id).maybeSingle(),
     ]);
     const recBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
     const recFrom = recProfile?.email_from_name ? `${recProfile.email_from_name} <${recBaseFrom}>` : recBaseFrom;
@@ -865,7 +869,10 @@ async function fireTouchpoint(
       subject = `Your ${policy.policy_name} renewal recommendation`;
       content = `Dear ${policy.client_name},\n\nFollowing our review of your ${policy.policy_name} due for renewal on ${recExpiry}, we have prepared our renewal recommendation for you.\n\nPlease review the recommendation and let us know if you have any questions or would like to proceed.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
     }
-    const { data: recSent } = await resend.emails.send({ from: recFrom, to: policy.client_email, subject, text: content });
+    const recReplyTo = recProfile?.signal_token
+      ? `${recProfile.signal_token}@ildaexi.resend.app`
+      : (process.env.INBOUND_EMAIL ?? recProfile?.email ?? undefined);
+    const { data: recSent } = await resend.emails.send({ from: recFrom, to: policy.client_email, subject, text: content, ...(recReplyTo ? { replyTo: recReplyTo } : {}) });
     providerId = recSent?.id ?? null;
     channel = "email";
   }

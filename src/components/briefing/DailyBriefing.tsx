@@ -30,19 +30,19 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getStoredCollapsed(): boolean {
+function getStoredCollapsed(key: string): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(key);
     return stored === todayKey();
   } catch {
     return false;
   }
 }
 
-function setStoredCollapsed() {
+function setStoredCollapsed(key: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, todayKey());
+    localStorage.setItem(key, todayKey());
   } catch {
     // ignore
   }
@@ -80,7 +80,7 @@ function HighlightedText({ text }: { text: string }): React.ReactElement {
       parts.push(text.slice(lastIndex, match.index));
     }
     parts.push(
-      <span key={key++} className="text-[#0C0C0C] font-medium">
+      <span key={key++} className="text-white font-medium">
         {match[0]}
       </span>
     );
@@ -108,7 +108,8 @@ function Skeleton() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function DailyBriefing() {
+export function DailyBriefing({ userId }: { userId?: string }) {
+  const storageKey = userId ? `${STORAGE_KEY}-${userId}` : STORAGE_KEY;
   const router = useRouter();
   const [items, setItems] = useState<BriefingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +121,7 @@ export function DailyBriefing() {
 
   useEffect(() => {
     mountedRef.current = true;
-    setCollapsed(getStoredCollapsed());
+    setCollapsed(getStoredCollapsed(storageKey));
     return () => {
       mountedRef.current = false;
     };
@@ -144,7 +145,7 @@ export function DailyBriefing() {
           if (viewedRef.current) return;
           timeoutId = setTimeout(() => {
             viewedRef.current = true;
-            setStoredCollapsed();
+            setStoredCollapsed(storageKey);
             if (mountedRef.current) setCollapsed(true);
           }, VIEWED_DELAY_MS);
         } else {

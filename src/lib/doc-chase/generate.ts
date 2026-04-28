@@ -22,7 +22,7 @@ const SYSTEM_PROMPT_EMAIL = `You are an insurance agency assistant helping an ag
 Return ONLY valid JSON — no markdown fences, no extra text:
 { "touches": [ { "subject": string, "body": string }, { "subject": string, "body": string }, { "subject": string, "body": string }, { "subject": string, "body": string } ] }
 
-Each body must be plain text (no HTML). Include a professional sign-off with the agent name and email.`;
+Each body must be plain text (no HTML). Do NOT include a sign-off or signature — one will be appended separately.`;
 
 const SYSTEM_PROMPT_SMS_T3 = `You are an insurance agency assistant. The agent is chasing a required document from their client. Draft a single SMS reminder for touch 3. Requirements:
 - Maximum 160 characters total.
@@ -46,20 +46,18 @@ Return ONLY valid JSON — no markdown fences, no extra text:
 function buildFallbacks(
   clientName: string,
   documentType: string,
-  agentName: string,
-  agentEmail: string,
-  clientPhone: string | null
+  clientPhone: string | null,
+  agentName?: string,
 ): TouchDraft[] {
   const first = clientName.split(" ")[0];
-  const sig = `\n\nBest regards,\n${agentName}\n${agentEmail}`;
 
   const touch3SMS = clientPhone
-    ? `Hi ${first}, still waiting on your ${documentType} – it's holding up your policy. Please send through today. ${agentName}`
+    ? `Hi ${first}, still waiting on your ${documentType} – it's holding up your policy. Please send through today.${agentName ? ` ${agentName}` : ""}`
     : null;
 
   const touch3Email = {
     subject: `Reminder: ${documentType} required to proceed`,
-    body: `Hi ${first},\n\nI'm reaching out again regarding the ${documentType} that's still outstanding. Unfortunately, without it we can't proceed with your policy. I'd appreciate you sending it through today so there's no disruption to your coverage.${sig}`,
+    body: `Hi ${first},\n\nI'm reaching out again regarding the ${documentType} that's still outstanding. Unfortunately, without it we can't proceed with your policy. I'd appreciate you sending it through today so there's no disruption to your coverage.`,
   };
 
   const touch4Script = `• Introduce yourself and confirm you're speaking with the right person
@@ -71,12 +69,12 @@ function buildFallbacks(
   return [
     {
       subject: `Action required: ${documentType} needed`,
-      body: `Hi ${first},\n\nI hope you're well. To move your policy forward, I need a copy of your ${documentType}. Could you please send it through at your earliest convenience? If you have any questions about what's needed, don't hesitate to reply to this email.${sig}`,
+      body: `Hi ${first},\n\nI hope you're well. To move your policy forward, I need a copy of your ${documentType}. Could you please send it through at your earliest convenience? If you have any questions about what's needed, don't hesitate to reply to this email.`,
       channel: "email",
     },
     {
       subject: `Following up: ${documentType} still outstanding`,
-      body: `Hi ${first},\n\nI wanted to follow up — I haven't received your ${documentType} yet. It only takes a moment to send through, and it will allow us to keep things moving without delay. Please reply to this email with the document attached.${sig}`,
+      body: `Hi ${first},\n\nI wanted to follow up — I haven't received your ${documentType} yet. It only takes a moment to send through, and it will allow us to keep things moving without delay. Please reply to this email with the document attached.`,
       channel: "email",
     },
     touch3SMS
@@ -115,14 +113,17 @@ export async function draftDocumentChaseSequence(
   agentEmail: string,
   notes?: string | null,
   clientPhone?: string | null,
-  daysUntilExpiry?: number | null
+  daysUntilExpiry?: number | null,
+  // emailSignature is intentionally unused here — the cron appends the current
+  // signature at send time so stored bodies stay signature-free and always
+  // reflect the broker's latest settings.
+  _emailSignature?: string | null
 ): Promise<TouchDraft[]> {
   const fallbacks = buildFallbacks(
     clientName,
     documentType,
+    clientPhone?.trim() || null,
     agentName,
-    agentEmail,
-    clientPhone?.trim() || null
   );
 
   const useSmsForTouch3 = !!(clientPhone?.trim());
@@ -230,7 +231,8 @@ export async function draftDocumentChaseSequence(
       // use fallback
     }
 
-    // Build final touches
+    // Build final touches — signature is NOT embedded here; the cron appends it
+    // at send time from the broker's current agent_profiles.email_signature.
     const touches: TouchDraft[] = [];
 
     // Touch 1

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePostHog } from "posthog-js/react";
 import {
@@ -13,8 +13,11 @@ import {
   ChevronDown,
   ArrowUpRight,
   ListChecks,
+  FileText,
+  Paperclip,
+  ExternalLink,
 } from "lucide-react";
-import type { InboxItem } from "./page";
+import type { InboxItem, DocChaseReplyItem } from "./page";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -50,9 +53,7 @@ function confidenceBadge(score: number): { label: string; color: string; showSuf
 
 function sourceBadge(item: InboxItem): { label: string; color: string; showSuffix: boolean } {
   if (item.signal_id === null) {
-    // Cron-generated item
     const flagReason = item.proposed_action?.payload?.flag_reason as string | undefined;
-    const snippet = item.raw_signal_snippet ?? "";
     const isLearning = typeof flagReason === "string" && flagReason.toLowerCase().includes("learning");
     if (isLearning) {
       return { label: "Learning", color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20", showSuffix: false };
@@ -89,69 +90,59 @@ function InboxRow({
   onClick: () => void;
 }) {
   const isUrgent = item.tier === 3;
+  const policy = item.policies;
+  const policyRef = policy?.policy_number ?? null;
+  const policyName = policy?.policy_name ?? "";
+  const carrier = policy?.carrier ?? null;
+  const carrierShort = carrier ? carrier.split(" ")[0] : null;
+  const clientName = policy?.client_name ?? "Unknown Client";
+
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3.5 transition-colors relative group"
+      className="w-full text-left px-4 py-3.5 transition-colors"
       style={{
         background: selected ? "var(--surface-raised)" : "transparent",
         borderBottom: "1px solid var(--border)",
       }}
     >
-      {/* Unread dot */}
-      {!selected && (
-        <span
-          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full"
-          style={{ background: isUrgent ? "#FF4444" : "var(--text-tertiary)" }}
-        />
-      )}
-
-      <div className="flex items-start justify-between gap-3 pl-1.5">
-        <div className="flex-1 min-w-0">
-          {/* From / client */}
-          <div className="flex items-center gap-2 mb-0.5">
-            {/* Hollis "h" monogram */}
-            <span
-              className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black"
-              style={{
-                background: isUrgent ? "rgba(255,68,68,0.12)" : "var(--surface-raised)",
-                border: `1px solid ${isUrgent ? "rgba(255,68,68,0.25)" : "var(--border)"}`,
-                color: isUrgent ? "#FF4444" : "var(--text-secondary)",
-                fontFamily: "var(--font-display)",
-              }}
-            >
-              h
-            </span>
-            <span
-              className="text-[12px] font-semibold truncate flex-1"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {item.policies?.client_name ?? "Unknown Client"}
-            </span>
-          </div>
-
-          {/* Subject */}
-          <p
-            className="text-[12px] font-medium truncate mb-0.5 pl-7"
-            style={{ color: isUrgent ? "#FF4444" : "var(--text-primary)" }}
+      <p
+        className="text-[12px] font-semibold truncate mb-1 leading-tight"
+        style={{ color: isUrgent ? "#FF4444" : "var(--text-primary)" }}
+      >
+        {policyRef && (
+          <>
+            <span>{policyRef}</span>
+            <span className="mx-1.5 font-normal" style={{ color: isUrgent ? "#FF4444" : "var(--text-tertiary)" }}>—</span>
+          </>
+        )}
+        {policyName}
+      </p>
+      <div className="flex items-center gap-2">
+        {!selected && (
+          <span
+            className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
+            style={{ background: isUrgent ? "#FF4444" : "var(--text-tertiary)" }}
+          />
+        )}
+        {carrierShort && (
+          <span
+            className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+            style={{
+              background: isUrgent ? "#FF4444" : "var(--text-primary)",
+              color: "var(--background)",
+            }}
           >
-            {intentLabel(item.classified_intent)}
-          </p>
-
-          {/* Preview snippet */}
-          <p
-            className="text-[11px] truncate pl-7 leading-relaxed"
-            style={{ color: "var(--text-tertiary)" }}
-          >
-            {item.raw_signal_snippet}
-          </p>
-        </div>
-
-        {/* Timestamp */}
+            {carrierShort}
+          </span>
+        )}
         <span
-          className="text-[10px] shrink-0 mt-0.5"
-          style={{ color: "var(--text-tertiary)" }}
+          className="text-[11px] truncate flex-1"
+          style={{ color: "var(--text-secondary)" }}
         >
+          {clientName}
+        </span>
+        <span className="text-[10px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
           {timeAgo(item.created_at)}
         </span>
       </div>
@@ -178,6 +169,7 @@ interface DetailPanelProps {
   onEditedBodyChange: (v: string) => void;
   onConfirmEdit: () => void;
   onCancelEdit: () => void;
+  isTodo?: boolean;
 }
 
 function DetailPanel({
@@ -197,6 +189,7 @@ function DetailPanel({
   onEditedBodyChange,
   onConfirmEdit,
   onCancelEdit,
+  isTodo = false,
 }: DetailPanelProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -212,7 +205,6 @@ function DetailPanel({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Detail header */}
       <div
         className="px-6 py-4 shrink-0"
         style={{ borderBottom: "1px solid var(--border)" }}
@@ -221,25 +213,56 @@ function DetailPanel({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap mb-1">
               <TierPill tier={item.tier} />
+              {isTodo && (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                  style={{
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-tertiary)",
+                  }}
+                >
+                  {intentLabel(item.classified_intent)}
+                </span>
+              )}
               {days !== null && (
                 <span className="text-[11px] font-semibold" style={{ color: expiryColor }}>
                   {days}d until expiry
                 </span>
               )}
             </div>
-            <h2
-              className="text-[18px] font-semibold leading-tight"
-              style={{ color: isUrgent ? "#FF4444" : "var(--text-primary)" }}
-            >
-              {intentLabel(item.classified_intent)}
-            </h2>
-            {policy && (
-              <p className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                {policy.client_name}
-                {policy.carrier && (
-                  <span style={{ color: "var(--text-tertiary)" }}> · {policy.carrier}</span>
+            {isTodo && policy ? (
+              <>
+                <h2
+                  className="text-[18px] font-semibold leading-tight"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {policy.client_name}
+                </h2>
+                <p className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {policy.policy_name}
+                  {policy.carrier && (
+                    <span style={{ color: "var(--text-tertiary)" }}> · {policy.carrier}</span>
+                  )}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2
+                  className="text-[18px] font-semibold leading-tight"
+                  style={{ color: isUrgent ? "#FF4444" : "var(--text-primary)" }}
+                >
+                  {intentLabel(item.classified_intent)}
+                </h2>
+                {policy && (
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                    {policy.client_name}
+                    {policy.carrier && (
+                      <span style={{ color: "var(--text-tertiary)" }}> · {policy.carrier}</span>
+                    )}
+                  </p>
                 )}
-              </p>
+              </>
             )}
           </div>
           {policy && (
@@ -254,38 +277,46 @@ function DetailPanel({
         </div>
       </div>
 
-      {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-
-        {/* Agent read */}
         <div
           className="rounded-xl p-4 space-y-4"
           style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
         >
-          {/* Section label */}
-          <div className="flex items-center justify-between">
-            <div>
+          {!isTodo && (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Agent read
+                  </div>
+                  <span className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>
+                    {intentLabel(item.classified_intent)}
+                  </span>
+                </div>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${confidence.color}`}>
+                  {confidence.label}{confidence.showSuffix ? " conf." : ""}
+                </span>
+              </div>
+              <div className="h-px" style={{ background: "var(--border)" }} />
+            </>
+          )}
+          {isTodo && (
+            <div className="flex items-center justify-between">
               <div
-                className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+                className="text-[10px] font-semibold uppercase tracking-widest"
                 style={{ color: "var(--text-tertiary)" }}
               >
-                Agent read
+                Signal
               </div>
-              <span className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>
-                {intentLabel(item.classified_intent)}
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${confidence.color}`}>
+                {confidence.label}{confidence.showSuffix ? " conf." : ""}
               </span>
             </div>
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${confidence.color}`}>
-              {confidence.label}{confidence.showSuffix ? " conf." : ""}
-            </span>
-          </div>
+          )}
 
-          <div
-            className="h-px"
-            style={{ background: "var(--border)" }}
-          />
-
-          {/* Client said — only for inbound signals, not cron items */}
           {item.signal_id !== null && item.raw_signal_snippet && (
             <>
               <div>
@@ -309,7 +340,6 @@ function DetailPanel({
             </>
           )}
 
-          {/* Proposed action */}
           <div>
             <div
               className="text-[10px] font-semibold uppercase tracking-widest mb-2"
@@ -322,7 +352,6 @@ function DetailPanel({
             </p>
           </div>
 
-          {/* Draft message body — read-only or inline editable */}
           {typeof item.proposed_action?.payload?.body === "string" && item.proposed_action.payload.body && (
             <>
               <div className="h-px" style={{ background: "var(--border)" }} />
@@ -360,7 +389,6 @@ function DetailPanel({
                   </div>
                 )}
 
-                {/* Collapsible agent feedback — only shown when editing */}
                 {isEditing && (
                   <div>
                     <button
@@ -423,7 +451,6 @@ function DetailPanel({
         </div>
       </div>
 
-      {/* Action bar — always visible */}
       {sent ? (
         <div
           className="px-6 py-5 shrink-0"
@@ -526,7 +553,7 @@ function DetailPanel({
   );
 }
 
-// ── To Do row (left panel) ────────────────────────────────────────────────────
+// ── To Do row ─────────────────────────────────────────────────────────────────
 
 function TodoRow({
   item,
@@ -537,37 +564,59 @@ function TodoRow({
   selected: boolean;
   onClick: () => void;
 }) {
-  const changes = item.proposed_action?.payload?.changes as string[] | undefined;
-  const count = changes?.length ?? 0;
+  const policy = item.policies;
+  const policyRef = policy?.policy_number ?? null;
+  const policyName = policy?.policy_name ?? "";
+  const carrier = policy?.carrier ?? null;
+  const carrierShort = carrier ? carrier.split(" ")[0] : null;
+  const clientName = policy?.client_name ?? "Unknown Client";
 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3.5 transition-colors relative group"
+      className="w-full text-left px-4 py-3.5 transition-colors"
       style={{
         background: selected ? "var(--surface-raised)" : "transparent",
         borderBottom: "1px solid var(--border)",
       }}
     >
-      {!selected && (
-        <span
-          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full"
-          style={{ background: "var(--text-tertiary)" }}
-        />
-      )}
-      <div className="flex items-start justify-between gap-3 pl-1.5">
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-[12px] font-semibold truncate mb-0.5"
-            style={{ color: "var(--text-primary)" }}
+      <p
+        className="text-[12px] font-semibold truncate mb-1 leading-tight"
+        style={{ color: "var(--text-primary)" }}
+      >
+        {policyRef && (
+          <>
+            <span>{policyRef}</span>
+            <span className="mx-1.5 font-normal" style={{ color: "var(--text-tertiary)" }}>—</span>
+          </>
+        )}
+        {policyName}
+      </p>
+      <div className="flex items-center gap-2">
+        {!selected && (
+          <span
+            className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
+            style={{ background: "var(--text-tertiary)" }}
+          />
+        )}
+        {carrierShort && (
+          <span
+            className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+            style={{
+              background: "var(--text-primary)",
+              color: "var(--background)",
+            }}
           >
-            {item.policies?.client_name ?? "Unknown Client"}
-          </p>
-          <p className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>
-            {count} change{count !== 1 ? "s" : ""} needed · {item.policies?.policy_name}
-          </p>
-        </div>
-        <span className="text-[10px] shrink-0 mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+            {carrierShort}
+          </span>
+        )}
+        <span
+          className="text-[11px] truncate flex-1"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {clientName}
+        </span>
+        <span className="text-[10px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
           {timeAgo(item.created_at)}
         </span>
       </div>
@@ -604,7 +653,6 @@ function TodoDetailPanel({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-6 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -649,7 +697,6 @@ function TodoDetailPanel({
         </div>
       </div>
 
-      {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
         <div
           className="rounded-xl p-4 space-y-4"
@@ -718,7 +765,6 @@ function TodoDetailPanel({
         </div>
       </div>
 
-      {/* Action bar */}
       <div
         className="px-6 py-4 shrink-0 flex items-center gap-2"
         style={{
@@ -740,6 +786,331 @@ function TodoDetailPanel({
           >
             {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
             {allChecked ? "Done — proceed with renewal" : `${checked.size} / ${changes.length} changes made`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Doc Chase list row ────────────────────────────────────────────────────────
+
+function DocChaseRow({
+  item,
+  selected,
+  onClick,
+}: {
+  item: DocChaseReplyItem;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const hasAttachment = Boolean(item.received_attachment_path);
+  const replyAt = item.last_client_reply_at ?? item.created_at;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-4 py-3.5 transition-colors"
+      style={{
+        background: selected ? "var(--surface-raised)" : "transparent",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <p
+        className="text-[12px] font-semibold truncate mb-1 leading-tight"
+        style={{ color: "var(--text-primary)" }}
+      >
+        {item.client_name}
+      </p>
+      <div className="flex items-center gap-2">
+        {!selected && (
+          <span
+            className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
+            style={{ background: "var(--text-tertiary)" }}
+          />
+        )}
+        <span className="text-[11px] truncate flex-1" style={{ color: "var(--text-secondary)" }}>
+          {item.document_type}
+        </span>
+        {hasAttachment && (
+          <Paperclip size={10} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+        )}
+        <span className="text-[10px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
+          {timeAgo(replyAt)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// ── Doc Chase detail panel ────────────────────────────────────────────────────
+
+function DocChaseDetailPanel({
+  item,
+  onMarkReceived,
+}: {
+  item: DocChaseReplyItem;
+  onMarkReceived: (id: string) => void;
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [marking, setMarking] = useState(false);
+  const [marked, setMarked] = useState(false);
+
+  const hasAttachment = Boolean(item.received_attachment_path);
+  const isPdf = item.received_attachment_content_type?.startsWith("application/pdf") ?? false;
+  const isImage = item.received_attachment_content_type?.startsWith("image/") ?? false;
+  const isReceived = item.status === "received" || marked;
+
+  const fetchSignedUrl = useCallback(async () => {
+    if (!hasAttachment) return;
+    setUrlLoading(true);
+    setUrlError(null);
+    try {
+      const res = await fetch(`/api/doc-chase/${item.id}/attachment`);
+      if (!res.ok) throw new Error("Could not load document");
+      const data = await res.json();
+      setSignedUrl(data.signedUrl);
+    } catch {
+      setUrlError("Failed to load document");
+    } finally {
+      setUrlLoading(false);
+    }
+  }, [item.id, hasAttachment]);
+
+  useEffect(() => {
+    setSignedUrl(null);
+    setUrlError(null);
+    setMarked(false);
+    fetchSignedUrl();
+  }, [fetchSignedUrl]);
+
+  async function handleMarkReceived() {
+    setMarking(true);
+    try {
+      const res = await fetch(`/api/doc-chase/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "received" }),
+      });
+      if (res.ok) {
+        setMarked(true);
+        onMarkReceived(item.id);
+      }
+    } finally {
+      setMarking(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-6 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                Doc Chase
+              </span>
+              {item.validation_status && (
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                    item.validation_status === "pass"
+                      ? "text-[#4ade80] bg-[#16a34a]/10 border-[#16a34a]/20"
+                      : item.validation_status === "fail"
+                      ? "text-[#f87171] bg-[#dc2626]/10 border-[#dc2626]/20"
+                      : item.validation_status === "partial"
+                      ? "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20"
+                      : "text-white/40 bg-white/5 border-white/10"
+                  }`}
+                >
+                  {item.validation_status.charAt(0).toUpperCase() + item.validation_status.slice(1)}
+                </span>
+              )}
+            </div>
+            <h2 className="text-[18px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
+              {item.client_name}
+            </h2>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+              {item.document_type}
+            </p>
+          </div>
+          <Link
+            href="/documents"
+            className="shrink-0 flex items-center gap-1 text-[11px] transition-opacity hover:opacity-70"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            View chase <ArrowUpRight size={11} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 min-h-0">
+
+        {/* Client reply */}
+        <div
+          className="rounded-xl p-4 space-y-3"
+          style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+        >
+          <div className="flex items-center justify-between">
+            <div
+              className="text-[10px] font-semibold uppercase tracking-widest"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Client reply
+            </div>
+            {item.last_client_reply_at && (
+              <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                {timeAgo(item.last_client_reply_at)}
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>
+            {item.last_client_reply ?? "No reply text captured."}
+          </p>
+        </div>
+
+        {/* AI validation summary */}
+        {item.validation_summary && (
+          <div
+            className="rounded-xl p-4 space-y-2"
+            style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+          >
+            <div
+              className="text-[10px] font-semibold uppercase tracking-widest"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              AI validation
+            </div>
+            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              {item.validation_summary}
+            </p>
+            {item.validation_issues && item.validation_issues.length > 0 && (
+              <ul className="space-y-1 pt-1">
+                {item.validation_issues.map((issue, i) => (
+                  <li key={i} className="text-[12px] flex items-start gap-2" style={{ color: "#f87171" }}>
+                    <span className="shrink-0">·</span>
+                    <span>{issue}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Document viewer */}
+        {hasAttachment && (
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ border: "1px solid var(--border)" }}
+          >
+            {/* Doc header */}
+            <div
+              className="px-4 py-3 flex items-center justify-between"
+              style={{ background: "var(--surface-raised)", borderBottom: "1px solid var(--border)" }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText size={13} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+                <span className="text-[12px] truncate" style={{ color: "var(--text-secondary)" }}>
+                  {item.received_attachment_filename ?? "Attachment"}
+                </span>
+              </div>
+              {signedUrl && (
+                <a
+                  href={signedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 flex items-center gap-1 text-[11px] ml-3 transition-opacity hover:opacity-70"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Open <ExternalLink size={10} />
+                </a>
+              )}
+            </div>
+
+            {/* Doc body */}
+            <div
+              className="flex items-center justify-center"
+              style={{ height: 420, background: "var(--surface)" }}
+            >
+              {urlLoading ? (
+                <Loader2 size={18} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />
+              ) : urlError ? (
+                <div className="flex flex-col items-center gap-2 text-center px-6">
+                  <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{urlError}</p>
+                  <button
+                    onClick={fetchSignedUrl}
+                    className="text-[11px] transition-opacity hover:opacity-70"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : signedUrl ? (
+                isPdf ? (
+                  <iframe
+                    src={signedUrl}
+                    className="w-full h-full"
+                    style={{ border: "none" }}
+                    title={item.received_attachment_filename ?? "Document"}
+                  />
+                ) : isImage ? (
+                  <img
+                    src={signedUrl}
+                    alt={item.received_attachment_filename ?? "Attachment"}
+                    className="max-w-full max-h-full object-contain p-4"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <FileText size={24} style={{ color: "var(--text-tertiary)" }} />
+                    <a
+                      href={signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Download <ExternalLink size={11} />
+                    </a>
+                  </div>
+                )
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action bar */}
+      <div
+        className="px-6 py-4 shrink-0 flex items-center gap-2"
+        style={{
+          borderTop: "1px solid var(--border)",
+          background: isReceived ? "rgba(184,244,0,0.05)" : undefined,
+        }}
+      >
+        {isReceived ? (
+          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "#B8F400" }}>
+            <CheckCircle2 size={14} />
+            Document received
+          </div>
+        ) : (
+          <button
+            onClick={handleMarkReceived}
+            disabled={marking}
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+            style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+          >
+            {marking ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+            Mark Received
           </button>
         )}
       </div>
@@ -796,7 +1167,26 @@ function TodoZero() {
         All clear
       </p>
       <p className="text-[12px] leading-relaxed max-w-[220px]" style={{ color: "var(--text-tertiary)" }}>
-        Client-requested changes will appear here when Hollis detects a conditional renewal.
+        Confirmed renewals, client questions, and broker tasks will appear here.
+      </p>
+    </div>
+  );
+}
+
+function DocChaseZero() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 select-none">
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+      >
+        <FileText size={18} style={{ color: "var(--text-tertiary)" }} />
+      </div>
+      <p className="text-[14px] font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+        No replies yet
+      </p>
+      <p className="text-[12px] leading-relaxed max-w-[220px]" style={{ color: "var(--text-tertiary)" }}>
+        Client replies to doc chase requests will appear here.
       </p>
     </div>
   );
@@ -804,27 +1194,42 @@ function TodoZero() {
 
 // ── Main client component ─────────────────────────────────────────────────────
 
-export default function InboxClient({ initialItems }: { initialItems: InboxItem[] }) {
-  const [items,       setItems]       = useState<InboxItem[]>(initialItems);
-  const [tab,         setTab]         = useState<"inbox" | "todo">("inbox");
-  const [selectedId,  setSelectedId]  = useState<string | null>(null);
-  const [editingId,   setEditingId]   = useState<string | null>(null);
+export default function InboxClient({
+  initialItems,
+  docChaseReplies: initialDocChaseReplies = [],
+}: {
+  initialItems: InboxItem[];
+  docChaseReplies?: DocChaseReplyItem[];
+}) {
+  const [items,        setItems]        = useState<InboxItem[]>(initialItems);
+  const [tab,          setTab]          = useState<"inbox" | "todo" | "doc_chase">("inbox");
+  const [selectedId,   setSelectedId]   = useState<string | null>(null);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editedIntent, setEditedIntent] = useState("");
-  const [editNotes,   setEditNotes]   = useState("");
-  const [editedBody,  setEditedBody]  = useState("");
-  const [busy,        setBusy]        = useState(false);
-  const [errorMsg,    setErrorMsg]    = useState<string | null>(null);
-  const [sentId,      setSentId]      = useState<string | null>(null);
-  const [sentAction,  setSentAction]  = useState<"approved" | "rejected" | "edited" | null>(null);
-  const [checkedMap,  setCheckedMap]  = useState<Record<string, Set<number>>>({});
+  const [editNotes,    setEditNotes]    = useState("");
+  const [editedBody,   setEditedBody]   = useState("");
+  const [busy,         setBusy]         = useState(false);
+  const [errorMsg,     setErrorMsg]     = useState<string | null>(null);
+  const [sentId,       setSentId]       = useState<string | null>(null);
+  const [sentAction,   setSentAction]   = useState<"approved" | "rejected" | "edited" | null>(null);
+  const [checkedMap,   setCheckedMap]   = useState<Record<string, Set<number>>>({});
+  const [docChaseReplies, setDocChaseReplies] = useState<DocChaseReplyItem[]>(initialDocChaseReplies);
+  const [selectedDocChaseId, setSelectedDocChaseId] = useState<string | null>(null);
   const posthog = usePostHog();
 
-  // Split items into inbox (normal review) and to-do (broker change required)
-  const inboxItems = items.filter((i) => i.proposed_action?.action_type !== "broker_change_required");
-  const todoItems  = items.filter((i) => i.proposed_action?.action_type === "broker_change_required");
+  const TODO_INTENTS = ["confirm_renewal", "soft_query"];
+  const isTodoItem = (i: InboxItem) =>
+    i.proposed_action?.action_type === "broker_change_required" ||
+    TODO_INTENTS.includes(i.classified_intent);
+  const inboxItems = items.filter((i) => !isTodoItem(i));
+  const todoItems  = items.filter(isTodoItem);
 
-  const activeItems = tab === "inbox" ? inboxItems : todoItems;
-  const selectedItem = activeItems.find((i) => i.id === selectedId) ?? null;
+  const selectedInboxItem = tab !== "doc_chase"
+    ? (tab === "inbox" ? inboxItems : todoItems).find((i) => i.id === selectedId) ?? null
+    : null;
+  const selectedDocChase = tab === "doc_chase"
+    ? docChaseReplies.find((r) => r.id === selectedDocChaseId) ?? null
+    : null;
 
   async function resolve(
     id: string,
@@ -853,7 +1258,6 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
         body_edited: action === "edited" && !!extra?.edited_body,
         source: tab === "todo" ? "inbox_todo" : "inbox",
       });
-      // Flash success state briefly before removing
       setSentId(id);
       setSentAction(action);
       await new Promise((r) => setTimeout(r, 900));
@@ -899,55 +1303,56 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
     setEditedBody("");
   }
 
+  const TABS: { key: "inbox" | "todo" | "doc_chase"; label: string; count: number }[] = [
+    { key: "inbox",     label: "Inbox",     count: inboxItems.length },
+    { key: "todo",      label: "To Do",     count: todoItems.length },
+    { key: "doc_chase", label: "Doc Chase", count: docChaseReplies.length },
+  ];
+
   return (
     <div
       className="flex h-full"
       style={{ background: "var(--background)", color: "var(--text-primary)" }}
     >
-      {/* ── Left: inbox list ───────────────────────────────────────── */}
+      {/* ── Left: list ─────────────────────────────────────────────── */}
       <div
         className="flex flex-col shrink-0"
-        style={{
-          width: 300,
-          borderRight: "1px solid var(--border)",
-        }}
+        style={{ width: 300, borderRight: "1px solid var(--border)" }}
       >
         {/* Header with tab bar */}
         <header
           className="shrink-0 flex flex-col"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
-          {/* Title row */}
           <div className="h-10 flex items-center justify-between px-4">
             <span className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--text-tertiary)" }}>
               from hollis
             </span>
           </div>
-          {/* Tabs */}
           <div className="flex" style={{ borderTop: "1px solid var(--border)" }}>
-            {(["inbox", "todo"] as const).map((t) => {
-              const count = t === "inbox" ? inboxItems.length : todoItems.length;
-              const active = tab === t;
+            {TABS.map(({ key, label, count }) => {
+              const active = tab === key;
               return (
                 <button
-                  key={t}
+                  key={key}
                   onClick={() => {
-                    setTab(t);
+                    setTab(key);
                     setSelectedId(null);
+                    setSelectedDocChaseId(null);
                     setEditingId(null);
                     setErrorMsg(null);
                   }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12px] font-medium transition-colors relative"
                   style={{ color: active ? "var(--text-primary)" : "var(--text-tertiary)" }}
                 >
-                  {t === "inbox" ? "Inbox" : "To Do"}
+                  {label}
                   {count > 0 && (
                     <span
                       className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums"
                       style={{
                         background: active ? "var(--surface-raised)" : "transparent",
                         border: "1px solid var(--border)",
-                        color: active ? "var(--text-tertiary)" : "var(--text-tertiary)",
+                        color: "var(--text-tertiary)",
                       }}
                     >
                       {count}
@@ -965,29 +1370,24 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
           </div>
         </header>
 
-        {/* Message list */}
-        {tab === "inbox" ? (
-          inboxItems.length === 0 ? (
-            <InboxZero />
-          ) : (
+        {/* List */}
+        {tab === "inbox" && (
+          inboxItems.length === 0 ? <InboxZero /> : (
             <div className="flex-1 overflow-y-auto">
               {inboxItems.map((item) => (
                 <InboxRow
                   key={item.id}
                   item={item}
                   selected={item.id === selectedId}
-                  onClick={() => {
-                    setSelectedId(item.id);
-                    setEditingId(null);
-                  }}
+                  onClick={() => { setSelectedId(item.id); setEditingId(null); }}
                 />
               ))}
             </div>
           )
-        ) : (
-          todoItems.length === 0 ? (
-            <TodoZero />
-          ) : (
+        )}
+
+        {tab === "todo" && (
+          todoItems.length === 0 ? <TodoZero /> : (
             <div className="flex-1 overflow-y-auto">
               {todoItems.map((item) => (
                 <TodoRow
@@ -1000,37 +1400,50 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
             </div>
           )
         )}
+
+        {tab === "doc_chase" && (
+          docChaseReplies.length === 0 ? <DocChaseZero /> : (
+            <div className="flex-1 overflow-y-auto">
+              {docChaseReplies.map((item) => (
+                <DocChaseRow
+                  key={item.id}
+                  item={item}
+                  selected={item.id === selectedDocChaseId}
+                  onClick={() => setSelectedDocChaseId(item.id)}
+                />
+              ))}
+            </div>
+          )
+        )}
       </div>
 
       {/* ── Right: detail panel ────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Subheader — only shown for inbox tab */}
-        {tab === "inbox" && (
+        {/* Subheader */}
+        {tab !== "doc_chase" && (
           <header
             className="h-14 shrink-0 flex items-center justify-between px-6"
             style={{ borderBottom: "1px solid var(--border)" }}
           >
             <div className="flex items-center gap-2">
-              {selectedItem ? (
+              {selectedInboxItem ? (
                 <>
-                  <TierPill tier={selectedItem.tier} />
+                  <TierPill tier={selectedInboxItem.tier} />
                   <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                    {selectedItem.policies?.policy_name}
+                    {selectedInboxItem.policies?.policy_name}
                   </span>
                 </>
               ) : (
-                <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                  —
-                </span>
+                <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>—</span>
               )}
             </div>
-            {selectedItem?.policies && (
+            {selectedInboxItem?.policies && (
               <Link
-                href={`/renewals/${selectedItem.policies.id}`}
+                href={`/renewals/${selectedInboxItem.policies.id}`}
                 className="flex items-center gap-1 text-[11px] transition-opacity hover:opacity-60"
                 style={{ color: "var(--text-tertiary)" }}
               >
-                {selectedItem.policies.client_name}
+                {selectedInboxItem.policies.client_name}
                 <ChevronRight size={11} />
               </Link>
             )}
@@ -1052,49 +1465,96 @@ export default function InboxClient({ initialItems }: { initialItems: InboxItem[
           </div>
         )}
 
-        {tab === "todo" ? (
-          selectedItem ? (
-            <TodoDetailPanel
-              item={selectedItem}
-              busy={busy}
-              done={sentId === selectedItem.id}
-              checked={checkedMap[selectedItem.id] ?? new Set()}
-              onToggle={(idx) => toggleCheck(selectedItem.id, idx)}
-              onComplete={() => resolve(selectedItem.id, "approved")}
+        {/* Content */}
+        {tab === "doc_chase" ? (
+          selectedDocChase ? (
+            <DocChaseDetailPanel
+              item={selectedDocChase}
+              onMarkReceived={(id) =>
+                setDocChaseReplies((prev) =>
+                  prev.map((r) => r.id === id ? { ...r, status: "received" } : r)
+                )
+              }
             />
           ) : (
             <NothingSelected />
           )
-        ) : selectedItem ? (
-          <DetailPanel
-            item={selectedItem}
-            busy={busy}
-            sent={sentId === selectedItem.id}
-            sentAction={sentId === selectedItem.id ? sentAction ?? undefined : undefined}
-            onApprove={() => resolve(selectedItem.id, "approved")}
-            onReject={() => resolve(selectedItem.id, "rejected")}
-            onEdit={() => startEdit(selectedItem)}
-            isEditing={editingId === selectedItem.id}
-            editedIntent={editedIntent}
-            editNotes={editNotes}
-            editedBody={editedBody}
-            onEditedIntentChange={setEditedIntent}
-            onEditNotesChange={setEditNotes}
-            onEditedBodyChange={setEditedBody}
-            onConfirmEdit={() =>
-              resolve(selectedItem.id, "edited", {
-                edited_intent: editedIntent,
-                notes: editNotes || undefined,
-                edited_body:
-                  editedBody !== (typeof selectedItem.proposed_action?.payload?.body === "string" ? selectedItem.proposed_action.payload.body : "")
-                    ? editedBody
-                    : undefined,
-              })
-            }
-            onCancelEdit={cancelEdit}
-          />
+        ) : tab === "todo" ? (
+          selectedInboxItem ? (
+            selectedInboxItem.proposed_action?.action_type === "broker_change_required" ? (
+              <TodoDetailPanel
+                item={selectedInboxItem}
+                busy={busy}
+                done={sentId === selectedInboxItem.id}
+                checked={checkedMap[selectedInboxItem.id] ?? new Set()}
+                onToggle={(idx) => toggleCheck(selectedInboxItem.id, idx)}
+                onComplete={() => resolve(selectedInboxItem.id, "approved")}
+              />
+            ) : (
+              <DetailPanel
+                item={selectedInboxItem}
+                busy={busy}
+                sent={sentId === selectedInboxItem.id}
+                sentAction={sentId === selectedInboxItem.id ? sentAction ?? undefined : undefined}
+                onApprove={() => resolve(selectedInboxItem.id, "approved")}
+                onReject={() => resolve(selectedInboxItem.id, "rejected")}
+                onEdit={() => startEdit(selectedInboxItem)}
+                isEditing={editingId === selectedInboxItem.id}
+                editedIntent={editedIntent}
+                editNotes={editNotes}
+                editedBody={editedBody}
+                onEditedIntentChange={setEditedIntent}
+                onEditNotesChange={setEditNotes}
+                onEditedBodyChange={setEditedBody}
+                onConfirmEdit={() =>
+                  resolve(selectedInboxItem.id, "edited", {
+                    edited_intent: editedIntent,
+                    notes: editNotes || undefined,
+                    edited_body:
+                      editedBody !== (typeof selectedInboxItem.proposed_action?.payload?.body === "string" ? selectedInboxItem.proposed_action.payload.body : "")
+                        ? editedBody
+                        : undefined,
+                  })
+                }
+                onCancelEdit={cancelEdit}
+                isTodo
+              />
+            )
+          ) : (
+            <NothingSelected />
+          )
         ) : (
-          <NothingSelected />
+          selectedInboxItem ? (
+            <DetailPanel
+              item={selectedInboxItem}
+              busy={busy}
+              sent={sentId === selectedInboxItem.id}
+              sentAction={sentId === selectedInboxItem.id ? sentAction ?? undefined : undefined}
+              onApprove={() => resolve(selectedInboxItem.id, "approved")}
+              onReject={() => resolve(selectedInboxItem.id, "rejected")}
+              onEdit={() => startEdit(selectedInboxItem)}
+              isEditing={editingId === selectedInboxItem.id}
+              editedIntent={editedIntent}
+              editNotes={editNotes}
+              editedBody={editedBody}
+              onEditedIntentChange={setEditedIntent}
+              onEditNotesChange={setEditNotes}
+              onEditedBodyChange={setEditedBody}
+              onConfirmEdit={() =>
+                resolve(selectedInboxItem.id, "edited", {
+                  edited_intent: editedIntent,
+                  notes: editNotes || undefined,
+                  edited_body:
+                    editedBody !== (typeof selectedInboxItem.proposed_action?.payload?.body === "string" ? selectedInboxItem.proposed_action.payload.body : "")
+                      ? editedBody
+                      : undefined,
+                })
+              }
+              onCancelEdit={cancelEdit}
+            />
+          ) : (
+            <NothingSelected />
+          )
         )}
       </div>
     </div>

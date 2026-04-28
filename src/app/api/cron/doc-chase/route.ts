@@ -177,14 +177,15 @@ export async function GET(request: NextRequest) {
   const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
   const nowIso = new Date().toISOString();
 
-  // Build sender name + reply_to cache for all unique broker IDs in this batch
+  // Build sender name + reply_to + signature cache for all unique broker IDs in this batch
   const uniqueUserIds = [...new Set(active.map((m) => m.doc_chase_sequences.doc_chase_requests.user_id))];
   const senderNameCache = new Map<string, string>();
   const replyToCache = new Map<string, string | undefined>();
+  const signatureCache = new Map<string, string | null>();
   if (uniqueUserIds.length > 0) {
     const { data: profiles } = await supabase
       .from("agent_profiles")
-      .select("user_id, email_from_name, signal_token")
+      .select("user_id, email_from_name, signal_token, email_signature")
       .in("user_id", uniqueUserIds);
     for (const p of profiles ?? []) {
       senderNameCache.set(
@@ -195,6 +196,7 @@ export async function GET(request: NextRequest) {
         p.user_id,
         p.signal_token ? `${p.signal_token}@ildaexi.resend.app` : undefined
       );
+      signatureCache.set(p.user_id, p.email_signature ?? null);
     }
   }
 
@@ -319,6 +321,11 @@ export async function GET(request: NextRequest) {
       }
 
       const resendKey = process.env.RESEND_API_KEY;
+      const emailSig = signatureCache.get(req.user_id) ?? null;
+      const sigSuffix = emailSig?.trim()
+        ? `\n\n---\n\n${emailSig.trim()}`
+        : "";
+      const bodyWithSig = msg.body + sigSuffix;
       if (!resendKey) {
         console.log(
           `[cron/doc-chase] RESEND_API_KEY not set — would send touch ${msg.touch_number} to ${req.client_email}`
@@ -331,7 +338,7 @@ export async function GET(request: NextRequest) {
           from: senderNameCache.get(req.user_id) ?? baseFrom,
           to: req.client_email,
           subject: msg.subject,
-          text: msg.body,
+          text: bodyWithSig,
           ...(replyTo ? { reply_to: replyTo } : {}),
         });
       }

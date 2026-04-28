@@ -28,12 +28,12 @@ interface HollisAction {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
-  renewal_email:              "Renewal outreach",
+  renewal_email:              "Campaign draft",
   renewal_sms:                "SMS follow-up",
   renewal_intent_classified:  "Intent classified",
   renewal_stage_transition:   "Stage updated",
   renewal_halted:             "Sequence halted",
-  approval_queued:            "Queued for approval",
+  approval_queued:            "Client reply",
   escalation:                 "Escalated to broker",
   silence_detected:           "Silence detected",
   doc_chase_email:            "Document chase · email",
@@ -41,6 +41,29 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   doc_chase_escalated:        "Doc chase escalated",
   coi_generated:              "COI generated",
   policy_check:               "Policy check run",
+};
+
+const TEMPLATE_LABELS: Record<string, string> = {
+  email_90:         "90-day email",
+  email_60:         "60-day email",
+  sms_30:           "30-day SMS",
+  script_14:        "14-day call script",
+  submission_60:    "submission",
+  recommendation_30:"recommendation",
+};
+
+const INTENT_LABELS: Record<string, string> = {
+  renewal_with_changes:  "renewal with changes",
+  confirm_renewal:       "confirmed renewal",
+  soft_query:            "query",
+  out_of_office:         "out of office",
+  request_callback:      "callback request",
+  document_received:     "document received",
+  active_claim_mentioned:"claim mentioned",
+  cancel_policy:         "cancellation",
+  legal_dispute:         "legal dispute",
+  complaint:             "complaint",
+  unknown:               "unclassified",
 };
 
 const TIER_LABELS: Record<string, string> = {
@@ -63,7 +86,22 @@ function actionLabel(a: HollisAction): string {
   const m = a.metadata as Record<string, unknown> | null;
 
   if (a.action_type === "renewal_email" || a.action_type === "renewal_sms") {
+    // Distinguish: campaign threshold draft vs autonomous send
+    const tmpl = (p?.template_used as string | undefined) ?? (m?.touchpoint_type as string | undefined);
+    const tmplLabel = tmpl ? (TEMPLATE_LABELS[tmpl] ?? tmpl) : null;
+    if (a.tier === "2") {
+      return tmplLabel ? `Draft prepared · ${tmplLabel}` : "Draft prepared · deadline";
+    }
+    if (a.tier === "1") {
+      return tmplLabel ? `Sent · ${tmplLabel}` : base;
+    }
     return a.tier ? `${base} · ${TIER_LABELS[a.tier] ?? `Tier ${a.tier}`}` : base;
+  }
+  if (a.action_type === "approval_queued") {
+    // Inbound client reply that was drafted and queued for review
+    const intent = (p?.intent_classification as string | undefined) ?? (m?.intent as string | undefined);
+    const intentLabel = intent ? (INTENT_LABELS[intent] ?? intent.replace(/_/g, " ")) : null;
+    return intentLabel ? `Draft prepared · ${intentLabel}` : "Draft prepared · client reply";
   }
   if (a.action_type === "renewal_intent_classified") {
     const cls = p?.intent_classification ?? m?.intent_classification;

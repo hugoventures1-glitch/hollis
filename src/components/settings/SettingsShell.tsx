@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Building2, Mail, Bell, Settings, Upload, Bot, Clock } from "lucide-react";
+import { User, Building2, Mail, Bell, Settings, Upload, Bot, Clock, CalendarRange } from "lucide-react";
 import type { AgentProfile } from "@/types/settings";
 import { ProfileSection } from "./ProfileSection";
 import { AgencySection } from "./AgencySection";
@@ -12,8 +12,9 @@ import { AccountSection } from "./AccountSection";
 import { ImportSection } from "./ImportSection";
 import { HollisSection } from "./HollisSection";
 import { LeadTimesSection } from "./LeadTimesSection";
+import { TimelineSection } from "./TimelineSection";
 
-type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "renewals" | "account" | "import";
+type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "renewals" | "timeline" | "account" | "import";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "hollis",        label: "Hollis",             icon: Bot       },
@@ -21,12 +22,13 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "agency",        label: "Agency",             icon: Building2 },
   { id: "email",         label: "Email & Signatures", icon: Mail      },
   { id: "notifications", label: "Notifications",      icon: Bell      },
-  { id: "renewals",      label: "Renewal Timing",     icon: Clock     },
-  { id: "account",       label: "Account",            icon: Settings  },
+  { id: "renewals",      label: "Renewal Timing",     icon: Clock         },
+  { id: "timeline",      label: "Timeline",           icon: CalendarRange },
+  { id: "account",       label: "Account",            icon: Settings      },
   { id: "import",        label: "Import Data",        icon: Upload    },
 ];
 
-const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "notifications", "renewals", "account", "import"];
+const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "notifications", "renewals", "timeline", "account", "import"];
 
 interface Props {
   profile: Partial<AgentProfile>;
@@ -48,7 +50,7 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
     router.replace(`/settings?tab=${id}`, { scroll: false });
   }
 
-  const isImport = activeTab === "import";
+  const isFullWidth = activeTab === "import" || activeTab === "timeline";
 
   return (
     <div className="flex h-full overflow-hidden bg-[#0C0C0C]">
@@ -79,10 +81,10 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
         })}
       </nav>
 
-      {/* Right content — full-width for import, constrained for everything else */}
-      {isImport ? (
+      {/* Right content — full-width for import/timeline, constrained for everything else */}
+      {isFullWidth ? (
         <div className="flex-1 overflow-hidden">
-          <ImportSection />
+          {activeTab === "import" ? <ImportSection /> : <TimelineSection />}
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">

@@ -131,6 +131,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Fetch broker email signature
+  const { data: brokerProfile } = await supabase
+    .from("agent_profiles")
+    .select("email_signature")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   // Draft all 4 touches with Claude Haiku (touch 3 may be SMS, touch 4 is phone script)
   let touches: Awaited<ReturnType<typeof draftDocumentChaseSequence>>;
   try {
@@ -141,7 +148,8 @@ export async function POST(request: NextRequest) {
       resolvedAgentEmail || (process.env.FROM_EMAIL ?? "hugo@hollisai.com.au"),
       notes ?? null,
       client_phone?.trim() || null,
-      daysUntilExpiry
+      daysUntilExpiry,
+      brokerProfile?.email_signature ?? null
     );
   } catch (err) {
     console.error("[doc-chase] Draft sequence failed:", err);

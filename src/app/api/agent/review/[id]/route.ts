@@ -442,11 +442,31 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       (queueItem.proposed_action as { action_type?: string })?.action_type === "log_document"
     ) {
       try {
+        // Close policy-linked doc chases
         await admin
           .from("doc_chase_requests")
           .update({ status: "received", received_at: resolvedAt })
           .eq("policy_id", queueItem.policy_id as string)
           .neq("status", "received");
+
+        // Also close standalone doc chases (no policy_id) matched by sender email.
+        // Mirrors the Tier 1 path in process-signal.ts lines 319-340.
+        if (queueItem.signal_id) {
+          const { data: signalRow } = await admin
+            .from("inbound_signals")
+            .select("sender_email")
+            .eq("id", queueItem.signal_id as string)
+            .maybeSingle();
+          const senderEmail = signalRow?.sender_email ?? null;
+          if (senderEmail) {
+            await admin
+              .from("doc_chase_requests")
+              .update({ status: "received", received_at: resolvedAt })
+              .eq("client_email", senderEmail)
+              .is("policy_id", null)
+              .neq("status", "received");
+          }
+        }
 
         void logAction({
           broker_id: user.id,

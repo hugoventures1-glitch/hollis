@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
   ArrowLeft, ChevronRight, Upload, CheckCircle, AlertCircle,
@@ -98,6 +99,13 @@ function StepIndicator({ current }: { current: Step }) {
 
 export default function ClientImportPage() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const userIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      userIdRef.current = data.user?.id ?? null;
+    });
+  }, []);
   const [step, setStep] = useState<Step>("upload");
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -182,11 +190,14 @@ export default function ClientImportPage() {
         setServerError(data.error ?? "Import failed");
         return;
       }
-      // Store counts in localStorage for the overview banner
+      // Store counts in localStorage for the overview banner (user-scoped)
       if (typeof window !== "undefined") {
-        const existing = JSON.parse(localStorage.getItem("hollis_import_counts") ?? "{}");
+        const uid = userIdRef.current;
+        const countsKey = uid ? `hollis_import_counts_${uid}` : "hollis_import_counts";
+        const existing = JSON.parse(localStorage.getItem(countsKey) ?? "{}");
         existing.clients = (existing.clients ?? 0) + (data.inserted ?? 0);
-        localStorage.setItem("hollis_import_counts", JSON.stringify(existing));
+        localStorage.setItem(countsKey, JSON.stringify(existing));
+        fetch("/api/briefing", { method: "DELETE" }).catch(() => {});
       }
       setResult(data);
       setStep("done");

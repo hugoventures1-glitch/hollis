@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { CSVPolicyRow, TouchpointType, LeadTimeConfig } from "@/types/renewals";
 import { touchpointScheduledDate, resolveLeadTimes } from "@/types/renewals";
+import { resolveTimeline } from "@/types/timeline";
+import type { TimelineConfig } from "@/types/timeline";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -49,15 +51,17 @@ export async function POST(request: NextRequest) {
     "script_14",
   ];
 
-  // Load this broker's lead time configs once — used to compute correct scheduled_at per policy type
-  const { data: leadTimeRows } = await supabase
-    .from("renewal_lead_time_configs")
-    .select("*")
-    .eq("user_id", user.id);
+  // Load broker timeline config and lead time configs in parallel
+  const [{ data: leadTimeRows }, { data: agentProfile }] = await Promise.all([
+    supabase.from("renewal_lead_time_configs").select("*").eq("user_id", user.id),
+    supabase.from("agent_profiles").select("renewal_timeline").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   const leadTimeMap = new Map<string, LeadTimeConfig>(
     (leadTimeRows ?? []).map((c: LeadTimeConfig) => [c.policy_type.toLowerCase(), c])
   );
+
+  const brokerTimeline = (agentProfile?.renewal_timeline as TimelineConfig | null) ?? null;
 
   let inserted = 0;
   const errors: string[] = [];
@@ -89,18 +93,36 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    // Create 4 touchpoints using the configured lead times for this policy type
-    const lt = resolveLeadTimes(policyType, leadTimeMap);
-    const touchpoints = TOUCHPOINT_TYPES.map((type) => {
-      const scheduledAt = touchpointScheduledDate(row.expiration_date, type, lt);
-      return {
-        policy_id: policy.id,
-        user_id: user.id,
-        type,
-        status: scheduledAt < today ? "skipped" : "pending",
-        scheduled_at: scheduledAt,
-      };
-    });
+    // Create touchpoints: use broker's timeline config if set, else fall back to lead time configs
+    let touchpoints;
+    if (brokerTimeline?.touchpoints?.length) {
+      const effectiveTimeline = resolveTimeline(brokerTimeline, null);
+      touchpoints = effectiveTimeline.touchpoints.map((tp) => {
+        const d = new Date(row.expiration_date + "T00:00:00");
+        d.setDate(d.getDate() - tp.days_before_expiry);
+        const scheduledAt = d.toISOString().split("T")[0];
+        return {
+          policy_id: policy.id,
+          user_id: user.id,
+          type: `tp_${tp.id.slice(0, 8)}`,
+          status: scheduledAt < today ? "skipped" : "pending",
+          scheduled_at: scheduledAt,
+        };
+      });
+    } else {
+      // Legacy: use lead time configs
+      const lt = resolveLeadTimes(policyType, leadTimeMap);
+      touchpoints = TOUCHPOINT_TYPES.map((type) => {
+        const scheduledAt = touchpointScheduledDate(row.expiration_date, type, lt);
+        return {
+          policy_id: policy.id,
+          user_id: user.id,
+          type,
+          status: scheduledAt < today ? "skipped" : "pending",
+          scheduled_at: scheduledAt,
+        };
+      });
+    }
 
     const { error: tErr } = await supabase
       .from("campaign_touchpoints")

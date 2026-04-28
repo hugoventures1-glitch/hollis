@@ -16,6 +16,8 @@ export interface GenerateContext {
   clientNotes?: string | null;
   /** Recent broker edits to past drafts — used to match writing style */
   recentBodyEdits?: Array<{ original: string; edited: string }>;
+  /** Custom email signature appended to all outbound emails */
+  emailSignature?: string | null;
 }
 
 function bodyEditsBlock(edits: Array<{ original: string; edited: string }>): string {
@@ -71,7 +73,7 @@ Rules:
 - Clear single call-to-action (reply to this email or call the agent)
 - No generic filler — make it feel personal
 - Follow the broker's standing orders above if any are provided
-- End the email with a real signature using the Agent name and Agent email above. Two line breaks, then the agent's name, then the agent's email on the next line. No placeholders like [Your Name] or [Contact Information].
+- Do NOT include a sign-off or signature — one will be appended separately
 
 Respond with ONLY valid JSON: {"subject": "...", "body": "..."}
 The body should be plain text (no HTML), with line breaks between paragraphs.`;
@@ -88,7 +90,11 @@ The body should be plain text (no HTML), with line breaks between paragraphs.`;
   // Strip markdown code fences if present
   const jsonText = raw.text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
   const parsed = JSON.parse(jsonText);
-  return { subject: String(parsed.subject), body: String(parsed.body) };
+  const body = String(parsed.body);
+  const signature = ctx?.emailSignature?.trim()
+    ? `\n\n---\n\n${ctx.emailSignature.trim()}`
+    : `\n\n${policy.agent_name ?? ""}\n${policy.agent_email ?? ""}`.trimEnd();
+  return { subject: String(parsed.subject), body: body + signature };
 }
 
 // ── 30-day SMS ───────────────────────────────────────────────

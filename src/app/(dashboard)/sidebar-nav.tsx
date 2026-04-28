@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
 import { daysUntilExpiry } from "@/types/renewals";
 import {
-  LayoutDashboard,
   Activity,
   RefreshCcw,
   Users,
@@ -133,7 +132,7 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
         className="flex items-center justify-center h-14 shrink-0"
         style={{ borderBottom: "1px solid #181818" }}
       >
-        <Link href="/overview">
+        <Link href="/inbox">
           <span
             style={{
               fontFamily:    "var(--font-playfair)",
@@ -169,7 +168,6 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
           <Search size={19} strokeWidth={1.6} />
         </button>
 
-        <RailIcon href="/overview"  icon={LayoutDashboard} label="Overview" pathname={pathname} />
         <RailIcon href="/inbox"     icon={Inbox}           label="Inbox"    pathname={pathname} badge={approvalQueueCount} />
         <RailIcon href="/activity"  icon={Activity}        label="Activity" pathname={pathname} />
         <RailIcon href="/renewals"   icon={RefreshCcw}      label="Renewals"   pathname={pathname} badge={renewalCount} />

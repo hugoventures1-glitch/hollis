@@ -16,6 +16,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
   Upload,
@@ -521,6 +522,13 @@ function MappingRow({
 
 export default function FullBookImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const userIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      userIdRef.current = data.user?.id ?? null;
+    });
+  }, []);
   const [step, setStep] = useState<Step>("drop");
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -712,14 +720,15 @@ export default function FullBookImportPage() {
         return;
       }
 
-      // Store counts for overview banner
+      // Store counts for overview banner (user-scoped)
       if (typeof window !== "undefined") {
-        const existing = JSON.parse(
-          localStorage.getItem("hollis_import_counts") ?? "{}"
-        );
+        const uid = userIdRef.current;
+        const countsKey = uid ? `hollis_import_counts_${uid}` : "hollis_import_counts";
+        const existing = JSON.parse(localStorage.getItem(countsKey) ?? "{}");
         existing.policies = (existing.policies ?? 0) + (data.policies?.inserted ?? 0);
         existing.clients = (existing.clients ?? 0) + (data.clients?.inserted ?? 0);
-        localStorage.setItem("hollis_import_counts", JSON.stringify(existing));
+        localStorage.setItem(countsKey, JSON.stringify(existing));
+        fetch("/api/briefing", { method: "DELETE" }).catch(() => {});
       }
 
       const result = data as ImportResult;

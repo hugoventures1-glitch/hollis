@@ -101,9 +101,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (Object.keys(contactChanges).length > 0) {
     const admin = createAdminClient();
     const base = admin.from("policies").update(contactChanges).eq("user_id", user.id);
-    // Match by old email (exact, reliable) when available; fall back to name
+    // Require BOTH email AND name to match when email is available — prevents
+    // over-broad updates if multiple clients share the same email address.
     if (current.email) {
-      await base.eq("client_email", current.email);
+      await base.eq("client_email", current.email).eq("client_name", current.name);
     } else {
       await base.eq("client_name", current.name);
     }

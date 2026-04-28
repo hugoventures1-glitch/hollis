@@ -290,6 +290,11 @@ export async function POST(request: NextRequest) {
   // ── Parse sender ───────────────────────────────────────────────────────────
   const { email: senderEmail, name: senderName } = parseFromHeader(from);
 
+  // ── Extract policy number from subject (used to disambiguate candidates) ──
+  const subject: string = emailContent.subject ?? payload.data.subject ?? "";
+  const policyNumberMatch = subject.match(/\bPOL-\d{4}-\d{4}\b/i);
+  const subjectPolicyNumber = policyNumberMatch ? policyNumberMatch[0].toUpperCase() : null;
+
   // ── Policy lookup ──────────────────────────────────────────────────────────
   const admin = createAdminClient();
 
@@ -319,7 +324,7 @@ export async function POST(request: NextRequest) {
   let policyQuery = admin
     .from("policies")
     .select(
-      "id, user_id, client_name, policy_name, expiration_date, campaign_stage, last_contact_at, renewal_flags, renewal_paused, client_email, carrier, premium, agent_name, agent_email"
+      "id, user_id, client_name, policy_name, policy_number, expiration_date, campaign_stage, last_contact_at, renewal_flags, renewal_paused, client_email, carrier, premium, agent_name, agent_email"
     )
     .eq("client_email", senderEmail)
     .not("campaign_stage", "in", '("confirmed","lapsed")')
@@ -492,7 +497,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const policy = candidates[0];
+  // Prefer exact policy number match from the email subject to avoid
+  // misattribution when multiple active policies share the same client_email.
+  let policy = candidates[0];
+  if (subjectPolicyNumber && candidates.length > 1) {
+    const exactMatch = candidates.find(
+      (c) => (c.policy_number as string | null)?.toUpperCase() === subjectPolicyNumber
+    );
+    if (exactMatch) policy = exactMatch;
+  }
 
   // ── Fetch few-shot outcomes for this broker ────────────────────────────────
   const { data: recentOutcomes } = await admin
@@ -504,6 +517,10 @@ export async function POST(request: NextRequest) {
     .limit(10);
 
   // ── Run signal pipeline ────────────────────────────────────────────────────
+  const matchedBySubject =
+    subjectPolicyNumber != null &&
+    (policy.policy_number as string | null)?.toUpperCase() === subjectPolicyNumber;
+
   await logWebhookEvent({
     endpoint: ENDPOINT,
     gate: "pipeline_started",
@@ -511,6 +528,10 @@ export async function POST(request: NextRequest) {
     sender_email: senderEmail,
     policy_id: policy.id as string,
     user_id: policy.user_id as string,
+    detail: {
+      match_strategy: matchedBySubject ? "subject_policy_number" : "email_fallback",
+      candidates_count: candidates.length,
+    },
   });
 
   try {

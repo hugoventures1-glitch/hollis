@@ -196,6 +196,8 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
               renewal_manual_override: p.renewal_manual_override ?? null,
               require_approval: p.require_approval ?? false,
               campaign_stage: p.campaign_stage,
+              client_name: p.client_name,
+              client_email: p.client_email ?? null,
             }}
           />
 

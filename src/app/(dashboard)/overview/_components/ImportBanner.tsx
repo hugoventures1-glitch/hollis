@@ -24,16 +24,19 @@ interface ImportCounts {
   certificates?: number;
 }
 
-export function ImportBanner() {
+export function ImportBanner({ userId }: { userId?: string }) {
+  const storageKey   = userId ? `${STORAGE_KEY}_${userId}`   : STORAGE_KEY;
+  const dismissedKey = userId ? `${DISMISSED_KEY}_${userId}` : DISMISSED_KEY;
+
   const [counts, setCounts] = useState<ImportCounts | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     try {
-      const dismissed = localStorage.getItem(DISMISSED_KEY);
+      const dismissed = localStorage.getItem(dismissedKey);
       if (dismissed === "1") return;
 
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKey);
       if (!raw) return;
 
       const parsed: ImportCounts = JSON.parse(raw);
@@ -43,15 +46,18 @@ export function ImportBanner() {
       if (total > 0) {
         setCounts(parsed);
         setVisible(true);
+        // Bust the briefing cache so the overview reflects the fresh import
+        fetch("/api/briefing", { method: "DELETE" }).catch(() => {});
       }
     } catch {
       // ignore storage errors
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function dismiss() {
     try {
-      localStorage.setItem(DISMISSED_KEY, "1");
+      localStorage.setItem(dismissedKey, "1");
     } catch {
       // ignore
     }
