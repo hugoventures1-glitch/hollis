@@ -36,7 +36,6 @@ const STAGE_PTS: Record<string, number> = {
   recommendation_sent: 35,
   submission_sent:     30,
   script_14_ready:     30,
-  questionnaire_sent:  28,
   sms_30_sent:         25,
   email_60_sent:       15,
   final_notice_sent:   10,

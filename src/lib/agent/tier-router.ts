@@ -99,10 +99,6 @@ function buildProposedAction(intent: string, classification: ClassificationResul
       description: "Log document receipt and update document chase status",
       action_type: "log_document",
     },
-    questionnaire_submitted: {
-      description: "Parse questionnaire submission and update the renewal record",
-      action_type: "parse_questionnaire",
-    },
     soft_query: {
       description: "Draft AI response to the client query and send automatically",
       action_type: "draft_and_send_response",
@@ -166,7 +162,6 @@ const AUTONOMOUS_ACTION_DESCRIPTIONS: Record<string, string> = {
   confirm_renewal: "Mark client as confirmed, advance campaign stage to 'confirmed'",
   request_callback: "Create broker callback task, pause renewal sequence",
   document_received: "Log document receipt, update document chase status",
-  questionnaire_submitted: "Parse questionnaire submission, update renewal record",
   soft_query: "Draft AI response to client query, send automatically",
   out_of_office: "Log auto-reply detected, resume sequence after detected return date",
 };

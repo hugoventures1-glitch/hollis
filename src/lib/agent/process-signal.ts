@@ -92,6 +92,26 @@ export async function processInboundSignal(
     );
   }
 
+  // ── 2b. Write signal_received audit entry ─────────────────────────────────────
+  // Logged immediately so the activity feed shows the inbound reply regardless
+  // of how the tier router later classifies and routes it.
+  await writeAuditLog({
+    supabase: admin,
+    policy_id: policyId,
+    user_id: userId,
+    event_type: "signal_received",
+    channel: source === "email" ? "email" : source === "sms" ? "sms" : "internal",
+    recipient: senderEmail,
+    content_snapshot: rawSignal.slice(0, 500),
+    metadata: {
+      signal_id: signal.id,
+      sender_email: senderEmail,
+      sender_name: senderName,
+      source,
+    },
+    actor_type: "system",
+  });
+
   // ── 3. Few-shot outcomes passed in by caller ───────────────────────────────────
   // (recentOutcomes already fetched and scoped to userId)
 
@@ -169,29 +189,23 @@ export async function processInboundSignal(
   if (tierDecision.tier === 1) {
     const intent = classification.intent;
 
-    if (intent === "out_of_office" || intent === "questionnaire_submitted") {
-      // Log only — no outbound email for these intents
-      if (intent === "out_of_office") {
-        const resumeDate = new Date();
-        resumeDate.setDate(resumeDate.getDate() + 7);
-        await admin
-          .from("policies")
-          .update({
-            renewal_paused: true,
-            renewal_paused_until: resumeDate.toISOString().slice(0, 10),
-          })
-          .eq("id", policyId);
-      }
+    if (intent === "out_of_office") {
+      const resumeDate = new Date();
+      resumeDate.setDate(resumeDate.getDate() + 7);
+      await admin
+        .from("policies")
+        .update({
+          renewal_paused: true,
+          renewal_paused_until: resumeDate.toISOString().slice(0, 10),
+        })
+        .eq("id", policyId);
 
       void logAction({
         broker_id: userId,
         policy_id: policyId,
-        action_type: intent === "out_of_office" ? "out_of_office_logged" : "questionnaire_logged",
+        action_type: "out_of_office_logged",
         tier: "1",
-        trigger_reason:
-          intent === "out_of_office"
-            ? `Auto-reply detected from ${senderName ?? senderEmail ?? "client"} — sequence paused for 7 days.`
-            : `Client ${senderName ?? senderEmail ?? "unknown"} indicated questionnaire submission.`,
+        trigger_reason: `Auto-reply detected from ${senderName ?? senderEmail ?? "client"} — sequence paused for 7 days.`,
         payload: { raw_signal_snippet: rawSignal.slice(0, 500) },
         metadata: { signal_id: signal.id, intent, confidence: classification.confidence },
         outcome: "classified",
@@ -400,29 +414,6 @@ export async function processInboundSignal(
     });
   }
 
-  // Log the intent classification itself (all tiers)
-  void logAction({
-    broker_id: userId,
-    policy_id: policyId,
-    action_type: "renewal_intent_classified",
-    tier: String(tierDecision.tier),
-    trigger_reason: `Inbound signal from ${senderName ?? senderEmail ?? "client"} classified as "${classification.intent}" with ${Math.round(classification.confidence * 100)}% confidence — routed to Tier ${tierDecision.tier}.`,
-    payload: {
-      intent_classification: classification.intent,
-      confidence_score: classification.confidence,
-      channel: "internal",
-    },
-    metadata: {
-      signal_id: signal.id,
-      flags_detected: classification.flags_detected,
-      premium_increase_pct: classification.premium_increase_pct ?? null,
-      reasoning: classification.reasoning,
-      tier_reason: tierDecision.reason,
-      source,
-    },
-    outcome: "classified",
-    retain_until: tierDecision.tier === 3 ? retainLongTerm() : retainStandard(),
-  });
 
   // ── 11. Tier 3: send broker alert email ────────────────────────────────────────
   if (tierDecision.tier === 3) {

@@ -69,10 +69,9 @@ Your job is to analyse inbound signals (client emails, SMS replies, third-party 
 
 KNOWN INTENT TAXONOMY:
 Autonomous intents (can be handled without broker intervention if confidence is high):
-- confirm_renewal: Client confirms they want to proceed with renewal, with no conditions or change requests
+- confirm_renewal: Client confirms they want to proceed with renewal, with no conditions, change requests, OR open questions. The confirmation must be unconditional and unambiguous — if the client asks any question alongside the confirmation (e.g. "I'll confirm, but can you tell me what this covers?"), classify as soft_query instead because the question must be resolved before the confirmation can be actioned.
 - request_callback: Client is asking to be called back
 - document_received: Client has sent or mentioned sending a document (certificate, invoice, financial statement)
-- questionnaire_submitted: Client has completed or submitted the renewal questionnaire
 - soft_query: Client has a general question that does not involve claims, disputes, or sensitive changes
 - out_of_office: Detected auto-reply or out-of-office response — no human intent present
 
@@ -106,7 +105,8 @@ CONFIDENCE SCORING GUIDE:
 IMPORTANT RULES:
 - If the signal contains ANY mention of a claim or incident, flag active_claim regardless of the main intent.
 - third_party_contact should be flagged when the sender uses language like "on behalf of", "I'm writing for", uses a different company domain, or explicitly states they are not the policyholder.
-- Do not infer intent from previous context — classify only on the signal provided.`;
+- Do not infer intent from previous context — classify only on the signal provided.
+- If a signal expresses willingness to renew BUT also asks a question or requests information, always classify as soft_query (not confirm_renewal). A confirmation is only valid when it is unconditional — the unanswered question means the client cannot yet be treated as confirmed.`;
 
 function buildFewShotBlock(outcomes: ParserOutcome[]): string {
   if (outcomes.length === 0) return "";

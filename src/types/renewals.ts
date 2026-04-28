@@ -9,8 +9,6 @@ export type CampaignStage =
   | "sms_30_sent"
   | "script_14_ready"
   | "complete"
-  // New stages (Features 3, 5, 6, 7)
-  | "questionnaire_sent"
   | "submission_sent"
   | "recommendation_sent"
   | "final_notice_sent"
@@ -22,8 +20,6 @@ export type TouchpointType =
   | "email_60"
   | "sms_30"
   | "script_14"
-  // New touchpoint types (Features 3, 5, 7, 2)
-  | "questionnaire_90"
   | "submission_60"
   | "recommendation_30"
   | "final_notice_7";
@@ -66,6 +62,8 @@ export interface Policy {
   renewal_flags?: import("@/types/agent").RenewalFlags | null;
   // ── Policy type (migration 030) ───────────────────────────────────────────
   policy_type?: string | null;
+  // ── Custom timeline override (migration 036) ──────────────────────────────
+  custom_timeline?: import("@/types/timeline").TimelineConfig | null;
 }
 
 export interface CampaignTouchpoint {
@@ -194,10 +192,9 @@ export function touchpointScheduledDate(
     email_60:          -lt.offset_email_2,
     sms_30:            -lt.offset_sms,
     script_14:         -lt.offset_call,
-    questionnaire_90:  -lt.offset_email_1, // fires alongside first email
     submission_60:     -lt.offset_email_2,
     recommendation_30: -lt.offset_sms,
-    final_notice_7:    -7,                 // always fixed, not configurable
+    final_notice_7:    -7,
   };
   expiry.setDate(expiry.getDate() + offsets[type]);
   return expiry.toISOString().split("T")[0];
@@ -208,7 +205,6 @@ export const TOUCHPOINT_LABELS: Record<TouchpointType, string> = {
   email_60: "60-Day Follow-up",
   sms_30: "30-Day SMS",
   script_14: "14-Day Call Script",
-  questionnaire_90: "90-Day Questionnaire",
   submission_60: "Insurer Submission",
   recommendation_30: "Recommendation Pack",
   final_notice_7: "7-Day Final Notice",
@@ -221,7 +217,6 @@ export const STAGE_LABELS: Record<CampaignStage, string> = {
   sms_30_sent: "SMS Sent",
   script_14_ready: "Call Script Ready",
   complete: "Complete",
-  questionnaire_sent: "Questionnaire Sent",
   submission_sent: "Submission Sent",
   recommendation_sent: "Recommendation Sent",
   final_notice_sent: "Final Notice Sent",
@@ -234,8 +229,6 @@ export const STAGE_LABELS: Record<CampaignStage, string> = {
 export type AuditEventType =
   | "email_sent"
   | "sms_sent"
-  | "questionnaire_sent"
-  | "questionnaire_responded"
   | "insurer_terms_logged"
   | "submission_sent"
   | "recommendation_sent"
@@ -289,39 +282,9 @@ export interface InsurerTerms {
   updated_at: string;
 }
 
-// ── Renewal Questionnaire ─────────────────────────────────────────────────────
-
-export interface RenewalQuestionnaire {
-  id: string;
-  policy_id: string;
-  user_id: string;
-  token: string;
-  status: "sent" | "responded" | "expired";
-  sent_at: string;
-  responded_at: string | null;
-  expires_at: string;
-  responses: Record<string, string> | null;
-  ai_suggestions: QuestionnaireSuggestions | null;
-  reviewed_at: string | null;
-  reviewed_by: string | null;
-  created_at: string;
-}
-
-export interface QuestionnaireSuggestions {
-  suggested_updates: Array<{
-    field: string;
-    current_value: string | null;
-    suggested_value: string;
-    reason: string;
-  }>;
-  summary: string;
-  risk_flags: string[];
-}
-
 // ── Extended policy detail ────────────────────────────────────────────────────
 
 export interface PolicyDetailFull extends PolicyDetail {
   renewal_audit_log: AuditLogEntry[];
   insurer_terms: InsurerTerms[];
-  renewal_questionnaires: RenewalQuestionnaire[];
 }

@@ -35,7 +35,6 @@ interface SubmissionParams {
     primary_state?: string | null;
     notes?: string | null;
   } | null;
-  questionnaireResponses: Record<string, string> | null;
   auditFlags: Array<{
     severity: string;
     title: string;
@@ -64,13 +63,13 @@ RISK SUMMARY
 Business name, type, industry, location(s), number of employees, annual turnover, key operations. Any material changes from the prior year.
 
 INSURANCE HISTORY
-Prior carrier, prior premium, coverage lines held, any claims in the past 12 months (from questionnaire).
+Prior carrier, prior premium, coverage lines held, any claims in the past 12 months.
 
 COVERAGE REQUIREMENTS
 What cover is being sought, at what limits, with what endorsements. Be specific.
 
 SUPPORTING INFORMATION
-Material changes disclosed in the renewal questionnaire. Any risk flags from the policy audit. Address these directly — do not omit them.
+Any risk flags from the policy audit. Address these directly — do not omit them.
 
 REQUESTED TERMS
 What the broker is asking the insurer to provide. Specific limits, conditions, and any special requirements.
@@ -82,7 +81,6 @@ Rules:
 - Professional and factual — no marketing language
 - Australian English spelling
 - Include specific dollar amounts and dates where available
-- If questionnaire responses note material changes, these must appear in SUPPORTING INFORMATION
 - If there are critical audit flags, address them directly
 - Plain text only — no markdown, no HTML
 - Return ONLY valid JSON: {"subject": "...", "body": "..."}`;
@@ -91,7 +89,7 @@ export async function generateInsuranceSubmission(
   params: SubmissionParams
 ): Promise<SubmissionOutput> {
   const client = getAnthropicClient();
-  const { policy, client: clientData, questionnaireResponses, auditFlags, priorTerms, agentName, agentEmail, agentPhone, agencyName, agencyAfsl } = params;
+  const { policy, client: clientData, auditFlags, priorTerms, agentName, agentEmail, agentPhone, agencyName, agencyAfsl } = params;
 
   const clientSection = clientData
     ? [
@@ -108,13 +106,6 @@ export async function generateInsuranceSubmission(
         .filter(Boolean)
         .join("\n")
     : `Business: ${policy.client_name}`;
-
-  const questionnaireSection = questionnaireResponses
-    ? Object.entries(questionnaireResponses)
-        .filter(([, v]) => v?.trim())
-        .map(([k, v]) => `${k}: ${v}`)
-        .join("\n")
-    : "Questionnaire not completed";
 
   const auditSection = auditFlags.length > 0
     ? auditFlags
@@ -141,9 +132,6 @@ Prior premium: ${policy.premium != null ? `$${Number(policy.premium).toLocaleStr
 
 CLIENT PROFILE:
 ${clientSection}
-
-QUESTIONNAIRE RESPONSES:
-${questionnaireSection}
 
 POLICY AUDIT FLAGS:
 ${auditSection}

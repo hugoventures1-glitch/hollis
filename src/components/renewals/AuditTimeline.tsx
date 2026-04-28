@@ -4,8 +4,6 @@ import { useState } from "react";
 import {
   Mail,
   MessageSquare,
-  FileQuestion,
-  FileCheck2,
   FileText,
   Send,
   BadgeCheck,
@@ -27,8 +25,6 @@ import type { AuditLogEntry, AuditEventType } from "@/types/renewals";
 const EVENT_ICONS: Record<AuditEventType, React.ElementType> = {
   email_sent:               Mail,
   sms_sent:                 MessageSquare,
-  questionnaire_sent:       FileQuestion,
-  questionnaire_responded:  FileCheck2,
   insurer_terms_logged:     FileText,
   submission_sent:          Send,
   recommendation_sent:      FileText,
@@ -51,7 +47,6 @@ const EVENT_COLORS: Record<AuditEventType, string> = {
   // Standard events — neutral
   email_sent:               "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
   sms_sent:                 "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  questionnaire_sent:       "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
   insurer_terms_logged:     "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
   submission_sent:          "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
   recommendation_sent:      "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
@@ -62,7 +57,6 @@ const EVENT_COLORS: Record<AuditEventType, string> = {
   tier_2_drafted:           "text-[#9e9e9e] bg-[#FAFAFA]/[0.04]",
   flag_set:                 "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
   // Positive events — brighter white
-  questionnaire_responded:  "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
   client_confirmed:         "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
   doc_received:             "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
   tier_1_action:            "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
@@ -75,8 +69,6 @@ const EVENT_COLORS: Record<AuditEventType, string> = {
 const EVENT_LABELS: Record<AuditEventType, string> = {
   email_sent:               "Email Sent",
   sms_sent:                 "SMS Sent",
-  questionnaire_sent:       "Questionnaire Sent",
-  questionnaire_responded:  "Client Responded",
   insurer_terms_logged:     "Insurer Terms Logged",
   submission_sent:          "Submission Sent",
   recommendation_sent:      "Recommendation Sent",

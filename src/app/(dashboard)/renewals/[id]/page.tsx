@@ -24,8 +24,9 @@ import type {
 import { RenewalOverrideControls } from "@/components/renewals/RenewalOverrideControls";
 import { RenewalViewTracker } from "@/components/analytics/RenewalViewTracker";
 import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
-import { QuestionnairePanel } from "@/components/renewals/QuestionnairePanel";
 import { AuditTimeline } from "@/components/renewals/AuditTimeline";
+import { PolicyTimelinePanel } from "@/components/renewals/PolicyTimelinePanel";
+import type { TimelineConfig } from "@/types/timeline";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,6 @@ const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
   email_60: Mail,
   sms_30: MessageSquare,
   script_14: Phone,
-  questionnaire_90: Mail,
   submission_60: Mail,
   recommendation_30: Mail,
   final_notice_7: Mail,
@@ -75,24 +75,32 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: policy, error } = await supabase
-    .from("policies")
-    .select(`
-      *,
-      campaign_touchpoints(*),
-      send_logs(*),
-      renewal_audit_log(*),
-      insurer_terms(*),
-      renewal_questionnaires(*)
-    `)
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const [{ data: policy, error }, { data: agentProfile }] = await Promise.all([
+    supabase
+      .from("policies")
+      .select(`
+        *,
+        campaign_touchpoints(*),
+        send_logs(*),
+        renewal_audit_log(*),
+        insurer_terms(*)
+      `)
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("agent_profiles")
+      .select("renewal_timeline")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   if (error || !policy) notFound();
 
   const p = policy as unknown as PolicyDetailFull;
   const days = daysUntilExpiry(p.expiration_date);
+  const brokerTimeline = (agentProfile?.renewal_timeline as TimelineConfig | null) ?? null;
+  const policyTimeline = (p.custom_timeline as TimelineConfig | null) ?? null;
 
   const touchpoints = [...(p.campaign_touchpoints ?? [])].sort(
     (a: CampaignTouchpoint, b: CampaignTouchpoint) =>
@@ -104,7 +112,6 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
 
   const auditEntries = p.renewal_audit_log ?? [];
   const insurerTerms = p.insurer_terms ?? [];
-  const questionnaires = p.renewal_questionnaires ?? [];
 
   const hasTerms = insurerTerms.length > 0;
 
@@ -192,14 +199,19 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
             }}
           />
 
-          {/* Questionnaire (F3) */}
-          <QuestionnairePanel policyId={p.id} questionnaires={questionnaires} />
-
           {/* Insurer Terms (F1) */}
           <InsurerTermsPanel
             policyId={p.id}
             terms={insurerTerms}
             priorPremium={p.premium ?? null}
+          />
+
+          {/* Policy Timeline Editor */}
+          <PolicyTimelinePanel
+            policyId={p.id}
+            policyTimeline={policyTimeline}
+            brokerTimeline={brokerTimeline}
+            daysUntilExpiry={days}
           />
 
           {/* Campaign timeline */}

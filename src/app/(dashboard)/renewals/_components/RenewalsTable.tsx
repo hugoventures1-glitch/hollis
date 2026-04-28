@@ -24,7 +24,6 @@ const SEND_LABEL: Record<CampaignStage, string> = {
   sms_30_sent:        "Script",
   script_14_ready:    "Complete",
   complete:           "Complete",
-  questionnaire_sent: "View",
   submission_sent:    "View",
   recommendation_sent:"View",
   final_notice_sent:  "View",
@@ -87,7 +86,6 @@ const STAGE_PROGRESS: Record<CampaignStage, number> = {
   email_60_sent:      2,
   sms_30_sent:        3,
   script_14_ready:    4,
-  questionnaire_sent: 3,
   submission_sent:    4,
   recommendation_sent:4,
   final_notice_sent:  4,
@@ -161,7 +159,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
 
   const TERMINAL_STAGES: CampaignStage[] = ["complete", "confirmed", "lapsed"];
   const NEW_STAGES: CampaignStage[]      = [
-    "questionnaire_sent", "submission_sent", "recommendation_sent", "final_notice_sent",
+    "submission_sent", "recommendation_sent", "final_notice_sent",
   ];
   const canSend = !TERMINAL_STAGES.includes(effectiveStage) && !NEW_STAGES.includes(effectiveStage);
 
@@ -247,11 +245,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         backgroundSize: "100% 1px",
         backgroundPosition: "0 100%",
       }}
-      onClick={() => router.push(
-        clientId
-          ? `/clients/${clientId}?trail=${buildTrailParam([], "Renewals", "/renewals")}`
-          : `/renewals/${policy.id}`
-      )}
+      onClick={() => router.push(`/renewals/${policy.id}?trail=${buildTrailParam([], "Renewals", "/renewals")}`)}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.018)";
         const clientInfo = (e.currentTarget as HTMLElement).querySelector('[data-client-info]') as HTMLElement;
@@ -590,17 +584,15 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
     }
 
     if (view === "progress") {
-      const buckets: [Group, Group, Group, Group] = [
-        { title: "Questionnaire Pending", policies: [] },
-        { title: "Submission Out",        policies: [] },
-        { title: "Recommendation Sent",   policies: [] },
-        { title: "Final Notice",          policies: [] },
+      const buckets: [Group, Group, Group] = [
+        { title: "Submission Out",      policies: [] },
+        { title: "Recommendation Sent", policies: [] },
+        { title: "Final Notice",        policies: [] },
       ];
       const stageIndex: Partial<Record<string, number>> = {
-        questionnaire_sent:  0,
-        submission_sent:     1,
-        recommendation_sent: 2,
-        final_notice_sent:   3,
+        submission_sent:     0,
+        recommendation_sent: 1,
+        final_notice_sent:   2,
       };
       for (const p of filtered) {
         const i = stageIndex[p.campaign_stage];

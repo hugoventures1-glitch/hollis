@@ -15,7 +15,7 @@ const ACTION_STAGES: CampaignStage[] = [
   "pending", "email_90_sent", "email_60_sent", "sms_30_sent", "script_14_ready",
 ];
 const PROGRESS_STAGES: CampaignStage[] = [
-  "questionnaire_sent", "submission_sent", "recommendation_sent", "final_notice_sent",
+  "submission_sent", "recommendation_sent", "final_notice_sent",
 ];
 const COMPLETED_STAGES: CampaignStage[] = ["confirmed", "complete", "lapsed"];
 
@@ -286,7 +286,7 @@ function EmptyState({ view }: { view: ViewTab }) {
     },
     progress: {
       heading:  "Nothing in progress",
-      sub:      "Policies appear here once questionnaires, submissions, or recommendations are out.",
+      sub:      "Policies appear here once submissions or recommendations are out.",
     },
     completed: {
       heading:  "No completed renewals",

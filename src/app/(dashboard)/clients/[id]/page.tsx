@@ -23,7 +23,6 @@ const CHECKLIST_MILESTONES: { key: string; label: string }[] = [
   { key: "email_90_sent",       label: "90-day outreach" },
   { key: "email_60_sent",       label: "60-day outreach" },
   { key: "sms_30_sent",         label: "30-day SMS" },
-  { key: "questionnaire_sent",  label: "Questionnaire" },
   { key: "submission_sent",     label: "Submission" },
   { key: "recommendation_sent", label: "Recommendation" },
   { key: "confirmed",           label: "Renewal confirmed" },
@@ -31,7 +30,7 @@ const CHECKLIST_MILESTONES: { key: string; label: string }[] = [
 
 const STAGE_ORDER = [
   "pending", "email_90_sent", "email_60_sent", "sms_30_sent",
-  "script_14_ready", "questionnaire_sent", "submission_sent",
+  "script_14_ready", "submission_sent",
   "recommendation_sent", "final_notice_sent", "confirmed", "complete",
 ];
 
@@ -84,7 +83,6 @@ const STAGE_LABEL: Record<string, string> = {
   email_60_sent:       "60d email sent",
   sms_30_sent:         "30d SMS sent",
   script_14_ready:     "Script ready",
-  questionnaire_sent:  "Questionnaire sent",
   submission_sent:     "Submitted",
   recommendation_sent: "Recommendation sent",
   final_notice_sent:   "Final notice sent",

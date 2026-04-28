@@ -17,7 +17,6 @@ export interface AuditRow {
 export interface ActivityStats {
   touchpoints: number;
   confirmed: number;
-  replyRate: number | null;
   totalSent: number;
   monitoringCount: number;
   autonomousActionsTotal: number;
@@ -28,8 +27,6 @@ export interface ActivityStats {
 const EVENT_LABELS: Partial<Record<AuditEventType, string>> = {
   email_sent:              "Email sent",
   sms_sent:                "SMS sent",
-  questionnaire_sent:      "Questionnaire sent",
-  questionnaire_responded: "Questionnaire received",
   insurer_terms_logged:    "Insurer terms logged",
   submission_sent:         "Submission sent",
   recommendation_sent:     "Recommendation sent",
@@ -50,8 +47,6 @@ const EVENT_LABELS: Partial<Record<AuditEventType, string>> = {
 const EVENT_ICONS: Partial<Record<AuditEventType, string>> = {
   email_sent:              "✉",
   sms_sent:                "◉",
-  questionnaire_sent:      "≡",
-  questionnaire_responded: "✓",
   insurer_terms_logged:    "◈",
   submission_sent:         "↑",
   recommendation_sent:     "★",
@@ -61,6 +56,7 @@ const EVENT_ICONS: Partial<Record<AuditEventType, string>> = {
   doc_requested:           "⌗",
   doc_received:            "↓",
   note_added:              "—",
+  signal_received:         "↩",
   tier_1_action:           "⚡",
   tier_2_drafted:          "✏",
   tier_3_escalated:        "▲",
@@ -170,15 +166,6 @@ function buildLogLines(items: AuditRow[]): string[] {
       case "sms_sent":
         lines.push(`[${ts}]  Composing SMS${c}...`);
         lines.push(`[${ts}]  SMS queued and delivered to carrier.`);
-        break;
-      case "questionnaire_sent":
-        lines.push(`[${ts}]  Building questionnaire${c}...`);
-        lines.push(`[${ts}]  Link generated and dispatched.`);
-        break;
-      case "questionnaire_responded":
-        lines.push(`[${ts}]  Response detected${c}.`);
-        lines.push(`[${ts}]  Parsing client answers...`);
-        lines.push(`[${ts}]  Record updated.`);
         break;
       case "submission_sent":
         lines.push(`[${ts}]  Compiling submission package${c}...`);
@@ -542,7 +529,7 @@ function IdleState({ count }: { count: number }) {
       <p className="text-[12px] leading-relaxed" style={{ color: "#444444" }}>
         Watching{" "}
         <span style={{ color: "#FAFAFA" }}>
-          {count} client file{count !== 1 ? "s" : ""}
+          {count} {count !== 1 ? "policies" : "policy"}
         </span>{" "}
         for document returns, renewal signals, and insurer responses.
       </p>
@@ -553,7 +540,7 @@ function IdleState({ count }: { count: number }) {
         <span>[IDLE]  Listening on inbound queue...</span>
         <span>[SCHED] Next policy audit batch: 3:00 PM</span>
         <span>[WATCH] Email parser active — 0 new signals</span>
-        <span>[QUEUE] {count} clients awaiting next action</span>
+        <span>[QUEUE] {count} {count !== 1 ? "policies" : "policy"} awaiting next action</span>
       </div>
     </div>
   );
@@ -700,11 +687,6 @@ export default function ActivityClient({
               label="Confirmed"
               value={stats.confirmed.toString()}
               sub="last 7 days"
-            />
-            <BentoStat
-              label="Reply Rate"
-              value={stats.replyRate !== null ? `${stats.replyRate}%` : "—"}
-              sub="questionnaires"
             />
             <BentoStat
               label="Total Sent"

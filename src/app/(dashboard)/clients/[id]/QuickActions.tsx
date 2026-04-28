@@ -18,7 +18,7 @@ interface QuickActionsProps {
 }
 
 export function QuickActions({ clientId, policies, renewalWorkspaceHref, className }: QuickActionsProps) {
-  const [activePanel, setActivePanel] = useState<"pause" | "questionnaire" | "note" | "force" | null>(null);
+  const [activePanel, setActivePanel] = useState<"pause" | "note" | "force" | null>(null);
 
   // Pause renewal state
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id ?? "");
@@ -26,15 +26,6 @@ export function QuickActions({ clientId, policies, renewalWorkspaceHref, classNa
   const [pauseLoading, setPauseLoading] = useState(false);
   const [pauseSuccess, setPauseSuccess] = useState(false);
   const [pauseError, setPauseError] = useState<string | null>(null);
-
-  // Questionnaire state
-  const questionnairePolicies = policies.filter(
-    (p) => !["questionnaire_sent", "submission_sent", "recommendation_sent", "final_notice_sent", "confirmed", "complete", "lapsed"].includes(p.campaign_stage ?? "")
-  );
-  const [qPolicyId, setQPolicyId] = useState(questionnairePolicies[0]?.id ?? "");
-  const [qLoading, setQLoading] = useState(false);
-  const [qSuccess, setQSuccess] = useState(false);
-  const [qError, setQError] = useState<string | null>(null);
 
   // Force send state
   const SENDABLE_STAGES = ["pending", "email_90_sent", "email_60_sent", "sms_30_sent"];
@@ -71,28 +62,6 @@ export function QuickActions({ clientId, policies, renewalWorkspaceHref, classNa
       setPauseError(err instanceof Error ? err.message : "Failed to pause renewal");
     } finally {
       setPauseLoading(false);
-    }
-  };
-
-  const handleSendQuestionnaire = async () => {
-    if (!qPolicyId) return;
-    setQLoading(true);
-    setQError(null);
-    try {
-      const res = await fetch(`/api/renewals/${qPolicyId}/questionnaire`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error ?? "Failed to send questionnaire");
-      }
-      setQSuccess(true);
-      setTimeout(() => { setQSuccess(false); setActivePanel(null); }, 2000);
-    } catch (err) {
-      setQError(err instanceof Error ? err.message : "Failed to send questionnaire");
-    } finally {
-      setQLoading(false);
     }
   };
 
@@ -163,20 +132,6 @@ export function QuickActions({ clientId, policies, renewalWorkspaceHref, classNa
         >
           Pause renewal
         </button>
-
-        {/* Send questionnaire — full width (conditional) */}
-        {questionnairePolicies.length > 0 && (
-          <button
-            onClick={() => setActivePanel(activePanel === "questionnaire" ? null : "questionnaire")}
-            className={`w-full px-3 py-2 rounded-lg border text-[13px] font-medium transition-colors text-left ${
-              activePanel === "questionnaire"
-                ? "border-[#555555] bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
-                : "border-[#1C1C1C] text-[#8a8a8a] hover:border-[#3a3a3a] hover:text-[#FAFAFA]"
-            }`}
-          >
-            Send questionnaire
-          </button>
-        )}
 
         {/* Log a note + Force send — side by side */}
         <div className="flex gap-2">
@@ -275,36 +230,6 @@ export function QuickActions({ clientId, policies, renewalWorkspaceHref, classNa
           >
             {pauseLoading && <Loader2 size={12} className="animate-spin" />}
             Confirm pause
-          </button>
-        </div>
-      )}
-
-      {/* Send questionnaire panel */}
-      {activePanel === "questionnaire" && (
-        <div className="space-y-3 pt-3 border-t border-[#1C1C1C]">
-          {questionnairePolicies.length > 1 && (
-            <div>
-              <label className="block text-[11px] text-[#6b6b6b] mb-1">Policy</label>
-              <select
-                value={qPolicyId}
-                onChange={(e) => setQPolicyId(e.target.value)}
-                className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555]"
-              >
-                {questionnairePolicies.map((p) => (
-                  <option key={p.id} value={p.id}>{p.policy_name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          {qError && <p className="text-[12px] text-red-400">{qError}</p>}
-          {qSuccess && <p className="text-[12px] text-green-400">Questionnaire sent.</p>}
-          <button
-            onClick={handleSendQuestionnaire}
-            disabled={qLoading || !qPolicyId || qSuccess}
-            className="flex items-center gap-2 h-8 px-4 rounded-lg bg-[#FAFAFA] text-[#0C0C0C] text-[12px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50"
-          >
-            {qLoading && <Loader2 size={12} className="animate-spin" />}
-            Send questionnaire
           </button>
         </div>
       )}

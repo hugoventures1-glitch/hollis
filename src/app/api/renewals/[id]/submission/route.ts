@@ -47,17 +47,6 @@ export async function POST(
     .ilike("name", `%${policy.client_name}%`)
     .maybeSingle();
 
-  // Fetch most recent questionnaire responses
-  const { data: questionnaires } = await supabase
-    .from("renewal_questionnaires")
-    .select("responses")
-    .eq("policy_id", id)
-    .eq("user_id", user.id)
-    .eq("status", "responded")
-    .order("responded_at", { ascending: false })
-    .limit(1);
-  const questionnaireResponses = questionnaires?.[0]?.responses ?? null;
-
   // Fetch policy audit flags (critical and warning only)
   const { data: latestCheck } = await supabase
     .from("policy_checks")
@@ -106,7 +95,6 @@ export async function POST(
     submission = await generateInsuranceSubmission({
       policy: policy as Policy,
       client: clientData,
-      questionnaireResponses: questionnaireResponses as Record<string, string> | null,
       auditFlags,
       priorTerms: priorTerms ?? [],
       agentName,

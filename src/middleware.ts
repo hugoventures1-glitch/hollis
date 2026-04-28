@@ -16,9 +16,6 @@ const PUBLIC_PREFIXES = [
   "/api/webhooks/resend",
   // Holder follow-up cron — protected by CRON_SECRET header inside the route handler
   "/api/holder-followup/process",
-  // Client renewal questionnaire (public token-based access, no auth)
-  "/q",
-  "/api/questionnaire",
 ];
 
 export async function middleware(request: NextRequest) {

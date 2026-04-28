@@ -20,7 +20,6 @@ const STAGE_LABEL: Record<string, string> = {
   email_60_sent:       "60d email sent",
   sms_30_sent:         "30d SMS sent",
   script_14_ready:     "Script ready",
-  questionnaire_sent:  "Questionnaire sent",
   submission_sent:     "Submitted",
   recommendation_sent: "Recommendation sent",
   final_notice_sent:   "Final notice sent",

@@ -39,7 +39,6 @@ export const KNOWN_AUTONOMOUS_INTENTS = [
   "confirm_renewal",
   "request_callback",
   "document_received",
-  "questionnaire_submitted",
   "soft_query",
   "out_of_office",
 ] as const;

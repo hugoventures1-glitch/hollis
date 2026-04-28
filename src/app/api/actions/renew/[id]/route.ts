@@ -38,7 +38,6 @@ const TOUCHPOINT_TO_STAGE: Record<TouchpointType, CampaignStage> = {
   email_60: "email_60_sent",
   sms_30: "sms_30_sent",
   script_14: "script_14_ready",
-  questionnaire_90: "questionnaire_sent",
   submission_60: "submission_sent",
   recommendation_30: "recommendation_sent",
   final_notice_7: "final_notice_sent",
@@ -212,15 +211,16 @@ export async function POST(
           { status: 400 }
         );
       }
-      const generated = await generateRenewalEmail(policy, touchpointType);
-      subject = generated.subject;
-      content = generated.body;
-
       const { data: agentProfile } = await supabase
         .from("agent_profiles")
-        .select("email_from_name")
+        .select("email_from_name, email_signature")
         .eq("user_id", user.id)
         .maybeSingle();
+      const generated = await generateRenewalEmail(policy, touchpointType, {
+        emailSignature: agentProfile?.email_signature ?? null,
+      });
+      subject = generated.subject;
+      content = generated.body;
       const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
       const from = agentProfile?.email_from_name
         ? `${agentProfile.email_from_name} <${baseFrom}>`

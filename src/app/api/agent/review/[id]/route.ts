@@ -175,90 +175,29 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       const subject        = (payload.subject         as string  | null) ?? null;
       const body           = (payload.body            as string  | null) ?? null;
       const finalBody      = edited_body ?? body;
-      const recipientEmail = (payload.recipient_email as string  | null) ?? null;
-      const recipientPhone = (payload.recipient_phone as string  | null) ?? null;
+
+      // Re-fetch current client contact details so changes made after the draft
+      // was created are reflected in the actual send — never use stale payload values.
+      const { data: livePolicy } = await admin
+        .from("policies")
+        .select("client_email, client_phone")
+        .eq("id", queueItem.policy_id as string)
+        .maybeSingle();
+
+      const recipientEmail = livePolicy?.client_email ?? (payload.recipient_email as string | null) ?? null;
+      const recipientPhone = livePolicy?.client_phone ?? (payload.recipient_phone as string | null) ?? null;
 
       const STAGE_MAP: Record<string, string> = {
         email_90:          "email_90_sent",
         email_60:          "email_60_sent",
         sms_30:            "sms_30_sent",
         script_14:         "script_14_ready",
-        questionnaire_90:  "questionnaire_sent",
         submission_60:     "submission_sent",
         recommendation_30: "recommendation_sent",
       };
 
       try {
-        if (touchpointType === "questionnaire_90" && channel === "email" && recipientEmail) {
-          // Generate a unique token, insert the questionnaire record, then send
-          const token = crypto.randomUUID();
-          const expiryDate = new Date(Date.now() + 30 * 86_400_000).toISOString();
-
-          await admin.from("renewal_questionnaires").insert({
-            policy_id: queueItem.policy_id,
-            user_id: user.id,
-            token,
-            expires_at: expiryDate,
-            status: "pending",
-          });
-
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hollisai.com.au";
-          const questionnaireUrl = `${appUrl}/q/${token}`;
-
-          let bodyWithUrl = finalBody ?? "";
-          if (bodyWithUrl.includes("{{QUESTIONNAIRE_URL}}")) {
-            bodyWithUrl = bodyWithUrl.replace("{{QUESTIONNAIRE_URL}}", questionnaireUrl);
-          } else {
-            bodyWithUrl = bodyWithUrl + `\n\n${questionnaireUrl}`;
-          }
-
-          const resend = getResendClient();
-          const { data: brokerProfile } = await admin
-            .from("agent_profiles")
-            .select("email_from_name")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
-          const from = brokerProfile?.email_from_name
-            ? `${brokerProfile.email_from_name} <${baseFrom}>`
-            : baseFrom;
-
-          const { data: qSent } = await resend.emails.send({
-            from,
-            to: recipientEmail,
-            subject: subject ?? `Your renewal questionnaire`,
-            text: bodyWithUrl,
-          });
-
-          if (touchpointId) {
-            await admin
-              .from("campaign_touchpoints")
-              .update({ status: "sent", subject, content: bodyWithUrl, sent_at: resolvedAt })
-              .eq("id", touchpointId);
-          }
-
-          await admin.from("send_logs").insert({
-            policy_id: queueItem.policy_id,
-            touchpoint_id: touchpointId,
-            user_id: user.id,
-            channel: "email",
-            recipient: recipientEmail,
-            status: "sent",
-            provider_message_id: (qSent as { id?: string } | null)?.id ?? null,
-            sent_at: resolvedAt,
-          });
-
-          if (STAGE_MAP[touchpointType]) {
-            await admin
-              .from("policies")
-              .update({
-                campaign_stage: STAGE_MAP[touchpointType],
-                last_contact_at: resolvedAt.slice(0, 10),
-              })
-              .eq("id", queueItem.policy_id as string);
-          }
-        } else if (channel === "email" && recipientEmail && finalBody) {
+        if (channel === "email" && recipientEmail && finalBody) {
           const resend = getResendClient();
 
           const { data: brokerProfile } = await admin
@@ -548,6 +487,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         if (policy && documentType) {
           const { draftDocumentChaseSequence } = await import("@/lib/doc-chase/generate");
 
+          // Fetch broker email signature
+          const { data: reviewBrokerProfile } = await admin
+            .from("agent_profiles")
+            .select("email_signature")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
           // Compute days until expiry for touch cadence
           let daysUntilExpiry: number | null = null;
           if (policy.expiration_date) {
@@ -573,7 +519,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             (policy.agent_email as string | null) ?? (process.env.FROM_EMAIL ?? ""),
             chaseNotes,
             (policy.client_phone as string | null) ?? null,
-            daysUntilExpiry
+            daysUntilExpiry,
+            reviewBrokerProfile?.email_signature ?? null
           );
 
           const { data: chaseReq } = await admin
@@ -677,23 +624,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           notes: notes ?? null,
         },
         outcome: "sent",
-        retain_until: retainStandard(),
-      });
-    }
-
-    // ── Execute: broker acknowledged questionnaire submission ─────────────────────
-    if (
-      (action === "approved" || action === "edited") &&
-      (queueItem.proposed_action as { action_type?: string })?.action_type === "parse_questionnaire"
-    ) {
-      void logAction({
-        broker_id: user.id,
-        policy_id: queueItem.policy_id as string,
-        action_type: "questionnaire_logged",
-        tier: "2",
-        trigger_reason: `Broker acknowledged questionnaire_submitted signal.`,
-        metadata: { queue_item_id: queueItemId, signal_id: queueItem.signal_id },
-        outcome: "classified",
         retain_until: retainStandard(),
       });
     }

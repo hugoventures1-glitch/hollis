@@ -38,8 +38,6 @@ const STAGE_MAP: Record<TouchpointType, Policy["campaign_stage"]> = {
   email_60: "email_60_sent",
   sms_30: "sms_30_sent",
   script_14: "script_14_ready",
-  // New touchpoint types map to new stages (F3, F7, F2, F5)
-  questionnaire_90: "questionnaire_sent",
   submission_60: "submission_sent",
   recommendation_30: "recommendation_sent",
   final_notice_7: "final_notice_sent",
@@ -128,10 +126,13 @@ export async function GET(request: NextRequest) {
     } else {
       const { data: profile } = await supabase
         .from("agent_profiles")
-        .select("standing_orders")
+        .select("standing_orders, email_signature")
         .eq("user_id", userId)
         .maybeSingle();
-      brokerContextCache.set(userId, { standingOrders: profile?.standing_orders ?? null });
+      brokerContextCache.set(userId, {
+        standingOrders: profile?.standing_orders ?? null,
+        emailSignature: profile?.email_signature ?? null,
+      });
     }
     const base = brokerContextCache.get(userId) ?? {};
     // Fetch client notes if there's an email to match on
@@ -321,15 +322,12 @@ export async function GET(request: NextRequest) {
       // > offset_email_1 days: nothing due yet
     } else {
       // Sequential: fire next due touchpoint in priority order (first match wins)
-      if (days <= lt.offset_call && ["email_90_sent", "email_60_sent", "sms_30_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
+      if (days <= lt.offset_call && ["email_90_sent", "email_60_sent", "sms_30_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("script_14");
-      } else if (days <= lt.offset_sms && ["email_90_sent", "email_60_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
+      } else if (days <= lt.offset_sms && ["email_90_sent", "email_60_sent"].includes(policy.campaign_stage)) {
         dueTouchpointTypes.push("sms_30");
-      } else if (days <= lt.offset_email_2 && ["email_90_sent", "questionnaire_sent"].includes(policy.campaign_stage)) {
+      } else if (days <= lt.offset_email_2 && policy.campaign_stage === "email_90_sent") {
         dueTouchpointTypes.push("email_60");
-      } else if (policy.campaign_stage === "email_90_sent") {
-        // > 60 days out: questionnaire fires right after the 90-day intro email
-        dueTouchpointTypes.push("questionnaire_90");
       } else if (policy.campaign_stage === "script_14_ready") {
         dueTouchpointTypes.push("submission_60");
       } else if (policy.campaign_stage === "submission_sent") {
@@ -477,13 +475,11 @@ export async function GET(request: NextRequest) {
           } else if (type === "submission_60") {
             const [
               { data: t2Client },
-              { data: t2Questionnaires },
               { data: t2LatestCheck },
               { data: t2PriorTerms },
               { data: t2SubProfile },
             ] = await Promise.all([
               supabase.from("clients").select("name, business_type, industry, num_employees, annual_revenue, owns_vehicles, num_locations, primary_state, notes").eq("user_id", policy.user_id).ilike("name", `%${policy.client_name}%`).maybeSingle(),
-              supabase.from("renewal_questionnaires").select("responses").eq("policy_id", policy.id).eq("user_id", policy.user_id).eq("status", "responded").order("responded_at", { ascending: false }).limit(1),
               supabase.from("policy_checks").select("id").eq("user_id", policy.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
               supabase.from("insurer_terms").select("insurer_name, quoted_premium, payment_terms, new_exclusions, changed_conditions").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: false }),
               supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, agency_afsl, email_from_name, email").eq("user_id", policy.user_id).maybeSingle(),
@@ -497,7 +493,6 @@ export async function GET(request: NextRequest) {
             const t2Generated = await generateInsuranceSubmission({
               policy,
               client: t2Client ?? null,
-              questionnaireResponses: (t2Questionnaires?.[0]?.responses ?? null) as Record<string, string> | null,
               auditFlags: t2AuditFlags,
               priorTerms: t2PriorTerms ?? [],
               agentName: t2AgentName,
@@ -508,9 +503,6 @@ export async function GET(request: NextRequest) {
             });
             draftSubject = t2Generated.subject;
             draftBody = t2Generated.body;
-          } else if (type === "questionnaire_90") {
-            draftSubject = `Your renewal questionnaire — ${policy.policy_name}`;
-            draftBody = `Dear ${policy.client_name},\n\nAs your ${policy.policy_name} renewal is approaching on ${new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}, we would like to make sure your cover still matches your needs.\n\nPlease take a few minutes to complete the renewal questionnaire below:\n\n{{QUESTIONNAIRE_URL}}\n\nThis link will expire in 30 days. Your responses help us ensure we secure the right cover for you at the best available terms.\n\nIf you have any questions, please do not hesitate to get in touch.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
           } else if (type === "recommendation_30") {
             const [{ data: t2RecTerms }, { data: t2RecProfile }] = await Promise.all([
               supabase.from("insurer_terms").select("*").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: true }),
@@ -651,7 +643,6 @@ const TOUCHPOINT_TYPE_LABELS: Record<TouchpointType, string> = {
   email_60: "60-day follow-up email",
   sms_30: "30-day renewal SMS",
   script_14: "14-day call script",
-  questionnaire_90: "90-day questionnaire",
   submission_60: "60-day insurer submission",
   recommendation_30: "30-day recommendation",
   final_notice_7: "7-day final notice",
@@ -692,7 +683,7 @@ async function fireTouchpoint(
 
     const { data: brokerProfile } = await supabase
       .from("agent_profiles")
-      .select("email_from_name, email")
+      .select("email_from_name, email, email_signature")
       .eq("user_id", policy.user_id)
       .maybeSingle();
     const baseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
@@ -759,7 +750,9 @@ async function fireTouchpoint(
                 agentName,
                 agentEmail,
                 null,
-                policy.client_phone ?? null
+                policy.client_phone ?? null,
+                undefined,
+                brokerProfile?.email_signature ?? null
               );
 
               const TOUCH_DELAYS_DAYS = [0, 5, 10, 20];
@@ -814,54 +807,14 @@ async function fireTouchpoint(
   } else if (type === "script_14") {
     content = await generateCallScript(policy, ctx);
     channel = "email"; // logged as internal
-  } else if (type === "questionnaire_90") {
-    if (!policy.client_email) {
-      throw new Error("No client email on record for questionnaire");
-    }
-    // Generate a token and insert the questionnaire record
-    const token = crypto.randomUUID();
-    const expiryDate = new Date(Date.now() + 30 * 86_400_000).toISOString();
-    await supabase.from("renewal_questionnaires").insert({
-      policy_id: policy.id,
-      user_id: policy.user_id,
-      token,
-      expires_at: expiryDate,
-      status: "pending",
-    });
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hollisai.com.au";
-    const questionnaireUrl = `${appUrl}/q/${token}`;
-    subject = `Your renewal questionnaire — ${policy.policy_name}`;
-    content = `Dear ${policy.client_name},\n\nAs your ${policy.policy_name} renewal is approaching on ${new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}, we would like to make sure your cover still matches your needs.\n\nPlease take a few minutes to complete the renewal questionnaire below:\n\n${questionnaireUrl}\n\nThis link will expire in 30 days. Your responses help us ensure we secure the right cover for you at the best available terms.\n\nIf you have any questions, please do not hesitate to get in touch.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
-
-    const { data: qBrokerProfile } = await supabase
-      .from("agent_profiles")
-      .select("email_from_name, email")
-      .eq("user_id", policy.user_id)
-      .maybeSingle();
-    const qBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
-    const qFrom = qBrokerProfile?.email_from_name
-      ? `${qBrokerProfile.email_from_name} <${qBaseFrom}>`
-      : qBaseFrom;
-
-    const { data: qSent } = await resend.emails.send({
-      from: qFrom,
-      to: policy.client_email,
-      subject,
-      text: content,
-      replyTo: process.env.INBOUND_EMAIL ?? qBrokerProfile?.email ?? undefined,
-    });
-    providerId = qSent?.id ?? null;
-    channel = "email";
   } else if (type === "submission_60") {
     const [
       { data: subClient },
-      { data: subQuestionnaires },
       { data: subLatestCheck },
       { data: subPriorTerms },
       { data: subProfile },
     ] = await Promise.all([
       supabase.from("clients").select("name, business_type, industry, num_employees, annual_revenue, owns_vehicles, num_locations, primary_state, notes").eq("user_id", policy.user_id).ilike("name", `%${policy.client_name}%`).maybeSingle(),
-      supabase.from("renewal_questionnaires").select("responses").eq("policy_id", policy.id).eq("user_id", policy.user_id).eq("status", "responded").order("responded_at", { ascending: false }).limit(1),
       supabase.from("policy_checks").select("id").eq("user_id", policy.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("insurer_terms").select("insurer_name, quoted_premium, payment_terms, new_exclusions, changed_conditions").eq("policy_id", policy.id).eq("user_id", policy.user_id).order("created_at", { ascending: false }),
       supabase.from("agent_profiles").select("first_name, last_name, phone, agency_name, agency_afsl, email_from_name, email").eq("user_id", policy.user_id).maybeSingle(),
@@ -877,7 +830,6 @@ async function fireTouchpoint(
     const submission = await generateInsuranceSubmission({
       policy,
       client: subClient ?? null,
-      questionnaireResponses: (subQuestionnaires?.[0]?.responses ?? null) as Record<string, string> | null,
       auditFlags: subAuditFlags,
       priorTerms: subPriorTerms ?? [],
       agentName: subAgentName,
@@ -970,7 +922,6 @@ async function fireTouchpoint(
     email_60: "60-day renewal email",
     sms_30:   "30-day renewal SMS",
     script_14: "14-day call script",
-    questionnaire_90: "90-day questionnaire",
     submission_60: "60-day submission",
     recommendation_30: "30-day recommendation",
     final_notice_7: "7-day final notice",
