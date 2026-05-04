@@ -23,7 +23,7 @@ import type {
 } from "@/types/renewals";
 import { RenewalOverrideControls } from "@/components/renewals/RenewalOverrideControls";
 import { RenewalViewTracker } from "@/components/analytics/RenewalViewTracker";
-import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
+// import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
 import { AuditTimeline } from "@/components/renewals/AuditTimeline";
 import { PolicyTimelinePanel } from "@/components/renewals/PolicyTimelinePanel";
 import type { TimelineConfig } from "@/types/timeline";
@@ -199,13 +199,6 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
               client_name: p.client_name,
               client_email: p.client_email ?? null,
             }}
-          />
-
-          {/* Insurer Terms (F1) */}
-          <InsurerTermsPanel
-            policyId={p.id}
-            terms={insurerTerms}
-            priorPremium={p.premium ?? null}
           />
 
           {/* Policy Timeline Editor */}

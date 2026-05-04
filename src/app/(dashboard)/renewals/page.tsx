@@ -76,15 +76,6 @@ function RenewalsContent() {
             />
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/renewals/templates"
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md text-[13px] transition-colors"
-            style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
-          >
-            Templates
-          </Link>
-        </div>
       </div>
 
       {/* ── Stats strip ── */}

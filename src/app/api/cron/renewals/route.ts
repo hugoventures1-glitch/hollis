@@ -334,6 +334,8 @@ export async function GET(request: NextRequest) {
         dueTouchpointTypes.push("submission_60");
       } else if (policy.campaign_stage === "submission_sent") {
         dueTouchpointTypes.push("recommendation_30");
+      } else if (days <= 7 && policy.campaign_stage === "recommendation_sent") {
+        dueTouchpointTypes.push("final_notice_7");
       }
     }
 
@@ -874,6 +876,30 @@ async function fireTouchpoint(
       : (process.env.INBOUND_EMAIL ?? recProfile?.email ?? undefined);
     const { data: recSent } = await resend.emails.send({ from: recFrom, to: policy.client_email, subject, text: content, ...(recReplyTo ? { replyTo: recReplyTo } : {}) });
     providerId = recSent?.id ?? null;
+    channel = "email";
+  } else if (type === "final_notice_7") {
+    if (!policy.client_email) throw new Error("No client email on record for final notice");
+    const { data: fnProfile } = await supabase
+      .from("agent_profiles")
+      .select("email_from_name, email, signal_token")
+      .eq("user_id", policy.user_id)
+      .maybeSingle();
+    const fnBaseFrom = process.env.FROM_EMAIL ?? "noreply@hollisai.com.au";
+    const fnFrom = fnProfile?.email_from_name ? `${fnProfile.email_from_name} <${fnBaseFrom}>` : fnBaseFrom;
+    const fnReplyTo = fnProfile?.signal_token
+      ? `${fnProfile.signal_token}@ildaexi.resend.app`
+      : (process.env.INBOUND_EMAIL ?? fnProfile?.email ?? undefined);
+    const fnExpiry = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+    subject = `URGENT: Your ${policy.policy_name} expires in 7 days`;
+    content = `Dear ${policy.client_name},\n\nThis is a final reminder that your ${policy.policy_name} with ${policy.carrier ?? "your insurer"} expires on ${fnExpiry} — 7 days from today.\n\nIf you have not yet confirmed your renewal, please contact us immediately to avoid a lapse in cover. Any claims arising after the expiry date will not be covered.\n\nPlease reply to this email or call us directly to confirm.\n\n${policy.agent_name ?? "Your Broker"}\n${policy.agent_email ?? ""}`.trim();
+    const { data: fnSent } = await resend.emails.send({
+      from: fnFrom,
+      to: policy.client_email,
+      subject,
+      text: content,
+      ...(fnReplyTo ? { replyTo: fnReplyTo } : {}),
+    });
+    providerId = fnSent?.id ?? null;
     channel = "email";
   }
 

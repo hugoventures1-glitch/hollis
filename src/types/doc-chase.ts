@@ -65,6 +65,8 @@ export interface DocChaseRequest {
   validation_issues: string[] | null;
   validation_confidence: "high" | "medium" | "low" | null;
   validated_at: string | null;
+  draft_reply_subject: string | null;
+  draft_reply_body: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -576,12 +576,12 @@ function CreateDrawer({ open, onClose, onSuccess, onError, onCreated, policies: 
           {/* Notes */}
           <div>
             <label className="block text-[12px] font-medium text-[#8a8a8a] mb-1.5">
-              Notes <span className="text-[#6b6b6b]">(optional)</span>
+              Context for Hollis <span className="text-[#6b6b6b]">(optional)</span>
             </label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              placeholder="Any context for the email sequence…"
+              placeholder="e.g. 'Long-term client, tends to delay until the last minute' or 'Shopping around this year — keep it warm.' The more context, the better the emails."
               rows={3}
               className="w-full px-3 py-2 rounded-md bg-[#111111] border border-[#1C1C1C] text-[13px] text-[#FAFAFA] placeholder-zinc-600 outline-none focus:border-[#555555] resize-none transition-colors"
             />

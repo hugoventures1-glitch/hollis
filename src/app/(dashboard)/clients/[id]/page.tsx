@@ -4,6 +4,7 @@ import Link from "next/link";
 import { RefreshCcw } from "lucide-react";
 import { ClientEditDrawer } from "./ClientEditDrawer";
 import { DocChasePanel } from "./DocChasePanel";
+import { ReferenceDocsPanel } from "./ReferenceDocsPanel";
 import { QuickActions } from "./QuickActions";
 import { CommsHistoryPanel } from "./CommsHistoryPanel";
 import type { CommsLogEntry } from "./CommsHistoryPanel";
@@ -165,7 +166,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
     ? `client_id.eq.${client.id},policy_id.in.(${policyIds.join(",")})`
     : `client_id.eq.${client.id}`;
 
-  const [auditRes, sendLogsRes, signalsRes] = await Promise.all([
+  const [auditRes, sendLogsRes, signalsRes, openItemsRes] = await Promise.all([
     supabase
       .from("hollis_actions")
       .select("id, action_type, trigger_reason, outcome, tier, created_at")
@@ -193,11 +194,26 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
           .order("created_at", { ascending: false })
           .limit(30)
       : Promise.resolve({ data: [] as unknown[] }),
+
+    policyIds.length > 0
+      ? supabase
+          .from("approval_queue")
+          .select("id, classified_intent, created_at")
+          .eq("user_id", user.id)
+          .in("policy_id", policyIds)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(5)
+      : Promise.resolve({ data: [] as unknown[] }),
   ]);
 
   const auditRows = (auditRes.data ?? []) as {
     id: string; action_type: string; trigger_reason: string;
     outcome: string; tier: string | null; created_at: string;
+  }[];
+
+  const openItems = (openItemsRes.data ?? []) as {
+    id: string; classified_intent: string; created_at: string;
   }[];
 
   // Normalise comms history entries
@@ -412,7 +428,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
             <CommsHistoryPanel entries={commsEntries} />
           </div>
 
-          {/* Right column: Doc Chase + Audit Log stacked */}
+          {/* Right column: Doc Chase + Reference Docs + Open Items + Audit Log */}
           <div className="flex-1 min-w-0 flex flex-col gap-4">
 
             {/* Doc Chase */}
@@ -422,6 +438,41 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
               chases={docChaseProps}
               startChaseHref={`/documents?trail=${buildTrailParam(crumbs, client.name, selfHref)}`}
             />
+
+            {/* AI Reference Docs */}
+            <ReferenceDocsPanel clientId={client.id} />
+
+            {/* Open Items */}
+            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4">
+              <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+                Open Items
+              </div>
+              {openItems.length === 0 ? (
+                <div className="flex items-center justify-center py-2">
+                  <span className="text-[13px]" style={{ color: "#333" }}>No pending items.</span>
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-[#191919]">
+                  {openItems.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 py-2">
+                      <span className="text-[12px] flex-1 truncate" style={{ color: "#AAAAAA" }}>
+                        {item.classified_intent.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </span>
+                      <span className="text-[11px] shrink-0" style={{ color: "#333" }}>
+                        {fmtAuditTs(item.created_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Link
+                href="/inbox"
+                className="text-[12px] transition-colors"
+                style={{ color: "#444" }}
+              >
+                View inbox →
+              </Link>
+            </div>
 
             {/* Audit Log */}
             <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4">

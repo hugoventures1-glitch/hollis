@@ -17,8 +17,20 @@ import { Webhook, WebhookVerificationError } from "svix";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processInboundSignal } from "@/lib/agent/process-signal";
 import { logWebhookEvent } from "@/lib/webhooks/log-event";
-import { validateDocumentForChase } from "@/lib/doc-chase/validate";
 import type { ParserOutcome } from "@/types/agent";
+import { classifyIntent } from "@/lib/agent/intent-classifier";
+import { generateDocChaseQueryResponse } from "@/lib/doc-chase/validate";
+import { logAction, retainStandard } from "@/lib/logAction";
+
+const ESCALATION_INTENTS = new Set([
+  "active_claim_mentioned",
+  "insurer_declined",
+  "business_restructure",
+  "cancel_policy",
+  "legal_dispute_mentioned",
+  "unverified_third_party",
+  "premium_increase_major",
+]);
 
 const ENDPOINT = "resend_inbound";
 
@@ -114,6 +126,273 @@ async function fetchInboundEmail(
     await new Promise((r) => setTimeout(r, 2000));
   }
   return { ok: false, status: 0 };
+}
+
+// ── Doc chase processing helper ────────────────────────────────────────────────
+// Matches inbound emails to open doc chase requests for the sender.
+// Stores the reply text and any attachment — broker reviews and marks received manually.
+
+async function processDocChaseForSender(opts: {
+  admin: ReturnType<typeof createAdminClient>;
+  senderEmail: string;
+  rawSignal: string;
+  emailContent: ResendReceivedEmail;
+  resendApiKey: string;
+  email_id: string;
+}): Promise<void> {
+  const { admin, senderEmail, rawSignal, emailContent, resendApiKey, email_id } = opts;
+
+  const { data: activeChases } = await admin
+    .from("doc_chase_requests")
+    .select("id, user_id, client_name, document_type, notes, policy_id")
+    .eq("client_email", senderEmail)
+    .in("status", ["pending", "active"]);
+
+  if (!activeChases || activeChases.length === 0) return;
+
+  const replyAt = new Date().toISOString();
+  const ids = activeChases.map((r: { id: string }) => r.id);
+
+  await admin
+    .from("doc_chase_requests")
+    .update({ last_client_reply: rawSignal.slice(0, 2000) || null, last_client_reply_at: replyAt })
+    .in("id", ids);
+
+  await logWebhookEvent({
+    endpoint: ENDPOINT,
+    gate: "doc_chase_reply",
+    email_id,
+    sender_email: senderEmail,
+    detail: { doc_chase_request_ids: ids, reply_length: rawSignal.length },
+  });
+
+  const supportedMimeTypes = new Set([
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ]);
+
+  const attachments = emailContent.attachments ?? [];
+  const firstAttachment = attachments.find((a) => supportedMimeTypes.has(a.content_type));
+
+  if (firstAttachment) {
+    // ── Attachment path: store only — broker validates manually via inbox ──
+    try {
+      const attachRes = await fetch(firstAttachment.url, {
+        headers: { Authorization: `Bearer ${resendApiKey}` },
+      });
+
+      if (!attachRes.ok) {
+        await logWebhookEvent({
+          endpoint: ENDPOINT,
+          gate: "pipeline_error",
+          email_id,
+          sender_email: senderEmail,
+          detail: { error: "attachment_fetch_failed", status: attachRes.status },
+        });
+        return;
+      }
+
+      const attachBuffer = Buffer.from(await attachRes.arrayBuffer());
+
+      for (const chase of activeChases) {
+        const uuid = crypto.randomUUID();
+        const safeName = firstAttachment.filename.replace(/[^a-z0-9._-]/gi, "_").slice(0, 100);
+        const storagePath = `${chase.user_id}/${chase.id}/${uuid}-${safeName}`;
+
+        const { error: uploadErr } = await admin.storage
+          .from("doc-chase-attachments")
+          .upload(storagePath, attachBuffer, {
+            contentType: firstAttachment.content_type,
+            upsert: false,
+          });
+
+        if (uploadErr) {
+          console.error("[webhook/resend/inbound] Attachment upload failed:", uploadErr.message);
+        }
+
+        const attachUpdate: Record<string, unknown> = {
+          received_attachment_filename: firstAttachment.filename,
+          received_attachment_content_type: firstAttachment.content_type,
+        };
+        if (!uploadErr) attachUpdate.received_attachment_path = storagePath;
+
+        await admin
+          .from("doc_chase_requests")
+          .update(attachUpdate)
+          .eq("id", chase.id);
+      }
+
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "doc_chase_attachment_stored",
+        email_id,
+        sender_email: senderEmail,
+        detail: {
+          filename: firstAttachment.filename,
+          content_type: firstAttachment.content_type,
+          chase_ids: ids,
+        },
+      });
+    } catch (err) {
+      console.error("[webhook/resend/inbound] Attachment storage failed:", err);
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "pipeline_error",
+        email_id,
+        sender_email: senderEmail,
+        detail: {
+          error: "attachment_storage_failed",
+          message: err instanceof Error ? err.message : String(err),
+        },
+      });
+    }
+  } else if (rawSignal) {
+    // ── Text-only reply: classify intent and act ───────────────────────────
+    // Use the first chase's user_id for few-shot outcomes (all chases share sender)
+    const brokerUserId = activeChases[0].user_id as string;
+
+    let classification: Awaited<ReturnType<typeof classifyIntent>> | null = null;
+
+    try {
+      // Fetch broker's recent parser_outcomes for few-shot injection
+      const { data: recentOutcomes } = await admin
+        .from("parser_outcomes")
+        .select("*")
+        .eq("user_id", brokerUserId)
+        .in("broker_action", ["approved", "edited"])
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      classification = await classifyIntent(rawSignal, (recentOutcomes as ParserOutcome[]) ?? []);
+
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "doc_chase_classified",
+        email_id,
+        sender_email: senderEmail,
+        detail: {
+          intent: classification.intent,
+          confidence: classification.confidence,
+          chase_ids: ids,
+        },
+      });
+    } catch (classifyErr) {
+      console.error("[webhook/resend/inbound] Doc chase classification failed:", classifyErr);
+    }
+
+    if (!classification) return;
+
+    const intent = classification.intent;
+
+    if (intent === "out_of_office") {
+      // Pause the chase — push all scheduled touches forward by 7 days
+      for (const chase of activeChases) {
+        try {
+          const { data: seq } = await admin
+            .from("doc_chase_sequences")
+            .select("id")
+            .eq("request_id", chase.id)
+            .eq("sequence_status", "active")
+            .maybeSingle();
+
+          if (seq) {
+            // Fetch scheduled messages and shift their dates
+            const { data: scheduledMsgs } = await admin
+              .from("doc_chase_messages")
+              .select("id, scheduled_for")
+              .eq("sequence_id", seq.id)
+              .eq("status", "scheduled");
+
+            if (scheduledMsgs && scheduledMsgs.length > 0) {
+              for (const msg of scheduledMsgs) {
+                const newDate = new Date(msg.scheduled_for as string);
+                newDate.setDate(newDate.getDate() + 7);
+                await admin
+                  .from("doc_chase_messages")
+                  .update({ scheduled_for: newDate.toISOString() })
+                  .eq("id", msg.id);
+              }
+            }
+          }
+
+          await logWebhookEvent({
+            endpoint: ENDPOINT,
+            gate: "doc_chase_ooo_pause",
+            email_id,
+            sender_email: senderEmail,
+            detail: { chase_id: chase.id, days_pushed: 7 },
+          });
+        } catch (oooErr) {
+          console.error("[webhook/resend/inbound] OOO pause failed:", oooErr);
+        }
+      }
+    } else if (intent === "soft_query") {
+      // Generate a draft reply for the broker to review
+      const firstChase = activeChases[0];
+      try {
+        const draft = await generateDocChaseQueryResponse({
+          clientName: firstChase.client_name as string,
+          documentType: firstChase.document_type as string,
+          rawSignal,
+          notes: (firstChase.notes as string | null) ?? null,
+        });
+
+        // Apply the same draft to all active chases for this sender
+        await admin
+          .from("doc_chase_requests")
+          .update({
+            draft_reply_subject: draft.subject,
+            draft_reply_body: draft.body,
+          })
+          .in("id", ids);
+
+        await logWebhookEvent({
+          endpoint: ENDPOINT,
+          gate: "doc_chase_draft_generated",
+          email_id,
+          sender_email: senderEmail,
+          detail: { intent, confidence: classification.confidence, chase_ids: ids },
+        });
+      } catch (draftErr) {
+        console.error("[webhook/resend/inbound] Doc chase draft generation failed:", draftErr);
+      }
+    } else if (ESCALATION_INTENTS.has(intent)) {
+      // Store a clear escalation alert as the draft so the broker sees it in the inbox
+      const alertBody = `⚠️ ESCALATION — Hollis detected a sensitive reply from this client (${intent.replace(/_/g, " ")}).\n\nClient's message:\n"${rawSignal.slice(0, 500)}"\n\nPlease review and follow up directly with the client.`;
+
+      await admin
+        .from("doc_chase_requests")
+        .update({
+          draft_reply_subject: `⚠️ Action required — ${activeChases[0].document_type}`,
+          draft_reply_body: alertBody,
+        })
+        .in("id", ids);
+
+      void logAction({
+        broker_id: brokerUserId,
+        policy_id: (activeChases[0].policy_id as string | null) ?? null,
+        action_type: "doc_chase_escalation",
+        trigger_reason: `Doc chase escalation detected: ${intent} — manual broker action required.`,
+        payload: { intent, confidence: classification.confidence, raw_signal: rawSignal.slice(0, 500) },
+        metadata: { doc_chase_request_ids: ids, sender_email: senderEmail },
+        outcome: "flagged",
+        retain_until: retainStandard(),
+      });
+
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "doc_chase_escalation",
+        email_id,
+        sender_email: senderEmail,
+        detail: { intent, confidence: classification.confidence, chase_ids: ids },
+      });
+    }
+    // For document_received without attachment and all other intents: reply text
+    // is already stored in last_client_reply — no further action needed
+  }
 }
 
 // ── Webhook handler ────────────────────────────────────────────────────────────
@@ -262,30 +541,12 @@ export async function POST(request: NextRequest) {
   // ── Extract signal text ────────────────────────────────────────────────────
   let rawSignal: string;
   if (emailContent.text?.trim()) {
-    rawSignal = stripQuotedReply(emailContent.text);
+    rawSignal = stripQuotedReply(emailContent.text).slice(0, 10_000);
   } else if (emailContent.html?.trim()) {
-    rawSignal = stripQuotedReply(htmlToPlainText(emailContent.html));
+    rawSignal = stripQuotedReply(htmlToPlainText(emailContent.html)).slice(0, 10_000);
   } else {
-    await logWebhookEvent({
-      endpoint: ENDPOINT,
-      gate: "pipeline_error",
-      email_id,
-      detail: { error: "empty_body_no_text_no_html" },
-    });
-    return NextResponse.json({ ok: true });
+    rawSignal = "";
   }
-
-  if (!rawSignal.trim()) {
-    await logWebhookEvent({
-      endpoint: ENDPOINT,
-      gate: "pipeline_error",
-      email_id,
-      detail: { error: "empty_after_strip" },
-    });
-    return NextResponse.json({ ok: true });
-  }
-
-  rawSignal = rawSignal.slice(0, 10_000);
 
   // ── Parse sender ───────────────────────────────────────────────────────────
   const { email: senderEmail, name: senderName } = parseFromHeader(from);
@@ -297,6 +558,59 @@ export async function POST(request: NextRequest) {
 
   // ── Policy lookup ──────────────────────────────────────────────────────────
   const admin = createAdminClient();
+
+  // Attachment-only email (no body text) — skip signal pipeline but still
+  // process any doc-chase attachments before returning.
+  if (!rawSignal) {
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "attachment_only_email",
+      email_id,
+      sender_email: senderEmail,
+      detail: { attachment_count: (emailContent.attachments ?? []).length },
+    });
+    await processDocChaseForSender({
+      admin,
+      senderEmail,
+      rawSignal: "",
+      emailContent,
+      resendApiKey,
+      email_id,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Early-exit: active doc chase for sender ────────────────────────────────
+  // If the sender has open doc chase requests, their email is a document reply.
+  // Process the doc chase and skip the signal pipeline entirely — otherwise
+  // the classifier creates "document_received" queue items that pollute the inbox.
+  {
+    const { data: senderDocChases } = await admin
+      .from("doc_chase_requests")
+      .select("id")
+      .eq("client_email", senderEmail)
+      .in("status", ["pending", "active"])
+      .limit(1);
+
+    if (senderDocChases && senderDocChases.length > 0) {
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "doc_chase_only",
+        email_id,
+        sender_email: senderEmail,
+        detail: { note: "Active doc chase found — skipping signal pipeline" },
+      });
+      await processDocChaseForSender({
+        admin,
+        senderEmail,
+        rawSignal,
+        emailContent,
+        resendApiKey,
+        email_id,
+      });
+      return NextResponse.json({ ok: true });
+    }
+  }
 
   // Resolve broker from signal token in the `to` field (e.g. signal+abc123@hollisai.com.au)
   let brokerUserId: string | null = null;
@@ -324,7 +638,7 @@ export async function POST(request: NextRequest) {
   let policyQuery = admin
     .from("policies")
     .select(
-      "id, user_id, client_name, policy_name, policy_number, expiration_date, campaign_stage, last_contact_at, renewal_flags, renewal_paused, client_email, carrier, premium, agent_name, agent_email"
+      "id, user_id, client_name, policy_name, expiration_date, campaign_stage, last_contact_at, renewal_flags, renewal_paused, client_email, carrier, premium, agent_name, agent_email"
     )
     .eq("client_email", senderEmail)
     .not("campaign_stage", "in", '("confirmed","lapsed")')
@@ -355,137 +669,14 @@ export async function POST(request: NextRequest) {
       sender_email: senderEmail,
     });
 
-    // Check for active standalone doc-chase requests for this sender.
-    // Surface the reply text on the request row so the broker can review
-    // and manually mark as received — we don't auto-close without policy context.
-    const { data: activeChases } = await admin
-      .from("doc_chase_requests")
-      .select("id")
-      .eq("client_email", senderEmail)
-      .in("status", ["pending", "active"]);
-
-    if (activeChases && activeChases.length > 0) {
-      const replyAt = new Date().toISOString();
-      const ids = activeChases.map((r: { id: string }) => r.id);
-      await admin
-        .from("doc_chase_requests")
-        .update({ last_client_reply: rawSignal.slice(0, 2000), last_client_reply_at: replyAt })
-        .in("id", ids);
-
-      await logWebhookEvent({
-        endpoint: ENDPOINT,
-        gate: "doc_chase_reply",
-        email_id,
-        sender_email: senderEmail,
-        detail: { doc_chase_request_ids: ids, reply_length: rawSignal.length },
-      });
-
-      // ── Attachment processing ─────────────────────────────────────────────
-      // If the reply includes file attachments, validate the first supported one
-      // against each active chase and auto-close any that pass.
-      const supportedMimeTypes = new Set([
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-      ]);
-
-      const attachments = emailContent.attachments ?? [];
-      const firstAttachment = attachments.find((a) => supportedMimeTypes.has(a.content_type));
-
-      if (firstAttachment && resendApiKey) {
-        try {
-          // Download attachment bytes from Resend
-          const attachRes = await fetch(firstAttachment.url, {
-            headers: { Authorization: `Bearer ${resendApiKey}` },
-          });
-
-          if (attachRes.ok) {
-            const attachBuffer = Buffer.from(await attachRes.arrayBuffer());
-            const base64 = attachBuffer.toString("base64");
-
-            // Fetch full chase rows to get document_type + notes
-            const { data: chaseRows } = await admin
-              .from("doc_chase_requests")
-              .select("id, document_type, notes, policy_id, user_id, client_email")
-              .in("id", ids);
-
-            for (const chase of chaseRows ?? []) {
-              const result = await validateDocumentForChase(
-                base64,
-                firstAttachment.content_type,
-                chase.document_type,
-                chase.notes
-              );
-
-              const nowIso = new Date().toISOString();
-              const isPass = result.verdict === "pass";
-
-              const uuid = crypto.randomUUID();
-              const safeName = firstAttachment.filename.replace(/[^a-z0-9._-]/gi, "_").slice(0, 100);
-              const storagePath = `${chase.user_id}/${chase.id}/${uuid}-${safeName}`;
-
-              // Upload to storage
-              const { error: uploadErr } = await admin.storage
-                .from("doc-chase-attachments")
-                .upload(storagePath, attachBuffer, {
-                  contentType: firstAttachment.content_type,
-                  upsert: false,
-                });
-
-              if (uploadErr) {
-                console.error("[webhook/resend/inbound] Attachment storage upload failed:", uploadErr.message);
-              }
-
-              const updatePayload: Record<string, unknown> = {
-                received_attachment_path: uploadErr ? null : storagePath,
-                received_attachment_filename: firstAttachment.filename,
-                received_attachment_content_type: firstAttachment.content_type,
-                validation_status: result.verdict,
-                validation_summary: result.summary,
-                validation_issues: result.issues.length > 0 ? result.issues : null,
-                validation_confidence: result.confidence,
-                validated_at: nowIso,
-              };
-
-              if (isPass) {
-                updatePayload.status = "received";
-              }
-
-              await admin
-                .from("doc_chase_requests")
-                .update(updatePayload)
-                .eq("id", chase.id);
-            }
-
-            await logWebhookEvent({
-              endpoint: ENDPOINT,
-              gate: "doc_chase_attachment_validated",
-              email_id,
-              sender_email: senderEmail,
-              detail: {
-                filename: firstAttachment.filename,
-                content_type: firstAttachment.content_type,
-                chase_ids: ids,
-              },
-            });
-          }
-        } catch (attachErr) {
-          console.error("[webhook/resend/inbound] Attachment validation failed:", attachErr);
-          await logWebhookEvent({
-            endpoint: ENDPOINT,
-            gate: "pipeline_error",
-            email_id,
-            sender_email: senderEmail,
-            detail: {
-              error: "attachment_validation_failed",
-              message: attachErr instanceof Error ? attachErr.message : String(attachErr),
-            },
-          });
-        }
-      }
-    }
+    await processDocChaseForSender({
+      admin,
+      senderEmail,
+      rawSignal,
+      emailContent,
+      resendApiKey,
+      email_id,
+    });
 
     return NextResponse.json({ ok: true });
   }
@@ -502,7 +693,7 @@ export async function POST(request: NextRequest) {
   let policy = candidates[0];
   if (subjectPolicyNumber && candidates.length > 1) {
     const exactMatch = candidates.find(
-      (c) => (c.policy_number as string | null)?.toUpperCase() === subjectPolicyNumber
+      (c) => (c.policy_name as string | null)?.toUpperCase().includes(subjectPolicyNumber)
     );
     if (exactMatch) policy = exactMatch;
   }
@@ -519,7 +710,7 @@ export async function POST(request: NextRequest) {
   // ── Run signal pipeline ────────────────────────────────────────────────────
   const matchedBySubject =
     subjectPolicyNumber != null &&
-    (policy.policy_number as string | null)?.toUpperCase() === subjectPolicyNumber;
+    (policy.policy_name as string | null)?.toUpperCase().includes(subjectPolicyNumber) === true;
 
   await logWebhookEvent({
     endpoint: ENDPOINT,
@@ -554,6 +745,17 @@ export async function POST(request: NextRequest) {
       sender_email: senderEmail,
       policy_id: policy.id as string,
       user_id: policy.user_id as string,
+    });
+
+    // Also check for active doc chase requests — a sender can have both a
+    // matching policy (signal pipeline) and an open doc chase simultaneously.
+    await processDocChaseForSender({
+      admin,
+      senderEmail,
+      rawSignal,
+      emailContent,
+      resendApiKey,
+      email_id,
     });
   } catch (pipelineErr) {
     await logWebhookEvent({

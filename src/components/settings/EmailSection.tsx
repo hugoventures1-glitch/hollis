@@ -9,6 +9,7 @@ import type { AgentProfile } from "@/types/settings";
 import { SettingsField, SettingsInput, SettingsTextarea } from "./SettingsField";
 import { Toggle } from "./Toggle";
 import { SaveButton } from "./SaveButton";
+import { TemplatesSection } from "./TemplatesSection";
 
 const schema = z.object({
   email_from_name: z.string().optional(),
@@ -167,6 +168,10 @@ export function EmailSection({ profile }: Props) {
       <div className="pt-2">
         <SaveButton saving={saving} saved={saved} onClick={onSave} />
       </div>
+
+      <div className="border-t border-[#1e1e2a] my-8" />
+
+      <TemplatesSection />
     </div>
   );
 }

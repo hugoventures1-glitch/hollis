@@ -45,6 +45,118 @@ const SUPPORTED_IMAGE_TYPES = new Set([
   "image/webp",
 ]);
 
+const DRAFT_REPLY_SYSTEM = `You are a professional insurance broker assistant. A client submitted a document that did not fully satisfy the broker's request. Write a brief, professional follow-up email on behalf of the broker asking the client to resubmit with the specific issues resolved.
+
+Return ONLY valid JSON — no markdown fences, no extra text:
+{
+  "subject": "Re: [Document request subject line]",
+  "body": "Full email body text — polite, concise, under 150 words. Do not use HTML. Do not include a greeting name placeholder — the client's name will be inserted separately. Start with 'Hi [client name],' on the first line. Sign off as Hollis on behalf of the broker."
+}`;
+
+export async function generateDocChaseDraftReply(params: {
+  clientName: string;
+  documentType: string;
+  validationSummary: string;
+  validationIssues: string[];
+  notes?: string | null;
+}): Promise<{ subject: string; body: string }> {
+  const fallback = {
+    subject: `Re: ${params.documentType} — Action Required`,
+    body: `Hi ${params.clientName},\n\nThank you for sending through the ${params.documentType}. Unfortunately, we weren't able to accept the document as submitted — ${params.validationSummary}\n\nCould you please resubmit with the issues resolved?\n\nThanks,\nHollis`,
+  };
+
+  try {
+    const client = getAnthropicClient();
+
+    const userText = [
+      `Client name: ${params.clientName}`,
+      `Requested document: ${params.documentType}`,
+      params.notes ? `Broker's original request notes: ${params.notes}` : null,
+      `Validation result: ${params.validationSummary}`,
+      params.validationIssues.length > 0
+        ? `Specific issues:\n${params.validationIssues.map((i) => `- ${i}`).join("\n")}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const message = await client.messages.create({
+      model: MODEL,
+      max_tokens: 512,
+      system: DRAFT_REPLY_SYSTEM,
+      messages: [{ role: "user", content: userText }],
+    });
+
+    const rawText = message.content[0]?.type === "text" ? message.content[0].text : "";
+    const cleaned = rawText
+      .replace(/^```json\s*/i, "")
+      .replace(/\n?```$/i, "")
+      .trim();
+    const parsed = JSON.parse(cleaned) as { subject: string; body: string };
+    return {
+      subject: parsed.subject ?? fallback.subject,
+      body: parsed.body ?? fallback.body,
+    };
+  } catch (err) {
+    console.error("[doc-chase/validate] Draft reply generation failed:", err);
+    return fallback;
+  }
+}
+
+const QUERY_REPLY_SYSTEM = `You are a professional insurance broker assistant. A client has replied to a document request with a question instead of sending the document. Write a brief, helpful reply on behalf of the broker.
+
+Return ONLY valid JSON — no markdown fences, no extra text:
+{
+  "subject": "Re: [document request subject line]",
+  "body": "Full email body — polite, helpful, under 120 words. Do not use HTML. Start with 'Hi [first name],' on the first line. If you can answer the question from context, do so. If not, say you'll look into it and follow up shortly. Sign off as Hollis on behalf of the broker."
+}`;
+
+export async function generateDocChaseQueryResponse(params: {
+  clientName: string;
+  documentType: string;
+  rawSignal: string;
+  notes?: string | null;
+}): Promise<{ subject: string; body: string }> {
+  const fallback = {
+    subject: `Re: ${params.documentType}`,
+    body: `Hi ${params.clientName.split(" ")[0]},\n\nThank you for your message. I'll look into this and get back to you shortly.\n\nThanks,\nHollis`,
+  };
+
+  try {
+    const client = getAnthropicClient();
+
+    const userText = [
+      `Client name: ${params.clientName}`,
+      `Requested document: ${params.documentType}`,
+      params.notes ? `Broker's original request notes: ${params.notes}` : null,
+      `Client's message: ${params.rawSignal}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const message = await client.messages.create({
+      model: MODEL,
+      max_tokens: 512,
+      system: QUERY_REPLY_SYSTEM,
+      messages: [{ role: "user", content: userText }],
+    });
+
+    const rawText = message.content[0]?.type === "text" ? message.content[0].text : "";
+    const cleaned = rawText
+      .replace(/^```json\s*/i, "")
+      .replace(/\n?```$/i, "")
+      .trim();
+    const parsed = JSON.parse(cleaned) as { subject: string; body: string };
+    return {
+      subject: parsed.subject ?? fallback.subject,
+      body: parsed.body ?? fallback.body,
+    };
+  } catch (err) {
+    console.error("[doc-chase/validate] Query response generation failed:", err);
+    return fallback;
+  }
+}
+
 export async function validateDocumentForChase(
   base64: string,
   mimeType: string,

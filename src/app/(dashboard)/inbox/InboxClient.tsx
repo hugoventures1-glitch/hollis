@@ -16,6 +16,10 @@ import {
   FileText,
   Paperclip,
   ExternalLink,
+  Send,
+  Maximize2,
+  X,
+  Download,
 } from "lucide-react";
 import type { InboxItem, DocChaseReplyItem } from "./page";
 
@@ -91,7 +95,7 @@ function InboxRow({
 }) {
   const isUrgent = item.tier === 3;
   const policy = item.policies;
-  const policyRef = policy?.policy_number ?? null;
+  const policyRef = policy?.policy_name?.match(/\bPOL-\d{4}-\d{4}\b/i)?.[0] ?? null;
   const policyName = policy?.policy_name ?? "";
   const carrier = policy?.carrier ?? null;
   const carrierShort = carrier ? carrier.split(" ")[0] : null;
@@ -565,7 +569,7 @@ function TodoRow({
   onClick: () => void;
 }) {
   const policy = item.policies;
-  const policyRef = policy?.policy_number ?? null;
+  const policyRef = policy?.policy_name?.match(/\bPOL-\d{4}-\d{4}\b/i)?.[0] ?? null;
   const policyName = policy?.policy_name ?? "";
   const carrier = policy?.carrier ?? null;
   const carrierShort = carrier ? carrier.split(" ")[0] : null;
@@ -857,11 +861,32 @@ function DocChaseDetailPanel({
   const [urlError, setUrlError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [marked, setMarked] = useState(false);
+  const [draftSubject, setDraftSubject] = useState(item.draft_reply_subject ?? "");
+  const [draftBody, setDraftBody] = useState(item.draft_reply_body ?? "");
+  const [sending, setSending] = useState(false);
+  const [replySent, setReplySent] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{
+    verdict: string; summary: string; issues: string[];
+  } | null>(null);
 
   const hasAttachment = Boolean(item.received_attachment_path);
   const isPdf = item.received_attachment_content_type?.startsWith("application/pdf") ?? false;
   const isImage = item.received_attachment_content_type?.startsWith("image/") ?? false;
   const isReceived = item.status === "received" || marked;
+  const hasDraft = Boolean(draftSubject || draftBody);
+  const currentValidationStatus = validationResult?.verdict ?? item.validation_status;
+  const canValidate = hasAttachment && !currentValidationStatus && !isReceived;
+
+  // Close fullscreen on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setFullscreen(false);
+    }
+    if (fullscreen) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
 
   const fetchSignedUrl = useCallback(async () => {
     if (!hasAttachment) return;
@@ -883,8 +908,11 @@ function DocChaseDetailPanel({
     setSignedUrl(null);
     setUrlError(null);
     setMarked(false);
+    setReplySent(false);
+    setDraftSubject(item.draft_reply_subject ?? "");
+    setDraftBody(item.draft_reply_body ?? "");
     fetchSignedUrl();
-  }, [fetchSignedUrl]);
+  }, [fetchSignedUrl, item.id, item.draft_reply_subject, item.draft_reply_body]);
 
   async function handleMarkReceived() {
     setMarking(true);
@@ -903,101 +931,140 @@ function DocChaseDetailPanel({
     }
   }
 
+  async function handleSendReply() {
+    setSending(true);
+    try {
+      const res = await fetch(`/api/doc-chase/${item.id}/send-reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: draftSubject, body: draftBody }),
+      });
+      if (res.ok) setReplySent(true);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleValidate() {
+    setValidating(true);
+    try {
+      const res = await fetch(`/api/doc-chase/${item.id}/validate-stored`, { method: "POST" });
+      const data = await res.json();
+      setValidationResult({ verdict: data.verdict, summary: data.summary, issues: data.issues ?? [] });
+      if (data.verdict === "pass") {
+        setMarked(true);
+        onMarkReceived(item.id);
+      }
+      if (data.draft_subject) setDraftSubject(data.draft_subject);
+      if (data.draft_body) setDraftBody(data.draft_body);
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  // Inline section label helper
+  const SL = ({ children }: { children: React.ReactNode }) => (
+    <div
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase" as const,
+        color: "#333",
+        marginBottom: 10,
+      }}
+    >
+      {children}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-6 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-                style={{
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Doc Chase
-              </span>
-              {item.validation_status && (
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                    item.validation_status === "pass"
-                      ? "text-[#4ade80] bg-[#16a34a]/10 border-[#16a34a]/20"
-                      : item.validation_status === "fail"
-                      ? "text-[#f87171] bg-[#dc2626]/10 border-[#dc2626]/20"
-                      : item.validation_status === "partial"
-                      ? "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20"
-                      : "text-white/40 bg-white/5 border-white/10"
-                  }`}
-                >
-                  {item.validation_status.charAt(0).toUpperCase() + item.validation_status.slice(1)}
-                </span>
-              )}
-            </div>
-            <h2 className="text-[18px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
-              {item.client_name}
-            </h2>
-            <p className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              {item.document_type}
-            </p>
-          </div>
+    <div className="flex flex-col h-full" style={{ background: "#0C0C0C" }}>
+
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 overflow-y-auto px-8 py-8 min-h-0">
+
+        {/* DOC CHASE label + "View chase" link */}
+        <div className="flex items-center justify-between mb-4">
+          <SL>Doc Chase</SL>
           <Link
             href="/documents"
-            className="shrink-0 flex items-center gap-1 text-[11px] transition-opacity hover:opacity-70"
-            style={{ color: "var(--text-tertiary)" }}
+            className="flex items-center gap-1 text-[11px] transition-opacity hover:opacity-70"
+            style={{ color: "#444" }}
           >
             View chase <ArrowUpRight size={11} />
           </Link>
         </div>
-      </div>
 
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 min-h-0">
-
-        {/* Client reply */}
-        <div
-          className="rounded-xl p-4 space-y-3"
-          style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+        {/* Client name */}
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 28,
+            fontWeight: 700,
+            color: "#FAFAFA",
+            lineHeight: 1.1,
+            marginBottom: 6,
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: "var(--text-tertiary)" }}
+          {item.client_name}
+        </h1>
+
+        {/* Document type */}
+        <div style={{ fontSize: 14, color: "#555", marginBottom: 28 }}>
+          {item.document_type}
+        </div>
+
+        {/* Validation badge */}
+        {currentValidationStatus && (
+          <div className="flex items-center gap-2 mb-6">
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                currentValidationStatus === "pass"
+                  ? "text-[#4ade80] bg-[#16a34a]/10 border-[#16a34a]/20"
+                  : currentValidationStatus === "fail"
+                  ? "text-[#f87171] bg-[#dc2626]/10 border-[#dc2626]/20"
+                  : currentValidationStatus === "partial"
+                  ? "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20"
+                  : "text-white/40 bg-white/5 border-white/10"
+              }`}
             >
-              Client reply
-            </div>
+              {currentValidationStatus.charAt(0).toUpperCase() + currentValidationStatus.slice(1)}
+            </span>
+          </div>
+        )}
+
+        {/* ── CLIENT REPLY ── */}
+        <div style={{ marginBottom: 28 }}>
+          <SL>Client Reply</SL>
+          <div className="flex items-center justify-between mb-2">
             {item.last_client_reply_at && (
-              <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                {timeAgo(item.last_client_reply_at)}
-              </span>
+              <span style={{ fontSize: 10, color: "#444" }}>{timeAgo(item.last_client_reply_at)}</span>
             )}
           </div>
-          <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>
-            {item.last_client_reply ?? "No reply text captured."}
+          <p
+            style={{
+              fontSize: 14,
+              color: item.last_client_reply ? "#AAAAAA" : "#444",
+              lineHeight: 1.6,
+              fontStyle: item.last_client_reply ? "normal" : "italic",
+            }}
+          >
+            {item.last_client_reply || "No message body — document attached."}
           </p>
         </div>
 
-        {/* AI validation summary */}
-        {item.validation_summary && (
-          <div
-            className="rounded-xl p-4 space-y-2"
-            style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
-          >
-            <div
-              className="text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              AI validation
-            </div>
-            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-              {item.validation_summary}
+        {/* ── AI VALIDATION ── */}
+        {(validationResult?.summary || item.validation_summary) && (
+          <div style={{ marginBottom: 28 }}>
+            <SL>AI Validation</SL>
+            <p style={{ fontSize: 13, color: "#888", lineHeight: 1.6 }}>
+              {validationResult?.summary ?? item.validation_summary}
             </p>
-            {item.validation_issues && item.validation_issues.length > 0 && (
-              <ul className="space-y-1 pt-1">
-                {item.validation_issues.map((issue, i) => (
-                  <li key={i} className="text-[12px] flex items-start gap-2" style={{ color: "#f87171" }}>
+            {((validationResult?.issues ?? item.validation_issues) ?? []).length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {(validationResult?.issues ?? item.validation_issues ?? []).map((issue, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: "#f87171" }}>
                     <span className="shrink-0">·</span>
                     <span>{issue}</span>
                   </li>
@@ -1007,94 +1074,210 @@ function DocChaseDetailPanel({
           </div>
         )}
 
-        {/* Document viewer */}
+        {/* ── ATTACHMENT ── */}
         {hasAttachment && (
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            {/* Doc header */}
-            <div
-              className="px-4 py-3 flex items-center justify-between"
-              style={{ background: "var(--surface-raised)", borderBottom: "1px solid var(--border)" }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <FileText size={13} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
-                <span className="text-[12px] truncate" style={{ color: "var(--text-secondary)" }}>
+          <div style={{ marginBottom: 28 }}>
+            <SL>Attachment</SL>
+            {urlLoading ? (
+              <div className="flex items-center gap-2" style={{ fontSize: 13, color: "#555" }}>
+                <Loader2 size={13} className="animate-spin" /> Loading…
+              </div>
+            ) : urlError ? (
+              <div className="flex items-center gap-3" style={{ fontSize: 13, color: "#555" }}>
+                <span>{urlError}</span>
+                <button
+                  onClick={fetchSignedUrl}
+                  style={{ fontSize: 12, color: "#666", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : signedUrl ? (
+              <div
+                className="flex items-center justify-between px-4 py-3 rounded-xl"
+                style={{ background: "#111111", border: "1px solid #1C1C1C" }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText size={14} style={{ color: "#555", flexShrink: 0 }} />
+                  <span className="truncate" style={{ fontSize: 13, color: "#FAFAFA" }}>
+                    {item.received_attachment_filename ?? "Attachment"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <a
+                    href={signedUrl}
+                    download={item.received_attachment_filename ?? "attachment"}
+                    className="flex items-center transition-opacity hover:opacity-70"
+                    style={{ color: "#555" }}
+                    title="Download"
+                  >
+                    <Download size={13} />
+                  </a>
+                  <button
+                    onClick={() => window.open(signedUrl, "_blank")}
+                    style={{
+                      height: 30,
+                      padding: "0 12px",
+                      borderRadius: 7,
+                      border: "1px solid #252525",
+                      background: "transparent",
+                      fontSize: 12,
+                      color: "#AAAAAA",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Open in tab
+                  </button>
+                  {canValidate && (
+                    <button
+                      onClick={handleValidate}
+                      disabled={validating}
+                      style={{
+                        height: 30,
+                        padding: "0 12px",
+                        borderRadius: 7,
+                        border: "1px solid #252525",
+                        background: "transparent",
+                        fontSize: 12,
+                        color: validating ? "#555" : "#AAAAAA",
+                        cursor: validating ? "default" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        opacity: validating ? 0.6 : 1,
+                      }}
+                    >
+                      {validating && <Loader2 size={11} className="animate-spin" />}
+                      {validating ? "Validating…" : "Validate"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* ── PREVIEW ── */}
+        {hasAttachment && signedUrl && (
+          <div style={{ marginBottom: 28 }}>
+            <SL>Preview</SL>
+            <div className="overflow-hidden rounded-xl" style={{ border: "1px solid #1C1C1C" }}>
+              {/* Preview header bar */}
+              <div
+                className="flex items-center justify-between px-4 py-2"
+                style={{ background: "#111", borderBottom: "1px solid #1C1C1C" }}
+              >
+                <span style={{ fontSize: 11, color: "#555" }}>
                   {item.received_attachment_filename ?? "Attachment"}
                 </span>
-              </div>
-              {signedUrl && (
-                <a
-                  href={signedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 flex items-center gap-1 text-[11px] ml-3 transition-opacity hover:opacity-70"
-                  style={{ color: "var(--text-tertiary)" }}
+                <button
+                  onClick={() => setFullscreen(true)}
+                  className="flex items-center gap-1 transition-opacity hover:opacity-70"
+                  style={{ color: "#444", background: "none", border: "none", cursor: "pointer" }}
+                  title="Full view"
                 >
-                  Open <ExternalLink size={10} />
-                </a>
-              )}
-            </div>
+                  <Maximize2 size={11} />
+                </button>
+              </div>
 
-            {/* Doc body */}
-            <div
-              className="flex items-center justify-center"
-              style={{ height: 420, background: "var(--surface)" }}
-            >
-              {urlLoading ? (
-                <Loader2 size={18} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />
-              ) : urlError ? (
-                <div className="flex flex-col items-center gap-2 text-center px-6">
-                  <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{urlError}</p>
+              {/* Document content */}
+              {isPdf ? (
+                <div className="relative">
+                  <iframe
+                    src={`${signedUrl}#toolbar=0&navpanes=0`}
+                    title={item.received_attachment_filename ?? "Document"}
+                    style={{ width: "100%", height: 480, border: "none", background: "#fff", display: "block" }}
+                  />
                   <button
-                    onClick={fetchSignedUrl}
-                    className="text-[11px] transition-opacity hover:opacity-70"
-                    style={{ color: "var(--text-tertiary)" }}
+                    onClick={() => setFullscreen(true)}
+                    className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-opacity hover:opacity-90"
+                    style={{ background: "rgba(0,0,0,0.65)", color: "#fff", backdropFilter: "blur(4px)", border: "none", cursor: "pointer" }}
                   >
-                    Retry
+                    <Maximize2 size={11} /> Full view
                   </button>
                 </div>
-              ) : signedUrl ? (
-                isPdf ? (
-                  <iframe
-                    src={signedUrl}
-                    className="w-full h-full"
-                    style={{ border: "none" }}
-                    title={item.received_attachment_filename ?? "Document"}
-                  />
-                ) : isImage ? (
+              ) : isImage ? (
+                <div style={{ background: "#fff", display: "flex", justifyContent: "center" }}>
                   <img
                     src={signedUrl}
                     alt={item.received_attachment_filename ?? "Attachment"}
-                    className="max-w-full max-h-full object-contain p-4"
+                    style={{ maxWidth: "100%", maxHeight: 480, objectFit: "contain", display: "block", cursor: "zoom-in" }}
+                    onClick={() => setFullscreen(true)}
                   />
-                ) : (
-                  <div className="flex flex-col items-center gap-3">
-                    <FileText size={24} style={{ color: "var(--text-tertiary)" }} />
-                    <a
-                      href={signedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      Download <ExternalLink size={11} />
-                    </a>
-                  </div>
-                )
-              ) : null}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 py-8" style={{ background: "var(--surface)" }}>
+                  <FileText size={24} style={{ color: "var(--text-tertiary)" }} />
+                  <a
+                    href={signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Open file <ExternalLink size={11} />
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── DRAFT REPLY ── */}
+        {hasDraft && (
+          <div style={{ marginBottom: 16 }}>
+            <div className="flex items-center justify-between mb-2">
+              <SL>Draft Reply from Hollis</SL>
+              {replySent && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#4ade80" }}>Sent</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-[10px] mb-1" style={{ color: "#444" }}>Subject</label>
+                <input
+                  type="text"
+                  value={draftSubject}
+                  onChange={(e) => setDraftSubject(e.target.value)}
+                  disabled={replySent}
+                  className="w-full rounded-lg px-3 py-2 text-[12px] focus:outline-none"
+                  style={{ background: "#111", border: "1px solid #1C1C1C", color: "#FAFAFA" }}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] mb-1" style={{ color: "#444" }}>Body</label>
+                <textarea
+                  value={draftBody}
+                  onChange={(e) => setDraftBody(e.target.value)}
+                  disabled={replySent}
+                  rows={8}
+                  className="w-full rounded-lg px-3 py-2 text-[12px] leading-relaxed focus:outline-none resize-none"
+                  style={{ background: "#111", border: "1px solid #1C1C1C", color: replySent ? "#444" : "#FAFAFA", fontFamily: "inherit" }}
+                />
+              </div>
+              {!replySent && (
+                <button
+                  onClick={handleSendReply}
+                  disabled={sending || !draftBody.trim()}
+                  className="h-8 flex items-center gap-2 px-3.5 rounded-lg text-[12px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+                  style={{ background: "var(--accent)", color: "var(--text-inverse)", border: "none", cursor: "pointer" }}
+                >
+                  {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                  Send Reply
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Action bar */}
+      {/* ── Action bar ── */}
       <div
-        className="px-6 py-4 shrink-0 flex items-center gap-2"
+        className="shrink-0 flex items-center gap-3"
         style={{
-          borderTop: "1px solid var(--border)",
-          background: isReceived ? "rgba(184,244,0,0.05)" : undefined,
+          padding: "16px 32px",
+          borderTop: "1px solid #1C1C1C",
+          background: isReceived ? "rgba(184,244,0,0.04)" : undefined,
         }}
       >
         {isReceived ? (
@@ -1106,14 +1289,78 @@ function DocChaseDetailPanel({
           <button
             onClick={handleMarkReceived}
             disabled={marking}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
-            style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
+            className="h-9 flex items-center gap-2 px-5 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
+            style={{ background: "#FAFAFA", color: "#0C0C0C", border: "none", cursor: "pointer" }}
           >
             {marking ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
             Mark Received
           </button>
         )}
       </div>
+
+      {/* ── Fullscreen modal (unchanged) ── */}
+      {fullscreen && signedUrl && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col"
+          style={{ background: "rgba(0,0,0,0.92)" }}
+        >
+          <div
+            className="shrink-0 flex items-center justify-between px-5 py-3"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <div className="flex items-center gap-2">
+              <FileText size={14} style={{ color: "rgba(255,255,255,0.5)" }} />
+              <span className="text-[13px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+                {item.received_attachment_filename ?? "Document"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href={signedUrl}
+                download={item.received_attachment_filename ?? "attachment"}
+                className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70"
+                style={{ color: "rgba(255,255,255,0.55)" }}
+              >
+                <Download size={14} /> Download
+              </a>
+              <a
+                href={signedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70"
+                style={{ color: "rgba(255,255,255,0.55)" }}
+              >
+                <ExternalLink size={14} /> Open in tab
+              </a>
+              <button
+                onClick={() => setFullscreen(false)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-opacity hover:opacity-80"
+                style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", cursor: "pointer" }}
+              >
+                <X size={13} /> Close
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 p-4">
+            {isPdf ? (
+              <iframe
+                src={signedUrl}
+                className="w-full h-full rounded-lg"
+                style={{ border: "none" }}
+                title={item.received_attachment_filename ?? "Document"}
+              />
+            ) : isImage ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <img
+                  src={signedUrl}
+                  alt={item.received_attachment_filename ?? "Document"}
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1192,6 +1439,210 @@ function DocChaseZero() {
   );
 }
 
+function SuggestionsZero() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 select-none">
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+      >
+        <span className="text-[18px]">✦</span>
+      </div>
+      <p className="text-[14px] font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+        No suggestions
+      </p>
+      <p className="text-[12px] leading-relaxed max-w-[220px]" style={{ color: "var(--text-tertiary)" }}>
+        Hollis will suggest updates here — like adding a newly received document to a client&apos;s AI reference docs.
+      </p>
+    </div>
+  );
+}
+
+// ── Suggestion row ─────────────────────────────────────────────────────────────
+
+function SuggestionRow({
+  item,
+  selected,
+  onClick,
+}: {
+  item: InboxItem;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const clientName = item.policies?.client_name ?? "Unknown Client";
+  const description = item.proposed_action?.description ?? "Hollis has a suggestion";
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-4 py-3.5 transition-colors"
+      style={{
+        background: selected ? "var(--surface-raised)" : "transparent",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <p className="text-[12px] font-semibold truncate mb-1 leading-tight" style={{ color: "#a78bfa" }}>
+        {clientName}
+      </p>
+      <div className="flex items-center gap-2">
+        <span
+          className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+          style={{ background: "#2e1065", color: "#a78bfa", border: "1px solid #4c1d95" }}
+        >
+          Suggestion
+        </span>
+        <span className="text-[11px] truncate flex-1" style={{ color: "var(--text-secondary)" }}>
+          {description}
+        </span>
+        <span className="text-[10px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
+          {timeAgo(item.created_at)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// ── Suggestion detail panel ────────────────────────────────────────────────────
+
+function SuggestionDetailPanel({
+  item,
+  onAccepted,
+  onDismissed,
+}: {
+  item: InboxItem;
+  onAccepted: () => void;
+  onDismissed: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const payload = item.proposed_action?.payload ?? {};
+  const clientId = payload.client_id as string | undefined;
+  const storagePath = payload.storage_path as string | undefined;
+  const originalFilename = (payload.original_filename as string | undefined) ?? "document";
+  const suggestedLabel = (payload.suggested_label as string | undefined) ?? "Document";
+  const description = item.proposed_action?.description ?? "";
+  const clientName = item.policies?.client_name ?? "";
+
+  async function handleAccept() {
+    if (!clientId || !storagePath) {
+      setError("Missing document info — cannot accept");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      // Create reference doc entry by copying the storage path
+      const res = await fetch(`/api/clients/${clientId}/reference-docs/from-suggestion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          queue_item_id: item.id,
+          storage_path: storagePath,
+          original_filename: originalFilename,
+          suggested_label: suggestedLabel,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Failed to accept"); return; }
+      setAccepted(true);
+      await new Promise((r) => setTimeout(r, 700));
+      onAccepted();
+    } catch {
+      setError("Network error — please try again");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDismiss() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/agent/review/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rejected" }),
+      });
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Failed"); return; }
+      onDismissed();
+    } catch {
+      setError("Network error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-y-auto px-6 py-6 gap-5">
+      {/* Badge */}
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+          style={{ background: "#2e1065", color: "#a78bfa", border: "1px solid #4c1d95" }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#a78bfa" }} />
+          AI Suggestion
+        </span>
+      </div>
+
+      {/* Description */}
+      <div>
+        <p className="text-[15px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
+          {description || `Update reference docs for ${clientName}`}
+        </p>
+        <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+          A document was received and validated for this client. Hollis is suggesting you add it to their AI reference docs — this will improve reply quality for future emails on their behalf.
+        </p>
+      </div>
+
+      {/* Doc details */}
+      <div
+        className="flex items-start gap-3 p-4 rounded-xl"
+        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
+      >
+        <FileText size={16} style={{ color: "var(--text-tertiary)", flexShrink: 0, marginTop: 1 }} />
+        <div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{suggestedLabel}</div>
+          <div className="text-[12px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{originalFilename}</div>
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-[12px] text-red-400">{error}</p>
+      )}
+
+      {accepted ? (
+        <div className="flex items-center gap-2 text-[13px]" style={{ color: "#a78bfa" }}>
+          <CheckCircle2 size={15} />
+          Added to reference docs
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleAccept}
+            disabled={busy}
+            className="h-9 px-5 rounded-md text-[13px] font-semibold flex items-center gap-2 disabled:opacity-50 transition-colors"
+            style={{ background: "#4c1d95", color: "#e9d5ff", border: "1px solid #6d28d9" }}
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : null}
+            Accept — add to reference docs
+          </button>
+          <button
+            onClick={handleDismiss}
+            disabled={busy}
+            className="h-9 px-4 rounded-md text-[13px] transition-colors disabled:opacity-50"
+            style={{ border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main client component ─────────────────────────────────────────────────────
 
 export default function InboxClient({
@@ -1202,7 +1653,7 @@ export default function InboxClient({
   docChaseReplies?: DocChaseReplyItem[];
 }) {
   const [items,        setItems]        = useState<InboxItem[]>(initialItems);
-  const [tab,          setTab]          = useState<"inbox" | "todo" | "doc_chase">("inbox");
+  const [tab,          setTab]          = useState<"inbox" | "todo" | "doc_chase" | "suggestions">("inbox");
   const [selectedId,   setSelectedId]   = useState<string | null>(null);
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editedIntent, setEditedIntent] = useState("");
@@ -1221,11 +1672,16 @@ export default function InboxClient({
   const isTodoItem = (i: InboxItem) =>
     i.proposed_action?.action_type === "broker_change_required" ||
     TODO_INTENTS.includes(i.classified_intent);
-  const inboxItems = items.filter((i) => !isTodoItem(i));
-  const todoItems  = items.filter(isTodoItem);
+  const isSuggestion = (i: InboxItem) => i.classified_intent === "ai_suggestion";
+  const inboxItems      = items.filter((i) => !isTodoItem(i) && !isSuggestion(i));
+  const todoItems       = items.filter((i) => isTodoItem(i) && !isSuggestion(i));
+  const suggestionItems = items.filter(isSuggestion);
 
-  const selectedInboxItem = tab !== "doc_chase"
+  const selectedInboxItem = (tab === "inbox" || tab === "todo")
     ? (tab === "inbox" ? inboxItems : todoItems).find((i) => i.id === selectedId) ?? null
+    : null;
+  const selectedSuggestion = tab === "suggestions"
+    ? suggestionItems.find((i) => i.id === selectedId) ?? null
     : null;
   const selectedDocChase = tab === "doc_chase"
     ? docChaseReplies.find((r) => r.id === selectedDocChaseId) ?? null
@@ -1303,10 +1759,11 @@ export default function InboxClient({
     setEditedBody("");
   }
 
-  const TABS: { key: "inbox" | "todo" | "doc_chase"; label: string; count: number }[] = [
-    { key: "inbox",     label: "Inbox",     count: inboxItems.length },
-    { key: "todo",      label: "To Do",     count: todoItems.length },
-    { key: "doc_chase", label: "Doc Chase", count: docChaseReplies.length },
+  const TABS: { key: "inbox" | "todo" | "doc_chase" | "suggestions"; label: string; count: number }[] = [
+    { key: "inbox",       label: "Inbox",       count: inboxItems.length },
+    { key: "todo",        label: "To Do",       count: todoItems.length },
+    { key: "doc_chase",   label: "Doc Chase",   count: docChaseReplies.length },
+    { key: "suggestions", label: "Suggestions", count: suggestionItems.length },
   ];
 
   return (
@@ -1415,12 +1872,27 @@ export default function InboxClient({
             </div>
           )
         )}
+
+        {tab === "suggestions" && (
+          suggestionItems.length === 0 ? <SuggestionsZero /> : (
+            <div className="flex-1 overflow-y-auto">
+              {suggestionItems.map((item) => (
+                <SuggestionRow
+                  key={item.id}
+                  item={item}
+                  selected={item.id === selectedId}
+                  onClick={() => { setSelectedId(item.id); setEditingId(null); }}
+                />
+              ))}
+            </div>
+          )
+        )}
       </div>
 
       {/* ── Right: detail panel ────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Subheader */}
-        {tab !== "doc_chase" && (
+        {tab !== "doc_chase" && tab !== "suggestions" && (
           <header
             className="h-14 shrink-0 flex items-center justify-between px-6"
             style={{ borderBottom: "1px solid var(--border)" }}
@@ -1466,7 +1938,23 @@ export default function InboxClient({
         )}
 
         {/* Content */}
-        {tab === "doc_chase" ? (
+        {tab === "suggestions" ? (
+          selectedSuggestion ? (
+            <SuggestionDetailPanel
+              item={selectedSuggestion}
+              onAccepted={() => {
+                setItems((prev) => prev.filter((i) => i.id !== selectedSuggestion.id));
+                setSelectedId(null);
+              }}
+              onDismissed={() => {
+                setItems((prev) => prev.filter((i) => i.id !== selectedSuggestion.id));
+                setSelectedId(null);
+              }}
+            />
+          ) : (
+            <NothingSelected />
+          )
+        ) : tab === "doc_chase" ? (
           selectedDocChase ? (
             <DocChaseDetailPanel
               item={selectedDocChase}
