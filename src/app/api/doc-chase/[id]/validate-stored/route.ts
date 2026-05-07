@@ -124,44 +124,37 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
       actor_type: "agent",
     });
 
-    // Create a Suggestion in the approval queue so the broker can add
-    // this document to the client's AI reference docs with one click.
-    if (chase.received_attachment_path) {
-      // Find the client record to get client_id
-      const { data: clientRow } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("user_id", user.id)
-        .or(
-          chase.client_email
-            ? `email.eq.${chase.client_email},name.ilike.%${chase.client_name}%`
-            : `name.ilike.%${chase.client_name}%`
-        )
-        .limit(1)
-        .maybeSingle();
+  }
 
-      if (clientRow) {
-        await supabase.from("approval_queue").insert({
-          policy_id: chase.policy_id,
-          user_id: user.id,
-          signal_id: null,
-          classified_intent: "ai_suggestion",
-          confidence_score: 1.0,
-          raw_signal_snippet: `${chase.document_type} received from ${chase.client_name} — validated successfully.`,
-          proposed_action: {
-            action_type: "update_reference_documents",
-            description: `New ${chase.document_type} received from ${chase.client_name} — add it to their AI reference documents?`,
-            payload: {
-              doc_chase_id: id,
-              client_id: clientRow.id,
-              storage_path: chase.received_attachment_path,
-              original_filename: chase.received_attachment_filename ?? chase.document_type,
-              suggested_label: chase.document_type,
-            },
-          },
-          status: "pending",
-        });
-      }
+  // When the document passes, look up the matching client so the UI can offer
+  // an inline "add to reference docs" prompt — no approval_queue item needed.
+  let refDocSuggestion: {
+    client_id: string;
+    storage_path: string;
+    original_filename: string;
+    suggested_label: string;
+  } | null = null;
+
+  if (isPass && chase.received_attachment_path) {
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("user_id", user.id)
+      .or(
+        chase.client_email
+          ? `email.eq.${chase.client_email},name.ilike.%${chase.client_name}%`
+          : `name.ilike.%${chase.client_name}%`
+      )
+      .limit(1)
+      .maybeSingle();
+
+    if (clientRow) {
+      refDocSuggestion = {
+        client_id: clientRow.id,
+        storage_path: chase.received_attachment_path,
+        original_filename: chase.received_attachment_filename ?? chase.document_type,
+        suggested_label: chase.document_type,
+      };
     }
   }
 
@@ -172,5 +165,6 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     confidence: result.confidence,
     ...(draftSubject ? { draft_subject: draftSubject } : {}),
     ...(draftBody ? { draft_body: draftBody } : {}),
+    ...(refDocSuggestion ? { ref_doc_suggestion: refDocSuggestion } : {}),
   });
 }

@@ -38,6 +38,9 @@ export interface AgentProfile {
   // Agent instructions
   standing_orders: string | null;
 
+  // Automation control
+  automation_paused: boolean;
+
   // Renewal timeline config (migration 036)
   renewal_timeline: import("@/types/timeline").TimelineConfig | null;
 

@@ -90,7 +90,10 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-[640px] px-10 py-10">
             {activeTab === "hollis" && (
-              <HollisSection initialOrders={profile.standing_orders} />
+              <HollisSection
+                initialOrders={profile.standing_orders}
+                initialPaused={profile.automation_paused ?? false}
+              />
             )}
             {activeTab === "profile" && (
               <ProfileSection profile={profile} userEmail={userEmail} />

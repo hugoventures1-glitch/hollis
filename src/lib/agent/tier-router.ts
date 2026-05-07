@@ -327,6 +327,22 @@ export async function routeTier(
     );
   }
 
+  // ── Automation paused: broker has globally paused autonomous actions ──────────
+  // All Tier 1 candidates are held for broker review until automation is resumed.
+  const { data: profileData } = await supabase
+    .from("agent_profiles")
+    .select("automation_paused")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (profileData?.automation_paused) {
+    return makeTier2(
+      "Automation paused — all actions held for broker review",
+      flags,
+      classification
+    );
+  }
+
   // ── Learning mode: hold Tier 1 candidates for broker review ──────────────────
   // A broker in learning mode must review even high-confidence autonomous actions
   // so the confidence baseline is built through real broker approvals.

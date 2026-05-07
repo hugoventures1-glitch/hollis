@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePostHog } from "posthog-js/react";
+import { Pause, Play } from "lucide-react";
 import { SaveButton } from "./SaveButton";
 
 const MAX_CHARS = 2000;
@@ -14,17 +15,48 @@ const EXAMPLES = [
   "For commercial clients with premiums over $10k, always draft for my review before sending.",
 ];
 
-export function HollisSection({ initialOrders }: { initialOrders?: string | null }) {
-  const [value, setValue]   = useState(initialOrders ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
-  const [error,  setError]  = useState<string | null>(null);
+export function HollisSection({
+  initialOrders,
+  initialPaused = false,
+}: {
+  initialOrders?: string | null;
+  initialPaused?: boolean;
+}) {
+  const [value, setValue]       = useState(initialOrders ?? "");
+  const [saving, setSaving]     = useState(false);
+  const [saved,  setSaved]      = useState(false);
+  const [error,  setError]      = useState<string | null>(null);
+  const [paused, setPaused]     = useState(initialPaused);
+  const [toggling, setToggling] = useState(false);
   const posthog = usePostHog();
 
   // Keep local state in sync if parent re-renders
   useEffect(() => {
     setValue(initialOrders ?? "");
   }, [initialOrders]);
+
+  const handleTogglePause = async () => {
+    setToggling(true);
+    setError(null);
+    const next = !paused;
+    try {
+      const res = await fetch("/api/settings/profile", {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ automation_paused: next }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Update failed");
+      }
+      setPaused(next);
+      posthog.capture("automation_paused_toggled", { paused: next });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -55,6 +87,50 @@ export function HollisSection({ initialOrders }: { initialOrders?: string | null
 
   return (
     <div className="space-y-8">
+      {/* Pause automation banner */}
+      <div
+        className="rounded-xl p-5 flex items-start gap-4 border"
+        style={
+          paused
+            ? { background: "#1a1100", borderColor: "#4a3000" }
+            : { background: "#111111", borderColor: "#1C1C1C" }
+        }
+      >
+        <div
+          className="mt-0.5 flex-shrink-0 rounded-full p-2"
+          style={{ background: paused ? "#2a1e00" : "#181818" }}
+        >
+          {paused ? (
+            <Pause size={18} className="text-amber-400" strokeWidth={2} />
+          ) : (
+            <Play size={18} className="text-zinc-400" strokeWidth={1.5} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[14px] font-semibold" style={{ color: paused ? "#f5c842" : "#f5f5f7" }}>
+            {paused ? "Automation paused" : "Automation active"}
+          </p>
+          <p className="text-[13px] mt-0.5 leading-relaxed" style={{ color: paused ? "#a07830" : "#505057" }}>
+            {paused
+              ? "Hollis is not taking autonomous actions. All inbound signals are being queued for your review."
+              : "Hollis is acting autonomously on high-confidence signals. Pause to hold everything for your review."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleTogglePause}
+          disabled={toggling}
+          className="shrink-0 px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-50"
+          style={
+            paused
+              ? { background: "#f5c842", color: "#0C0C0C" }
+              : { background: "#1C1C1C", color: "#f5f5f7", border: "1px solid #2a2a2a" }
+          }
+        >
+          {toggling ? "Saving…" : paused ? "Resume automation" : "Pause automation"}
+        </button>
+      </div>
+
       {/* Header */}
       <div>
         <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Hollis Instructions</h2>

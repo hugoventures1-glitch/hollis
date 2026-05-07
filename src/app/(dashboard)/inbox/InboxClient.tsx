@@ -870,6 +870,12 @@ function DocChaseDetailPanel({
   const [validationResult, setValidationResult] = useState<{
     verdict: string; summary: string; issues: string[];
   } | null>(null);
+  const [refDocSuggestion, setRefDocSuggestion] = useState<{
+    clientId: string; storagePath: string; originalFilename: string; suggestedLabel: string;
+  } | null>(null);
+  const [refDocAdded, setRefDocAdded] = useState(false);
+  const [refDocBusy, setRefDocBusy] = useState(false);
+  const [refDocError, setRefDocError] = useState<string | null>(null);
 
   const hasAttachment = Boolean(item.received_attachment_path);
   const isPdf = item.received_attachment_content_type?.startsWith("application/pdf") ?? false;
@@ -911,6 +917,10 @@ function DocChaseDetailPanel({
     setReplySent(false);
     setDraftSubject(item.draft_reply_subject ?? "");
     setDraftBody(item.draft_reply_body ?? "");
+    setValidationResult(null);
+    setRefDocSuggestion(null);
+    setRefDocAdded(false);
+    setRefDocError(null);
     fetchSignedUrl();
   }, [fetchSignedUrl, item.id, item.draft_reply_subject, item.draft_reply_body]);
 
@@ -954,11 +964,46 @@ function DocChaseDetailPanel({
       if (data.verdict === "pass") {
         setMarked(true);
         onMarkReceived(item.id);
+        if (data.ref_doc_suggestion) {
+          setRefDocSuggestion({
+            clientId: data.ref_doc_suggestion.client_id,
+            storagePath: data.ref_doc_suggestion.storage_path,
+            originalFilename: data.ref_doc_suggestion.original_filename,
+            suggestedLabel: data.ref_doc_suggestion.suggested_label,
+          });
+        }
       }
       if (data.draft_subject) setDraftSubject(data.draft_subject);
       if (data.draft_body) setDraftBody(data.draft_body);
     } finally {
       setValidating(false);
+    }
+  }
+
+  async function handleAddToRefDocs() {
+    if (!refDocSuggestion) return;
+    setRefDocBusy(true);
+    setRefDocError(null);
+    try {
+      const res = await fetch(
+        `/api/clients/${refDocSuggestion.clientId}/reference-docs/from-suggestion`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storage_path: refDocSuggestion.storagePath,
+            original_filename: refDocSuggestion.originalFilename,
+            suggested_label: refDocSuggestion.suggestedLabel,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) { setRefDocError(data.error ?? "Failed"); return; }
+      setRefDocAdded(true);
+    } catch {
+      setRefDocError("Network error — please try again");
+    } finally {
+      setRefDocBusy(false);
     }
   }
 
@@ -1071,6 +1116,70 @@ function DocChaseDetailPanel({
                 ))}
               </ul>
             )}
+          </div>
+        )}
+
+        {/* ── REF DOC SUGGESTION ── */}
+        {refDocSuggestion && (
+          <div
+            style={{
+              marginBottom: 28,
+              padding: "14px 16px",
+              borderRadius: 10,
+              border: "1px solid #252525",
+              background: "#111",
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>
+                Add <strong style={{ color: "#FAFAFA" }}>{refDocSuggestion.suggestedLabel}</strong> to this client&apos;s AI reference docs?
+              </p>
+              {refDocAdded ? (
+                <span className="flex items-center gap-1.5 shrink-0 text-[11px] font-semibold" style={{ color: "#4ade80" }}>
+                  <CheckCircle2 size={12} /> Added
+                </span>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  {refDocError && <span style={{ fontSize: 11, color: "#f87171" }}>{refDocError}</span>}
+                  <button
+                    onClick={handleAddToRefDocs}
+                    disabled={refDocBusy}
+                    style={{
+                      height: 28,
+                      padding: "0 12px",
+                      borderRadius: 6,
+                      border: "1px solid #333",
+                      background: "transparent",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: refDocBusy ? "#555" : "#FAFAFA",
+                      cursor: refDocBusy ? "default" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    {refDocBusy && <Loader2 size={10} className="animate-spin" />}
+                    Add
+                  </button>
+                  <button
+                    onClick={() => setRefDocSuggestion(null)}
+                    style={{
+                      height: 28,
+                      padding: "0 10px",
+                      borderRadius: 6,
+                      border: "none",
+                      background: "transparent",
+                      fontSize: 11,
+                      color: "#444",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Skip
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1439,210 +1548,6 @@ function DocChaseZero() {
   );
 }
 
-function SuggestionsZero() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 select-none">
-      <div
-        className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
-      >
-        <span className="text-[18px]">✦</span>
-      </div>
-      <p className="text-[14px] font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-        No suggestions
-      </p>
-      <p className="text-[12px] leading-relaxed max-w-[220px]" style={{ color: "var(--text-tertiary)" }}>
-        Hollis will suggest updates here — like adding a newly received document to a client&apos;s AI reference docs.
-      </p>
-    </div>
-  );
-}
-
-// ── Suggestion row ─────────────────────────────────────────────────────────────
-
-function SuggestionRow({
-  item,
-  selected,
-  onClick,
-}: {
-  item: InboxItem;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const clientName = item.policies?.client_name ?? "Unknown Client";
-  const description = item.proposed_action?.description ?? "Hollis has a suggestion";
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left px-4 py-3.5 transition-colors"
-      style={{
-        background: selected ? "var(--surface-raised)" : "transparent",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <p className="text-[12px] font-semibold truncate mb-1 leading-tight" style={{ color: "#a78bfa" }}>
-        {clientName}
-      </p>
-      <div className="flex items-center gap-2">
-        <span
-          className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold"
-          style={{ background: "#2e1065", color: "#a78bfa", border: "1px solid #4c1d95" }}
-        >
-          Suggestion
-        </span>
-        <span className="text-[11px] truncate flex-1" style={{ color: "var(--text-secondary)" }}>
-          {description}
-        </span>
-        <span className="text-[10px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
-          {timeAgo(item.created_at)}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-// ── Suggestion detail panel ────────────────────────────────────────────────────
-
-function SuggestionDetailPanel({
-  item,
-  onAccepted,
-  onDismissed,
-}: {
-  item: InboxItem;
-  onAccepted: () => void;
-  onDismissed: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [accepted, setAccepted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const payload = item.proposed_action?.payload ?? {};
-  const clientId = payload.client_id as string | undefined;
-  const storagePath = payload.storage_path as string | undefined;
-  const originalFilename = (payload.original_filename as string | undefined) ?? "document";
-  const suggestedLabel = (payload.suggested_label as string | undefined) ?? "Document";
-  const description = item.proposed_action?.description ?? "";
-  const clientName = item.policies?.client_name ?? "";
-
-  async function handleAccept() {
-    if (!clientId || !storagePath) {
-      setError("Missing document info — cannot accept");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      // Create reference doc entry by copying the storage path
-      const res = await fetch(`/api/clients/${clientId}/reference-docs/from-suggestion`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          queue_item_id: item.id,
-          storage_path: storagePath,
-          original_filename: originalFilename,
-          suggested_label: suggestedLabel,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to accept"); return; }
-      setAccepted(true);
-      await new Promise((r) => setTimeout(r, 700));
-      onAccepted();
-    } catch {
-      setError("Network error — please try again");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleDismiss() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/agent/review/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "rejected" }),
-      });
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Failed"); return; }
-      onDismissed();
-    } catch {
-      setError("Network error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="flex-1 flex flex-col overflow-y-auto px-6 py-6 gap-5">
-      {/* Badge */}
-      <div className="flex items-center gap-2">
-        <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-          style={{ background: "#2e1065", color: "#a78bfa", border: "1px solid #4c1d95" }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#a78bfa" }} />
-          AI Suggestion
-        </span>
-      </div>
-
-      {/* Description */}
-      <div>
-        <p className="text-[15px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
-          {description || `Update reference docs for ${clientName}`}
-        </p>
-        <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-          A document was received and validated for this client. Hollis is suggesting you add it to their AI reference docs — this will improve reply quality for future emails on their behalf.
-        </p>
-      </div>
-
-      {/* Doc details */}
-      <div
-        className="flex items-start gap-3 p-4 rounded-xl"
-        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}
-      >
-        <FileText size={16} style={{ color: "var(--text-tertiary)", flexShrink: 0, marginTop: 1 }} />
-        <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{suggestedLabel}</div>
-          <div className="text-[12px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{originalFilename}</div>
-        </div>
-      </div>
-
-      {error && (
-        <p className="text-[12px] text-red-400">{error}</p>
-      )}
-
-      {accepted ? (
-        <div className="flex items-center gap-2 text-[13px]" style={{ color: "#a78bfa" }}>
-          <CheckCircle2 size={15} />
-          Added to reference docs
-        </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleAccept}
-            disabled={busy}
-            className="h-9 px-5 rounded-md text-[13px] font-semibold flex items-center gap-2 disabled:opacity-50 transition-colors"
-            style={{ background: "#4c1d95", color: "#e9d5ff", border: "1px solid #6d28d9" }}
-          >
-            {busy ? <Loader2 size={13} className="animate-spin" /> : null}
-            Accept — add to reference docs
-          </button>
-          <button
-            onClick={handleDismiss}
-            disabled={busy}
-            className="h-9 px-4 rounded-md text-[13px] transition-colors disabled:opacity-50"
-            style={{ border: "1px solid var(--border)", color: "var(--text-tertiary)" }}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Main client component ─────────────────────────────────────────────────────
 
 export default function InboxClient({
@@ -1653,7 +1558,7 @@ export default function InboxClient({
   docChaseReplies?: DocChaseReplyItem[];
 }) {
   const [items,        setItems]        = useState<InboxItem[]>(initialItems);
-  const [tab,          setTab]          = useState<"inbox" | "todo" | "doc_chase" | "suggestions">("inbox");
+  const [tab,          setTab]          = useState<"inbox" | "todo" | "doc_chase">("inbox");
   const [selectedId,   setSelectedId]   = useState<string | null>(null);
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editedIntent, setEditedIntent] = useState("");
@@ -1672,16 +1577,11 @@ export default function InboxClient({
   const isTodoItem = (i: InboxItem) =>
     i.proposed_action?.action_type === "broker_change_required" ||
     TODO_INTENTS.includes(i.classified_intent);
-  const isSuggestion = (i: InboxItem) => i.classified_intent === "ai_suggestion";
-  const inboxItems      = items.filter((i) => !isTodoItem(i) && !isSuggestion(i));
-  const todoItems       = items.filter((i) => isTodoItem(i) && !isSuggestion(i));
-  const suggestionItems = items.filter(isSuggestion);
+  const inboxItems = items.filter((i) => !isTodoItem(i));
+  const todoItems  = items.filter(isTodoItem);
 
   const selectedInboxItem = (tab === "inbox" || tab === "todo")
     ? (tab === "inbox" ? inboxItems : todoItems).find((i) => i.id === selectedId) ?? null
-    : null;
-  const selectedSuggestion = tab === "suggestions"
-    ? suggestionItems.find((i) => i.id === selectedId) ?? null
     : null;
   const selectedDocChase = tab === "doc_chase"
     ? docChaseReplies.find((r) => r.id === selectedDocChaseId) ?? null
@@ -1759,11 +1659,10 @@ export default function InboxClient({
     setEditedBody("");
   }
 
-  const TABS: { key: "inbox" | "todo" | "doc_chase" | "suggestions"; label: string; count: number }[] = [
-    { key: "inbox",       label: "Inbox",       count: inboxItems.length },
-    { key: "todo",        label: "To Do",       count: todoItems.length },
-    { key: "doc_chase",   label: "Doc Chase",   count: docChaseReplies.length },
-    { key: "suggestions", label: "Suggestions", count: suggestionItems.length },
+  const TABS: { key: "inbox" | "todo" | "doc_chase"; label: string; count: number }[] = [
+    { key: "inbox",     label: "Inbox",     count: inboxItems.length },
+    { key: "todo",      label: "To Do",     count: todoItems.length },
+    { key: "doc_chase", label: "Doc Chase", count: docChaseReplies.length },
   ];
 
   return (
@@ -1873,26 +1772,12 @@ export default function InboxClient({
           )
         )}
 
-        {tab === "suggestions" && (
-          suggestionItems.length === 0 ? <SuggestionsZero /> : (
-            <div className="flex-1 overflow-y-auto">
-              {suggestionItems.map((item) => (
-                <SuggestionRow
-                  key={item.id}
-                  item={item}
-                  selected={item.id === selectedId}
-                  onClick={() => { setSelectedId(item.id); setEditingId(null); }}
-                />
-              ))}
-            </div>
-          )
-        )}
       </div>
 
       {/* ── Right: detail panel ────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Subheader */}
-        {tab !== "doc_chase" && tab !== "suggestions" && (
+        {tab !== "doc_chase" && (
           <header
             className="h-14 shrink-0 flex items-center justify-between px-6"
             style={{ borderBottom: "1px solid var(--border)" }}
@@ -1938,23 +1823,7 @@ export default function InboxClient({
         )}
 
         {/* Content */}
-        {tab === "suggestions" ? (
-          selectedSuggestion ? (
-            <SuggestionDetailPanel
-              item={selectedSuggestion}
-              onAccepted={() => {
-                setItems((prev) => prev.filter((i) => i.id !== selectedSuggestion.id));
-                setSelectedId(null);
-              }}
-              onDismissed={() => {
-                setItems((prev) => prev.filter((i) => i.id !== selectedSuggestion.id));
-                setSelectedId(null);
-              }}
-            />
-          ) : (
-            <NothingSelected />
-          )
-        ) : tab === "doc_chase" ? (
+        {tab === "doc_chase" ? (
           selectedDocChase ? (
             <DocChaseDetailPanel
               item={selectedDocChase}
