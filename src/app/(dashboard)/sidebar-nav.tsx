@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useHollisStore, HOLLIS_STALE_MS } from "@/stores/hollisStore";
 import { daysUntilExpiry } from "@/types/renewals";
@@ -79,13 +79,15 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
   const { openPanel } = useUnifiedPanel();
 
   // Derive sidebar counts from the cached store — no extra DB queries needed
-  const policies           = useHollisStore(s => s.policies);
   const approvalQueueCount = useHollisStore(s => s.approvalQueueCount);
 
-  const renewalCount = policies.filter(p => { const d = daysUntilExpiry(p.expiration_date); return d >= 0 && d <= 60; }).length;
+  const renewalCount = useHollisStore(s =>
+    s.policies.filter(p => { const d = daysUntilExpiry(p.expiration_date); return d >= 0 && d <= 60; }).length
+  );
 
-  const docChaseRequests = useHollisStore(s => s.docChaseRequests);
-  const docChaseCount = docChaseRequests.filter(r => r.status === "active").length;
+  const docChaseCount = useHollisStore(s =>
+    s.docChaseRequests.filter(r => r.status === "active").length
+  );
 
   // Derive initials and agencyName from server-provided profile
   const first    = profile.firstName?.[0] ?? "";

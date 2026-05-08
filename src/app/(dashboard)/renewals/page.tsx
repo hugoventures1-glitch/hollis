@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useRef } from "react";
+import { Suspense, useMemo, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Loader2, Search } from "lucide-react";
@@ -47,11 +47,19 @@ function RenewalsContent() {
 
   const isLoading = storeLoading;
 
-  // Summary stats (always from active store)
-  const active       = activePolicies;
-  const urgent       = active.filter((p) => ACTION_STAGES.includes(p.campaign_stage) && daysUntilExpiry(p.expiration_date) <= 30).length;
-  const actionCount  = active.filter((p) => ACTION_STAGES.includes(p.campaign_stage)).length;
-  const progressCount= active.filter((p) => PROGRESS_STAGES.includes(p.campaign_stage)).length;
+  // Summary stats (always from active store) — memoized to avoid recomputing on every render
+  const { urgent, actionCount, progressCount } = useMemo(() => {
+    let urgent = 0, actionCount = 0, progressCount = 0;
+    for (const p of activePolicies) {
+      if (ACTION_STAGES.includes(p.campaign_stage)) {
+        actionCount++;
+        if (daysUntilExpiry(p.expiration_date) <= 30) urgent++;
+      } else if (PROGRESS_STAGES.includes(p.campaign_stage)) {
+        progressCount++;
+      }
+    }
+    return { urgent, actionCount, progressCount };
+  }, [activePolicies]);
 
   const tabs: { id: ViewTab; label: string; count: number }[] = [
     { id: "action",    label: "Action Required", count: actionCount   },
@@ -93,7 +101,7 @@ function RenewalsContent() {
               color:      "#FAFAFA",
             }}
           >
-            {active.length}
+            {activePolicies.length}
           </div>
           <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Active

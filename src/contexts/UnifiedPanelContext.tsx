@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useRef } from "react";
+import { createContext, useContext, useCallback, useMemo, useRef } from "react";
 
 interface UnifiedPanelContextValue {
   openPanel: () => void;
@@ -31,10 +31,13 @@ export function UnifiedPanelProvider({ children }: { children: React.ReactNode }
     queryHandlerRef.current(text);
   }, []);
 
+  const value = useMemo(
+    () => ({ openPanel, openPanelWithQuery, registerOpenHandler, registerOpenWithQueryHandler }),
+    [openPanel, openPanelWithQuery, registerOpenHandler, registerOpenWithQueryHandler]
+  );
+
   return (
-    <UnifiedPanelContext.Provider
-      value={{ openPanel, openPanelWithQuery, registerOpenHandler, registerOpenWithQueryHandler }}
-    >
+    <UnifiedPanelContext.Provider value={value}>
       {children}
     </UnifiedPanelContext.Provider>
   );

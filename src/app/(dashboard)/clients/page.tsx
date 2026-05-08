@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Users, Loader2, Search } from "lucide-react";
 import { ClientsTable } from "./_components/ClientsTable";
@@ -15,29 +15,28 @@ export default function ClientsPage() {
   const [tab,   setTab]     = useState<TabId>("all");
   const inputRef            = useRef<HTMLInputElement>(null);
 
-  const companies   = clients.filter((c) => c.business_type && c.business_type !== "individual");
-  const individuals = clients.filter((c) => !c.business_type || c.business_type === "individual");
+  const { companies, individuals } = useMemo(() => ({
+    companies:   clients.filter((c) => c.business_type && c.business_type !== "individual"),
+    individuals: clients.filter((c) => !c.business_type || c.business_type === "individual"),
+  }), [clients]);
 
   const tabs: { id: TabId; label: string; count: number }[] = [
-    { id: "all",         label: "All",         count: clients.length   },
+    { id: "all",         label: "All",         count: clients.length     },
     { id: "companies",   label: "Companies",   count: companies.length   },
     { id: "individuals", label: "Individuals", count: individuals.length },
   ];
 
-  const baseRows =
-    tab === "companies"   ? companies :
-    tab === "individuals" ? individuals :
-    clients;
-
-  const q = query.trim().toLowerCase();
-  const rows = q
-    ? baseRows.filter((c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.business_type?.toLowerCase().includes(q) ||
-        c.primary_state?.toLowerCase().includes(q)
-      )
-    : baseRows;
+  const rows = useMemo(() => {
+    const base = tab === "companies" ? companies : tab === "individuals" ? individuals : clients;
+    const q = query.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.business_type?.toLowerCase().includes(q) ||
+      c.primary_state?.toLowerCase().includes(q)
+    );
+  }, [clients, companies, individuals, tab, query]);
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
