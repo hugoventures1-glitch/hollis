@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Commercial Insurance Signed Application — Thornfield Construction</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 11pt;
+      color: #111;
+      background: #fff;
+      padding: 48px 60px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #111;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+    }
+    .header-left h1 {
+      font-size: 16pt;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .header-left p {
+      font-size: 9pt;
+      color: #555;
+      margin-top: 3px;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 9pt;
+      color: #444;
+    }
+    .header-right .ref {
+      font-weight: bold;
+      font-size: 10pt;
+      color: #111;
+    }
+    h2 {
+      font-size: 11pt;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      margin: 18px 0 10px;
+    }
+    .row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 8px;
+    }
+    .field {
+      flex: 1;
+    }
+    .field label {
+      display: block;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #666;
+      margin-bottom: 2px;
+    }
+    .field .value {
+      border-bottom: 1px solid #999;
+      padding: 2px 0 3px;
+      font-size: 10.5pt;
+      min-height: 20px;
+    }
+    .checkbox-group {
+      display: flex;
+      gap: 24px;
+      margin: 6px 0;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10pt;
+      cursor: default;
+    }
+    .cb {
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #444;
+      display: inline-block;
+      position: relative;
+    }
+    .cb.checked::after {
+      content: "✓";
+      font-size: 10pt;
+      position: absolute;
+      top: -3px;
+      left: 1px;
+      color: #111;
+      font-weight: bold;
+    }
+    .coverage-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 10pt;
+    }
+    .coverage-table th {
+      text-align: left;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #555;
+      border-bottom: 1px solid #bbb;
+      padding: 4px 6px 4px 0;
+    }
+    .coverage-table td {
+      padding: 5px 6px 5px 0;
+      border-bottom: 1px solid #e8e8e8;
+      vertical-align: top;
+    }
+    .coverage-table tr.selected td {
+      font-weight: 600;
+    }
+    .declaration {
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      padding: 12px 14px;
+      font-size: 9.5pt;
+      line-height: 1.5;
+      margin: 16px 0;
+      color: #333;
+    }
+    .signature-block {
+      display: flex;
+      gap: 32px;
+      margin-top: 22px;
+    }
+    .sig-field {
+      flex: 1;
+    }
+    .sig-field label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #666;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .sig-line {
+      border-bottom: 1.5px solid #333;
+      height: 38px;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 3px;
+    }
+    .signature-text {
+      font-family: "Brush Script MT", "Segoe Script", cursive;
+      font-size: 22pt;
+      color: #1a1a6e;
+      line-height: 1;
+    }
+    .footer {
+      margin-top: 32px;
+      border-top: 1px solid #ccc;
+      padding-top: 8px;
+      font-size: 8pt;
+      color: #888;
+      display: flex;
+      justify-content: space-between;
+    }
+    @media print {
+      body { padding: 36px 48px; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print button (hidden when printing) -->
+  <div class="no-print" style="margin-bottom:24px; display:flex; gap:10px;">
+    <button onclick="window.print()" style="padding:8px 18px; font-size:13px; cursor:pointer; background:#111; color:#fff; border:none; border-radius:4px;">
+      Save as PDF (Print → Save as PDF)
+    </button>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Commercial Insurance<br>Signed Application</h1>
+      <p>General Liability · Workers Compensation · Commercial Property</p>
+    </div>
+    <div class="header-right">
+      <div class="ref">REF: TFC-2026-0428</div>
+      <div>Date: 28 April 2026</div>
+      <div style="margin-top:6px;">Policy Inception: 1 June 2026</div>
+      <div>Policy Expiry: 31 May 2027</div>
+    </div>
+  </div>
+
+  <!-- Section 1: Applicant -->
+  <h2>1. Applicant Information</h2>
+  <div class="row">
+    <div class="field">
+      <label>Legal Business Name</label>
+      <div class="value">Thornfield Construction Pty Ltd</div>
+    </div>
+    <div class="field">
+      <label>ABN</label>
+      <div class="value">51 834 209 671</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Trading Name</label>
+      <div class="value">Thornfield Construction</div>
+    </div>
+    <div class="field">
+      <label>Date Established</label>
+      <div class="value">14 March 2009</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field" style="flex:2">
+      <label>Principal Place of Business</label>
+      <div class="value">88 Ironbark Road, Mulgrave VIC 3170</div>
+    </div>
+    <div class="field">
+      <label>State</label>
+      <div class="value">VIC</div>
+    </div>
+    <div class="field">
+      <label>Postcode</label>
+      <div class="value">3170</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Primary Contact</label>
+      <div class="value">Marcus Thornfield</div>
+    </div>
+    <div class="field">
+      <label>Title</label>
+      <div class="value">Director</div>
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <div class="value">0412 884 203</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Email</label>
+      <div class="value">marcus@thornfieldconstruction.com.au</div>
+    </div>
+    <div class="field">
+      <label>Website</label>
+      <div class="value">thornfieldconstruction.com.au</div>
+    </div>
+  </div>
+
+  <!-- Section 2: Business -->
+  <h2>2. Business Operations</h2>
+  <div class="row">
+    <div class="field" style="flex:2">
+      <label>Nature of Business / Operations</label>
+      <div class="value">Residential and commercial construction, including framing, concreting, fitout and project management</div>
+    </div>
+    <div class="field">
+      <label>No. of Full-Time Employees</label>
+      <div class="value">18</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Annual Turnover (projected)</label>
+      <div class="value">$4,200,000</div>
+    </div>
+    <div class="field">
+      <label>Annual Wages (FTE + subcontractors)</label>
+      <div class="value">$1,850,000</div>
+    </div>
+    <div class="field">
+      <label>No. of Subcontractors</label>
+      <div class="value">7 (occasional)</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Do you engage labour hire?</label>
+      <div class="value">
+        <div class="checkbox-group" style="margin:0;">
+          <label><span class="cb"></span> Yes</label>
+          <label><span class="cb checked"></span> No</label>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Work performed interstate?</label>
+      <div class="value">
+        <div class="checkbox-group" style="margin:0;">
+          <label><span class="cb checked"></span> Yes</label>
+          <label><span class="cb"></span> No</label>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>If yes, which states?</label>
+      <div class="value">VIC, NSW</div>
+    </div>
+  </div>
+
+  <!-- Section 3: Coverage -->
+  <h2>3. Coverage Requested</h2>
+  <table class="coverage-table">
+    <thead>
+      <tr>
+        <th>Coverage Type</th>
+        <th>Limit Requested</th>
+        <th>Deductible</th>
+        <th>Selected</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="selected">
+        <td>Public &amp; Products Liability</td>
+        <td>$20,000,000 any one occurrence</td>
+        <td>$2,500</td>
+        <td>✓</td>
+      </tr>
+      <tr class="selected">
+        <td>Employers Liability / Workers Compensation</td>
+        <td>Statutory (VIC) + $5M excess</td>
+        <td>Nil</td>
+        <td>✓</td>
+      </tr>
+      <tr class="selected">
+        <td>Contract Works (Construction All Risks)</td>
+        <td>$3,500,000 per project</td>
+        <td>$5,000</td>
+        <td>✓</td>
+      </tr>
+      <tr>
+        <td>Commercial Property (tools &amp; equipment)</td>
+        <td>$180,000 sum insured</td>
+        <td>$1,000</td>
+        <td>✓</td>
+      </tr>
+      <tr>
+        <td>Management Liability</td>
+        <td>$2,000,000</td>
+        <td>$5,000</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 4: Claims History -->
+  <h2>4. Claims History (past 5 years)</h2>
+  <div class="row">
+    <div class="field">
+      <label>Any claims or incidents in the past 5 years?</label>
+      <div class="value">
+        <div class="checkbox-group" style="margin:0;">
+          <label><span class="cb checked"></span> Yes</label>
+          <label><span class="cb"></span> No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field" style="flex:3">
+      <label>If yes, provide details</label>
+      <div class="value">2024 — Minor property damage claim, scaffolding incident on commercial site. Settled $8,400. No injuries. Insurer: Allianz.</div>
+    </div>
+  </div>
+
+  <!-- Declaration -->
+  <h2>5. Declaration</h2>
+  <div class="declaration">
+    I/We declare that the information provided in this application is true and complete to the best of my/our knowledge and belief. I/We have not withheld any material fact likely to affect the assessment of this application. I/We understand that a false declaration may render any policy issued void and unenforceable. I/We authorise the insurer and its agents to verify the information provided and to share information with reinsurers as required.
+  </div>
+
+  <!-- Signature -->
+  <div class="signature-block">
+    <div class="sig-field" style="flex:2">
+      <label>Authorised Signatory</label>
+      <div class="sig-line">
+        <span class="signature-text">Marcus Thornfield</span>
+      </div>
+    </div>
+    <div class="sig-field">
+      <label>Position / Title</label>
+      <div class="sig-line" style="align-items:flex-end; padding-bottom:4px; font-size:10pt;">Director</div>
+    </div>
+    <div class="sig-field">
+      <label>Date Signed</label>
+      <div class="sig-line" style="align-items:flex-end; padding-bottom:4px; font-size:10pt;">28/04/2026</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Thornfield Construction Pty Ltd — ABN 51 834 209 671</span>
+    <span>REF: TFC-2026-0428 · Page 1 of 1</span>
+    <span>Confidential — Insurance Purposes Only</span>
+  </div>
+
+</body>
+</html>

@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     // ── Fetch approval queue item (RLS enforces ownership) ───────────────────────
     const { data: queueItem, error: fetchError } = await supabase
       .from("approval_queue")
-      .select("id, policy_id, user_id, signal_id, classified_intent, confidence_score, raw_signal_snippet, proposed_action, status")
+      .select("id, policy_id, user_id, signal_id, classified_intent, confidence_score, raw_signal_snippet, proposed_action, status, doc_chase_request_id")
       .eq("id", queueItemId)
       .eq("user_id", user.id)
       .single();
@@ -436,6 +436,38 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // ── Execute: broker approved close_doc_chase — mark specific chase received ──
+    if (
+      (action === "approved" || action === "edited") &&
+      (queueItem.proposed_action as { action_type?: string })?.action_type === "close_doc_chase"
+    ) {
+      try {
+        const chaseId = (queueItem as { doc_chase_request_id?: string | null }).doc_chase_request_id;
+        if (chaseId) {
+          await admin
+            .from("doc_chase_requests")
+            .update({ status: "received", received_at: resolvedAt })
+            .eq("id", chaseId);
+        }
+
+        void logAction({
+          broker_id: user.id,
+          policy_id: queueItem.policy_id as string,
+          action_type: "doc_chase_closed",
+          tier: "2",
+          trigger_reason: `Broker approved close_doc_chase — doc-chase request marked received.`,
+          metadata: { queue_item_id: queueItemId, signal_id: queueItem.signal_id, doc_chase_request_id: chaseId },
+          outcome: "sent",
+          retain_until: retainStandard(),
+        });
+      } catch (execErr) {
+        console.error(
+          "[agent/review] Failed to execute close_doc_chase:",
+          execErr instanceof Error ? execErr.message : execErr
+        );
+      }
+    }
+
     // ── Execute: broker confirmed document received — close doc-chase requests ────
     if (
       (action === "approved" || action === "edited") &&
@@ -733,6 +765,27 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         outcome: "sent",
         retain_until: retainStandard(),
       });
+    }
+
+    // ── Generic: close linked doc chase for any approved/edited item ───────────
+    if (
+      (action === "approved" || action === "edited") &&
+      (queueItem as { doc_chase_request_id?: string | null }).doc_chase_request_id
+    ) {
+      try {
+        const chaseId = (queueItem as { doc_chase_request_id?: string | null }).doc_chase_request_id;
+        if (chaseId) {
+          await admin
+            .from("doc_chase_requests")
+            .update({ status: "received", received_at: resolvedAt })
+            .eq("id", chaseId);
+        }
+      } catch (execErr) {
+        console.error(
+          "[agent/review] Failed to close linked doc_chase_request_id:",
+          execErr instanceof Error ? execErr.message : execErr
+        );
+      }
     }
 
     // When broker rejects, mark the touchpoint skipped so the cron doesn't

@@ -81,7 +81,7 @@ function makeTier3(
 
 // ── Tier 2 helpers ─────────────────────────────────────────────────────────────
 
-function buildProposedAction(intent: string, classification: ClassificationResult): ProposedAction {
+function buildProposedAction(intent: string, classification: ClassificationResult, docChaseRequestId?: string | null): ProposedAction {
   const actionMap: Record<string, { description: string; action_type: string }> = {
     confirm_renewal: {
       description: "Mark client as confirmed and advance campaign stage to 'confirmed'",
@@ -114,6 +114,20 @@ function buildProposedAction(intent: string, classification: ClassificationResul
     },
   };
 
+  // When an active doc chase exists, override document_received to close_doc_chase
+  if (intent === "document_received" && docChaseRequestId) {
+    return {
+      description: "Client sent a document in reply to an active doc chase — approve to mark chase as received",
+      action_type: "close_doc_chase",
+      payload: {
+        intent: classification.intent,
+        confidence: classification.confidence,
+        reasoning: classification.reasoning,
+        doc_chase_request_id: docChaseRequestId,
+      },
+    };
+  }
+
   const mapped = actionMap[intent];
 
   // For document_required, include the document type in the description so the
@@ -145,14 +159,15 @@ function buildProposedAction(intent: string, classification: ClassificationResul
 function makeTier2(
   reason: string,
   flags: RenewalFlags,
-  classification: ClassificationResult
+  classification: ClassificationResult,
+  docChaseRequestId?: string | null,
 ): TierDecision {
   return {
     tier: 2,
     reason,
     classification,
     flags,
-    proposed_action: buildProposedAction(classification.intent, classification),
+    proposed_action: buildProposedAction(classification.intent, classification, docChaseRequestId),
   };
 }
 
@@ -190,7 +205,8 @@ export async function routeTier(
   flags: RenewalFlags,
   classification: ClassificationResult,
   policy: PolicyContext,
-  rawSignal: string
+  rawSignal: string,
+  docChaseRequestId?: string | null,
 ): Promise<TierDecision> {
   // ── TIER 3: Hardcoded flag triggers ──────────────────────────────────────────
   // These checks are immutable. No amount of confidence can override them.
@@ -266,6 +282,19 @@ export async function routeTier(
       classification,
       policy,
       rawSignal
+    );
+  }
+
+  // ── TIER 2: document_received with active doc chase ───────────────────────────
+  // If the client is replying to an open doc chase, broker must review before
+  // auto-closing — this prevents confirm_renewal masquerading as doc replies.
+
+  if (classification.intent === "document_received" && docChaseRequestId) {
+    return makeTier2(
+      "Document received with active doc chase — broker review required before closing chase",
+      flags,
+      classification,
+      docChaseRequestId
     );
   }
 

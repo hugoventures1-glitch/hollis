@@ -67,6 +67,11 @@ const SYSTEM_PROMPT = `You are an intent classifier for an insurance renewal man
 
 Your job is to analyse inbound signals (client emails, SMS replies, third-party correspondence) and classify them into the appropriate intent, with a confidence score.
 
+PRIORITY DISAMBIGUATION RULE:
+If the inbound signal contains any of the following — an attachment reference, a document type name (certificate, loss run, accord, invoice, financials, statement, policy documents), or phrases like "attached", "sending you", "here is", "please find" — classify as document_received, NOT confirm_renewal, even if confirmation language is also present.
+
+confirm_renewal is only valid when: (1) no document is referenced, (2) no open questions, (3) completely unconditional. Degrade to soft_query or document_received if any of those conditions fail.
+
 KNOWN INTENT TAXONOMY:
 Autonomous intents (can be handled without broker intervention if confidence is high):
 - confirm_renewal: Client confirms they want to proceed with renewal, with no conditions, change requests, OR open questions. The confirmation must be unconditional and unambiguous — if the client asks any question alongside the confirmation (e.g. "I'll confirm, but can you tell me what this covers?"), classify as soft_query instead because the question must be resolved before the confirmation can be actioned.

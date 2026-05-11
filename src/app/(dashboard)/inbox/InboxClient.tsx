@@ -25,6 +25,10 @@ import type { InboxItem, DocChaseReplyItem } from "./page";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+function isDocChaseReply(i: InboxItem): boolean {
+  return !!i.doc_chase_request_id || i.proposed_action?.action_type === "close_doc_chase";
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins  = Math.floor(diff / 60_000);
@@ -128,6 +132,17 @@ function InboxRow({
             className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
             style={{ background: isUrgent ? "var(--danger)" : "var(--text-tertiary)" }}
           />
+        )}
+        {isDocChaseReply(item) && (
+          <span
+            className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+            style={{
+              background: "var(--accent)",
+              color: "var(--text-inverse)",
+            }}
+          >
+            Doc Chase Reply
+          </span>
         )}
         {carrierShort && (
           <span
@@ -865,6 +880,9 @@ function DocChaseDetailPanel({
   const [draftBody, setDraftBody] = useState(item.draft_reply_body ?? "");
   const [sending, setSending] = useState(false);
   const [replySent, setReplySent] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const [validateError, setValidateError] = useState<string | null>(null);
+  const [markError, setMarkError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -926,16 +944,21 @@ function DocChaseDetailPanel({
 
   async function handleMarkReceived() {
     setMarking(true);
+    setMarkError(null);
     try {
       const res = await fetch(`/api/doc-chase/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "received" }),
       });
-      if (res.ok) {
-        setMarked(true);
-        onMarkReceived(item.id);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to mark received");
       }
+      setMarked(true);
+      onMarkReceived(item.id);
+    } catch (err) {
+      setMarkError(err instanceof Error ? err.message : "Failed to mark received");
     } finally {
       setMarking(false);
     }
@@ -943,13 +966,20 @@ function DocChaseDetailPanel({
 
   async function handleSendReply() {
     setSending(true);
+    setReplyError(null);
     try {
       const res = await fetch(`/api/doc-chase/${item.id}/send-reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: draftSubject, body: draftBody }),
       });
-      if (res.ok) setReplySent(true);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to send reply");
+      }
+      setReplySent(true);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Failed to send reply");
     } finally {
       setSending(false);
     }
@@ -957,8 +987,13 @@ function DocChaseDetailPanel({
 
   async function handleValidate() {
     setValidating(true);
+    setValidateError(null);
     try {
       const res = await fetch(`/api/doc-chase/${item.id}/validate-stored`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Validation failed");
+      }
       const data = await res.json();
       setValidationResult({ verdict: data.verdict, summary: data.summary, issues: data.issues ?? [] });
       if (data.verdict === "pass") {
@@ -975,6 +1010,8 @@ function DocChaseDetailPanel({
       }
       if (data.draft_subject) setDraftSubject(data.draft_subject);
       if (data.draft_body) setDraftBody(data.draft_body);
+    } catch (err) {
+      setValidateError(err instanceof Error ? err.message : "Validation failed");
     } finally {
       setValidating(false);
     }
@@ -1575,8 +1612,9 @@ export default function InboxClient({
 
   const TODO_INTENTS = ["confirm_renewal", "soft_query"];
   const isTodoItem = (i: InboxItem) =>
-    i.proposed_action?.action_type === "broker_change_required" ||
-    TODO_INTENTS.includes(i.classified_intent);
+    !isDocChaseReply(i) &&
+    (i.proposed_action?.action_type === "broker_change_required" ||
+      TODO_INTENTS.includes(i.classified_intent));
   const inboxItems = items.filter((i) => !isTodoItem(i));
   const todoItems  = items.filter(isTodoItem);
 

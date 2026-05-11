@@ -45,6 +45,7 @@ export interface InboxItem {
     payload: Record<string, unknown>;
   };
   status: "pending" | "approved" | "rejected" | "edited";
+  doc_chase_request_id: string | null;
   created_at: string;
   policies: {
     id: string;
@@ -72,6 +73,7 @@ export default async function InboxPage() {
     raw_signal_snippet,
     proposed_action,
     status,
+    doc_chase_request_id,
     created_at,
     policies!inner (
       id,

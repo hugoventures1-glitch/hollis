@@ -118,6 +118,20 @@ export async function processInboundSignal(
   // ── 4. Classify intent ─────────────────────────────────────────────────────────
   const classification = await classifyIntent(rawSignal, recentOutcomes);
 
+  // ── 4b. Look up active doc chase for document_received intents ─────────────────
+  let docChaseRequestId: string | null = null;
+  if (classification.intent === "document_received") {
+    const { data: chaseReq } = await admin
+      .from("doc_chase_requests")
+      .select("id")
+      .eq("policy_id", policyId)
+      .in("status", ["sent", "pending"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    docChaseRequestId = (chaseReq as { id?: string } | null)?.id ?? null;
+  }
+
   // ── 5–6. Build flags + write to policy ────────────────────────────────────────
   const currentFlags = await getCurrentFlags(admin, policyId);
   const updatedFlags = buildFlagsFromClassification(
@@ -141,7 +155,8 @@ export async function processInboundSignal(
       expiration_date: policy.expiration_date as string,
       last_contact_at: policy.last_contact_at as string | null,
     },
-    rawSignal
+    rawSignal,
+    docChaseRequestId
   );
 
   // ── 8. Write audit log ─────────────────────────────────────────────────────────
@@ -380,6 +395,7 @@ export async function processInboundSignal(
         raw_signal_snippet: rawSignal.slice(0, 500),
         proposed_action: tierDecision.proposed_action,
         status: "pending",
+        doc_chase_request_id: docChaseRequestId,
       })
       .select("id")
       .single();
