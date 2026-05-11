@@ -66,14 +66,14 @@ export function PolicyTimelinePanel({
 
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#555555" }}>
+      <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>
         Renewal Timeline
       </div>
 
       {/* Banner */}
       <div
         className="flex items-center gap-3 rounded-xl px-4 py-3 mb-6"
-        style={{ background: "#111111", border: "1px solid #1C1C1C" }}
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <CalendarRange size={15} className="text-zinc-500 shrink-0" />
         <span className="text-[13px] text-zinc-500 flex-1">
@@ -86,7 +86,7 @@ export function PolicyTimelinePanel({
             type="button"
             onClick={handleCustomise}
             disabled={customising}
-            className="shrink-0 px-3 py-1 text-[12px] font-medium rounded-md border border-[#2A2A2A] text-zinc-300 hover:border-zinc-500 hover:text-[#FAFAFA] transition-colors disabled:opacity-50"
+            className="shrink-0 px-3 py-1 text-[12px] font-medium rounded-md border border-border text-zinc-300 hover:border-zinc-500 hover:text-text-primary transition-colors disabled:opacity-50"
           >
             {customising ? "Setting up…" : "Customise"}
           </button>

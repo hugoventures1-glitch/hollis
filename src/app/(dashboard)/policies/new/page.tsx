@@ -44,23 +44,23 @@ function StepIndicator({ current }: { current: WizardStep }) {
     <div className="flex items-center gap-3">
       {steps.map((s, i) => (
         <div key={s} className="flex items-center gap-2">
-          {i > 0 && <div className="w-8 h-px bg-[#1C1C1C]" />}
+          {i > 0 && <div className="w-8 h-px bg-border" />}
           <div
             className={`flex items-center gap-1.5 text-[12px] ${
               currentIdx === i
-                ? "text-[#FAFAFA]"
+                ? "text-text-primary"
                 : currentIdx > i
-                ? "text-[#FAFAFA]"
-                : "text-[#6b6b6b]"
+                ? "text-text-primary"
+                : "text-text-tertiary"
             }`}
           >
             <div
               className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
                 currentIdx === i
-                  ? "bg-[#FAFAFA] border-[#FAFAFA] text-[#0C0C0C]"
+                  ? "bg-text-primary border-text-primary text-text-inverse"
                   : currentIdx > i
-                  ? "bg-[#FAFAFA]/20 border-[#555555] text-[#FAFAFA]"
-                  : "bg-transparent border-[#333333] text-[#6b6b6b]"
+                  ? "bg-text-primary/20 border-text-secondary text-text-primary"
+                  : "bg-transparent border-text-tertiary text-text-tertiary"
               }`}
             >
               {i + 1}
@@ -76,11 +76,11 @@ function StepIndicator({ current }: { current: WizardStep }) {
 function FileStatusRow({ entry }: { entry: FileEntry }) {
   const icon =
     entry.status === "done" ? (
-      <CheckCircle size={14} className="text-[#FAFAFA] shrink-0" />
+      <CheckCircle size={14} className="text-text-primary shrink-0" />
     ) : entry.status === "error" ? (
       <AlertCircle size={14} className="text-red-400 shrink-0" />
     ) : (
-      <Loader2 size={14} className="text-[#FAFAFA] animate-spin shrink-0" />
+      <Loader2 size={14} className="text-text-primary animate-spin shrink-0" />
     );
 
   const label =
@@ -95,13 +95,13 @@ function FileStatusRow({ entry }: { entry: FileEntry }) {
       : "Waiting…";
 
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-[#1C1C1C]/60 last:border-b-0">
-      <FileText size={13} className="text-[#6b6b6b] shrink-0" />
+    <div className="flex items-center gap-3 py-2.5 border-b border-border/60 last:border-b-0">
+      <FileText size={13} className="text-text-tertiary shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] text-[#FAFAFA] truncate">{entry.file.name}</div>
+        <div className="text-[13px] text-text-primary truncate">{entry.file.name}</div>
         <div
           className={`text-[11px] mt-0.5 ${
-            entry.status === "error" ? "text-red-400" : "text-[#6b6b6b]"
+            entry.status === "error" ? "text-red-400" : "text-text-tertiary"
           }`}
         >
           {entry.status === "error" ? label : `${formatFileSize(entry.file.size)} · ${label}`}
@@ -318,19 +318,19 @@ export default function NewPolicyCheckPage() {
   // ── Render ───────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C]">
+    <div className="flex flex-col h-full bg-background">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-border shrink-0">
         <Link
           href="/policies"
-          className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft size={13} />
           Policy Audit
         </Link>
-        <ChevronRight size={12} className="text-[#6b6b6b]" />
-        <span className="text-[13px] text-[#FAFAFA]">New Check</span>
+        <ChevronRight size={12} className="text-text-tertiary" />
+        <span className="text-[13px] text-text-primary">New Check</span>
         <div className="ml-auto">
           <StepIndicator current={step} />
         </div>
@@ -343,17 +343,17 @@ export default function NewPolicyCheckPage() {
           {/* ── Phase 1: Setup ──────────────────────────────────── */}
           {step === "setup" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">
+              <h1 className="text-[22px] font-bold text-text-primary mb-1">
                 Run a policy check
               </h1>
-              <p className="text-[14px] text-[#8a8a8a] mb-8">
+              <p className="text-[14px] text-text-secondary mb-8">
                 Upload one or more policy PDFs. Hollis will extract all coverage
                 data and flag gaps against your client&apos;s profile.
               </p>
 
               {/* Client selector */}
               <div className="mb-6">
-                <label className="block text-[12px] font-medium text-[#8a8a8a] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-medium text-text-secondary uppercase tracking-wider mb-2">
                   Client <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -362,8 +362,8 @@ export default function NewPolicyCheckPage() {
                     setSelectedClientId(e.target.value);
                     if (e.target.value) setFormErrors((prev) => ({ ...prev, client: undefined }));
                   }}
-                  className={`w-full bg-[#111111] border rounded-lg px-3 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] transition-colors ${
-                    formErrors.client ? "border-red-500/60" : "border-[#1C1C1C]"
+                  className={`w-full bg-surface border rounded-lg px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-text-secondary transition-colors ${
+                    formErrors.client ? "border-red-500/60" : "border-border"
                   }`}
                 >
                   <option value="">Select a client…</option>
@@ -384,7 +384,7 @@ export default function NewPolicyCheckPage() {
 
               {/* Drop zone */}
               <div className="mb-4">
-                <label className="block text-[12px] font-medium text-[#8a8a8a] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-medium text-text-secondary uppercase tracking-wider mb-2">
                   Policy PDFs <span className="text-red-500">*</span>
                 </label>
                 <div
@@ -400,20 +400,20 @@ export default function NewPolicyCheckPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className={`relative flex flex-col items-center justify-center h-44 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
                     dragging
-                      ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04]"
+                      ? "border-text-primary bg-hover-overlay"
                       : formErrors.files
-                      ? "border-red-500/60 bg-[#111111]"
-                      : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#14141e]"
+                      ? "border-red-500/60 bg-surface"
+                      : "border-border bg-surface hover:border-[#3e3e4a] hover:bg-[#14141e]"
                   }`}
                 >
                   <Upload
                     size={26}
-                    className={dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}
+                    className={dragging ? "text-text-primary" : "text-text-tertiary"}
                   />
-                  <div className="text-[14px] font-medium text-[#FAFAFA] mt-3">
+                  <div className="text-[14px] font-medium text-text-primary mt-3">
                     Drop policy PDFs here
                   </div>
-                  <div className="text-[12px] text-[#8a8a8a] mt-1">
+                  <div className="text-[12px] text-text-secondary mt-1">
                     or click to browse · PDF only · max 20 MB each
                   </div>
                   <input
@@ -435,18 +435,18 @@ export default function NewPolicyCheckPage() {
 
               {/* Selected files */}
               {fileEntries.length > 0 && (
-                <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
+                <div className="rounded-xl border border-border bg-surface overflow-hidden mb-6">
                   {fileEntries.map((entry) => (
                     <div
                       key={entry.file.name}
-                      className="flex items-center gap-3 px-4 py-2.5 border-b border-[#1C1C1C]/60 last:border-b-0"
+                      className="flex items-center gap-3 px-4 py-2.5 border-b border-border/60 last:border-b-0"
                     >
-                      <FileText size={13} className="text-[#6b6b6b] shrink-0" />
+                      <FileText size={13} className="text-text-tertiary shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] text-[#FAFAFA] truncate">
+                        <div className="text-[13px] text-text-primary truncate">
                           {entry.file.name}
                         </div>
-                        <div className="text-[11px] text-[#6b6b6b] mt-0.5">
+                        <div className="text-[11px] text-text-tertiary mt-0.5">
                           {formatFileSize(entry.file.size)}
                         </div>
                       </div>
@@ -457,7 +457,7 @@ export default function NewPolicyCheckPage() {
                         }}
                         className="p-1 rounded hover:bg-white/[0.06] transition-colors"
                       >
-                        <X size={12} className="text-[#6b6b6b]" />
+                        <X size={12} className="text-text-tertiary" />
                       </button>
                     </div>
                   ))}
@@ -475,7 +475,7 @@ export default function NewPolicyCheckPage() {
               {/* Run button */}
               <button
                 onClick={handleRunCheck}
-                className="w-full h-10 rounded-lg bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+                className="w-full h-10 rounded-lg bg-text-primary text-text-inverse text-[14px] font-semibold hover:opacity-80 transition-opacity"
               >
                 Run Check
                 {fileEntries.length > 0 &&
@@ -487,16 +487,16 @@ export default function NewPolicyCheckPage() {
           {/* ── Phase 2: Processing ─────────────────────────────── */}
           {step === "processing" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">
+              <h1 className="text-[22px] font-bold text-text-primary mb-1">
                 Checking coverage…
               </h1>
-              <p className="text-[14px] text-[#8a8a8a] mb-8">
+              <p className="text-[14px] text-text-secondary mb-8">
                 Hollis is reading your policies. This usually takes 15–60
                 seconds per document.
               </p>
 
               {/* File progress */}
-              <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
+              <div className="rounded-xl border border-border bg-surface overflow-hidden mb-6">
                 {fileEntries.map((entry) => (
                   <FileStatusRow key={entry.file.name} entry={entry} />
                 ))}
@@ -504,18 +504,18 @@ export default function NewPolicyCheckPage() {
 
               {/* Analysis status */}
               {allSettled && (
-                <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] px-4 py-4">
+                <div className="rounded-xl border border-border bg-surface px-4 py-4">
                   {analysisStatus === "running" && (
                     <div className="flex items-center gap-3">
                       <Loader2
                         size={16}
-                        className="text-[#FAFAFA] animate-spin shrink-0"
+                        className="text-text-primary animate-spin shrink-0"
                       />
                       <div>
-                        <div className="text-[13px] font-medium text-[#FAFAFA]">
+                        <div className="text-[13px] font-medium text-text-primary">
                           Analyzing coverage…
                         </div>
-                        <div className="text-[11px] text-[#6b6b6b] mt-0.5">
+                        <div className="text-[11px] text-text-tertiary mt-0.5">
                           Comparing against client profile and industry
                           standards
                         </div>
@@ -542,13 +542,13 @@ export default function NewPolicyCheckPage() {
                       {successCount > 0 && checkId && (
                         <button
                           onClick={() => runAnalysis(checkId)}
-                          className="h-8 px-4 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[12px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+                          className="h-8 px-4 rounded-md bg-text-primary text-text-inverse text-[12px] font-semibold hover:opacity-80 transition-opacity"
                         >
                           Retry Analysis
                         </button>
                       )}
                       {successCount === 0 && (
-                        <p className="text-[12px] text-[#6b6b6b]">
+                        <p className="text-[12px] text-text-tertiary">
                           No documents were extracted successfully. Please go
                           back and try again with different files.
                         </p>
@@ -560,12 +560,12 @@ export default function NewPolicyCheckPage() {
 
               {/* Partial failure notice */}
               {allSettled && errorCount > 0 && successCount > 0 && (
-                <div className="flex items-start gap-2.5 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3 mt-4">
+                <div className="flex items-start gap-2.5 rounded-lg bg-surface border border-border px-4 py-3 mt-4">
                   <AlertCircle
                     size={14}
-                    className="text-[#9e9e9e] shrink-0 mt-0.5"
+                    className="text-text-secondary shrink-0 mt-0.5"
                   />
-                  <div className="text-[12px] text-[#9e9e9e]">
+                  <div className="text-[12px] text-text-secondary">
                     {errorCount} document{errorCount !== 1 ? "s" : ""} could not
                     be read. The analysis will run on the{" "}
                     {successCount} successful{" "}
@@ -580,13 +580,13 @@ export default function NewPolicyCheckPage() {
           {/* ── Phase 3: Done ───────────────────────────────────── */}
           {step === "done" && completedCheckId && (
             <div className="text-center py-6">
-              <div className="w-16 h-16 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mx-auto mb-5">
-                <CheckCircle size={28} className="text-[#FAFAFA]" />
+              <div className="w-16 h-16 rounded-full bg-hover-overlay border border-border flex items-center justify-center mx-auto mb-5">
+                <CheckCircle size={28} className="text-text-primary" />
               </div>
-              <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-2">
+              <h1 className="text-[22px] font-bold text-text-primary mb-2">
                 Analysis complete
               </h1>
-              <p className="text-[14px] text-[#8a8a8a] mb-8">
+              <p className="text-[14px] text-text-secondary mb-8">
                 Your coverage gap report is ready. Review the flags and annotate
                 each one for your E&amp;O records.
               </p>
@@ -602,13 +602,13 @@ export default function NewPolicyCheckPage() {
                     setAnalysisError(null);
                     setCompletedCheckId(null);
                   }}
-                  className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                  className="h-9 px-5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors"
                 >
                   Run Another Check
                 </button>
                 <button
                   onClick={() => router.push(`/policies/${completedCheckId}`)}
-                  className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+                  className="h-9 px-5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity"
                 >
                   View Report
                 </button>

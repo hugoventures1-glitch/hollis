@@ -173,37 +173,37 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C]">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-border shrink-0">
         <Link
           href="/renewals"
-          className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft size={13} />
           Renewals
         </Link>
-        <ChevronRight size={12} className="text-[#6b6b6b]" />
-        <span className="text-[13px] text-[#FAFAFA]">Import CSV</span>
+        <ChevronRight size={12} className="text-text-tertiary" />
+        <span className="text-[13px] text-text-primary">Import CSV</span>
 
         {/* Step indicator */}
         <div className="ml-auto flex items-center gap-3">
           {(["upload", "map", "preview"] as const).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
-              {i > 0 && <div className="w-8 h-px bg-[#1C1C1C]" />}
+              {i > 0 && <div className="w-8 h-px bg-border" />}
               <div className={`flex items-center gap-1.5 text-[12px] ${
                 step === s || (step === "done" && s === "preview")
-                  ? "text-[#FAFAFA]"
+                  ? "text-text-primary"
                   : ["map", "preview", "done"].indexOf(step) > ["map", "preview", "done"].indexOf(s)
-                  ? "text-[#FAFAFA]"
-                  : "text-[#6b6b6b]"
+                  ? "text-text-primary"
+                  : "text-text-tertiary"
               }`}>
                 <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
                   step === s
-                    ? "bg-[#FAFAFA] border-[#FAFAFA] text-[#0C0C0C]"
+                    ? "bg-text-primary border-text-primary text-text-inverse"
                     : ["map", "preview", "done"].indexOf(step) > ["upload", "map", "preview"].indexOf(s)
-                    ? "bg-[#FAFAFA]/20 border-[#555555] text-[#FAFAFA]"
-                    : "bg-transparent border-[#333333] text-[#6b6b6b]"
+                    ? "bg-text-primary/20 border-text-secondary text-text-primary"
+                    : "bg-transparent border-text-tertiary text-text-tertiary"
                 }`}>
                   {i + 1}
                 </div>
@@ -220,8 +220,8 @@ export default function UploadPage() {
         {/* ── Step 1: Upload ── */}
         {step === "upload" && (
           <div className="max-w-lg mx-auto">
-            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Import your book of business</h1>
-            <p className="text-[14px] text-[#8a8a8a] mb-8">
+            <h1 className="text-[22px] font-bold text-text-primary mb-1">Import your book of business</h1>
+            <p className="text-[14px] text-text-secondary mb-8">
               Upload a CSV file with your policies. We&apos;ll map the columns and create renewal campaigns automatically.
             </p>
 
@@ -232,13 +232,13 @@ export default function UploadPage() {
               onClick={() => fileRef.current?.click()}
               className={`relative flex flex-col items-center justify-center h-52 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
                 dragging
-                  ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04]"
-                  : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#14141e]"
+                  ? "border-text-primary bg-hover-overlay"
+                  : "border-border bg-surface hover:border-[#3e3e4a] hover:bg-[#14141e]"
               }`}
             >
-              <Upload size={28} className={dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"} />
-              <div className="text-[15px] font-medium text-[#FAFAFA] mt-3">Drop a CSV file here</div>
-              <div className="text-[13px] text-[#8a8a8a] mt-1">or click to browse</div>
+              <Upload size={28} className={dragging ? "text-text-primary" : "text-text-tertiary"} />
+              <div className="text-[15px] font-medium text-text-primary mt-3">Drop a CSV file here</div>
+              <div className="text-[13px] text-text-secondary mt-1">or click to browse</div>
               <input
                 ref={fileRef}
                 type="file"
@@ -251,25 +251,25 @@ export default function UploadPage() {
               />
             </div>
 
-            <div className="mt-8 rounded-lg bg-[#111111] border border-[#1C1C1C] p-5">
-              <div className="text-[12px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">
+            <div className="mt-8 rounded-lg bg-surface border border-border p-5">
+              <div className="text-[12px] font-semibold text-text-secondary uppercase tracking-widest mb-3">
                 Required columns
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {REQUIRED_FIELDS.map(f => (
-                  <div key={f} className="flex items-center gap-2 text-[13px] text-[#FAFAFA]">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#FAFAFA]" />
+                  <div key={f} className="flex items-center gap-2 text-[13px] text-text-primary">
+                    <div className="w-1.5 h-1.5 rounded-full bg-text-primary" />
                     {FIELD_LABELS[f]}
                   </div>
                 ))}
               </div>
-              <div className="text-[12px] font-semibold text-[#8a8a8a] uppercase tracking-widest mt-4 mb-3">
+              <div className="text-[12px] font-semibold text-text-secondary uppercase tracking-widest mt-4 mb-3">
                 Optional columns
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {OPTIONAL_FIELDS.map(f => (
-                  <div key={f} className="flex items-center gap-2 text-[13px] text-[#6b6b6b]">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#333333]" />
+                  <div key={f} className="flex items-center gap-2 text-[13px] text-text-tertiary">
+                    <div className="w-1.5 h-1.5 rounded-full bg-text-tertiary" />
                     {FIELD_LABELS[f]}
                   </div>
                 ))}
@@ -281,24 +281,24 @@ export default function UploadPage() {
         {/* ── Step 2: Map columns ── */}
         {step === "map" && (
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Map your columns</h1>
-            <p className="text-[14px] text-[#8a8a8a] mb-8">
-              We detected <strong className="text-[#FAFAFA]">{csvHeaders.length} columns</strong> and{" "}
-              <strong className="text-[#FAFAFA]">{csvRows.length} rows</strong>. Confirm the mapping below.
+            <h1 className="text-[22px] font-bold text-text-primary mb-1">Map your columns</h1>
+            <p className="text-[14px] text-text-secondary mb-8">
+              We detected <strong className="text-text-primary">{csvHeaders.length} columns</strong> and{" "}
+              <strong className="text-text-primary">{csvRows.length} rows</strong>. Confirm the mapping below.
             </p>
 
-            <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
-              <div className="grid grid-cols-2 px-5 py-2.5 border-b border-[#1C1C1C] bg-[#0C0C0C]">
-                <div className="text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">CSV Column</div>
-                <div className="text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">Maps To</div>
+            <div className="rounded-lg border border-border bg-surface overflow-hidden mb-6">
+              <div className="grid grid-cols-2 px-5 py-2.5 border-b border-border bg-background">
+                <div className="text-[11px] font-medium text-text-secondary uppercase tracking-wider">CSV Column</div>
+                <div className="text-[11px] font-medium text-text-secondary uppercase tracking-wider">Maps To</div>
               </div>
               {csvHeaders.map(header => (
-                <div key={header} className="grid grid-cols-2 px-5 py-3 border-b border-[#1C1C1C]/60 last:border-b-0 items-center">
-                  <div className="text-[13px] text-[#FAFAFA] font-mono">{header}</div>
+                <div key={header} className="grid grid-cols-2 px-5 py-3 border-b border-border/60 last:border-b-0 items-center">
+                  <div className="text-[13px] text-text-primary font-mono">{header}</div>
                   <select
                     value={mapping[header] ?? ""}
                     onChange={e => setMapping(m => ({ ...m, [header]: e.target.value as keyof CSVPolicyRow | "" }))}
-                    className="bg-[#1a1a24] border border-[#1C1C1C] rounded-md px-3 py-1.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] max-w-[200px]"
+                    className="bg-surface border border-border rounded-md px-3 py-1.5 text-[13px] text-text-primary outline-none focus:border-text-secondary max-w-[200px]"
                   >
                     <option value="">— Skip —</option>
                     {ALL_FIELDS.map(f => (
@@ -322,14 +322,14 @@ export default function UploadPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep("upload")}
-                className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                className="h-9 px-5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors"
               >
                 Back
               </button>
               <button
                 onClick={handleConfirmMapping}
                 disabled={missingRequired.length > 0}
-                className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-9 px-5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Preview Import
               </button>
@@ -340,10 +340,10 @@ export default function UploadPage() {
         {/* ── Step 3: Preview ── */}
         {step === "preview" && (
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-1">Preview import</h1>
-            <p className="text-[14px] text-[#8a8a8a] mb-8">
+            <h1 className="text-[22px] font-bold text-text-primary mb-1">Preview import</h1>
+            <p className="text-[14px] text-text-secondary mb-8">
               Review the first few rows before importing{" "}
-              <strong className="text-[#FAFAFA]">{previewRows.length} policies</strong>.
+              <strong className="text-text-primary">{previewRows.length} policies</strong>.
             </p>
 
             {serverError && (
@@ -356,13 +356,13 @@ export default function UploadPage() {
               </div>
             )}
 
-            <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] overflow-hidden mb-6">
+            <div className="rounded-lg border border-border bg-surface overflow-hidden mb-6">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1C1C1C] bg-[#0C0C0C]">
+                    <tr className="border-b border-border bg-background">
                       {REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).map(f => (
-                        <th key={f} className="px-4 py-2.5 text-left text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider whitespace-nowrap">
+                        <th key={f} className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider whitespace-nowrap">
                           {FIELD_LABELS[f]}
                         </th>
                       ))}
@@ -370,21 +370,21 @@ export default function UploadPage() {
                   </thead>
                   <tbody>
                     {previewRows.slice(0, 8).map((row, i) => (
-                      <tr key={i} className="border-b border-[#1C1C1C]/60 last:border-b-0">
-                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.policy_name || <span className="text-[#6b6b6b]">—</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.client_name || <span className="text-red-400">Missing</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.client_email || <span className="text-[#6b6b6b]">—</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.expiration_date || <span className="text-red-400">Missing</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#FAFAFA] whitespace-nowrap">{row.carrier || <span className="text-[#6b6b6b]">—</span>}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#6b6b6b] whitespace-nowrap">{row.client_phone || "—"}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-[#6b6b6b] whitespace-nowrap">
+                      <tr key={i} className="border-b border-border/60 last:border-b-0">
+                        <td className="px-4 py-2.5 text-[13px] text-text-primary whitespace-nowrap">{row.policy_name || <span className="text-text-tertiary">—</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-text-primary whitespace-nowrap">{row.client_name || <span className="text-red-400">Missing</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-text-primary whitespace-nowrap">{row.client_email || <span className="text-text-tertiary">—</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-text-primary whitespace-nowrap">{row.expiration_date || <span className="text-red-400">Missing</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-text-primary whitespace-nowrap">{row.carrier || <span className="text-text-tertiary">—</span>}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-text-tertiary whitespace-nowrap">{row.client_phone || "—"}</td>
+                        <td className="px-4 py-2.5 text-[13px] text-text-tertiary whitespace-nowrap">
                           {row.premium ? `$${Number(row.premium).toLocaleString()}` : "—"}
                         </td>
                       </tr>
                     ))}
                     {previewRows.length > 8 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-2.5 text-[12px] text-[#6b6b6b] text-center">
+                        <td colSpan={7} className="px-4 py-2.5 text-[12px] text-text-tertiary text-center">
                           + {previewRows.length - 8} more rows
                         </td>
                       </tr>
@@ -397,14 +397,14 @@ export default function UploadPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep("map")}
-                className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                className="h-9 px-5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors"
               >
                 Back
               </button>
               <button
                 onClick={handleImport}
                 disabled={loading}
-                className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-60"
+                className="h-9 px-5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-60"
               >
                 {loading ? "Importing…" : `Import ${previewRows.length} Policies`}
               </button>
@@ -415,11 +415,11 @@ export default function UploadPage() {
         {/* ── Step 4: Done ── */}
         {step === "done" && result && (
           <div className="max-w-lg mx-auto text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mx-auto mb-5">
-              <CheckCircle size={28} className="text-[#FAFAFA]" />
+            <div className="w-16 h-16 rounded-full bg-hover-overlay border border-border flex items-center justify-center mx-auto mb-5">
+              <CheckCircle size={28} className="text-text-primary" />
             </div>
-            <h1 className="text-[22px] font-bold text-[#FAFAFA] mb-2">Import complete</h1>
-            <p className="text-[14px] text-[#8a8a8a] mb-8">{result.message}</p>
+            <h1 className="text-[22px] font-bold text-text-primary mb-2">Import complete</h1>
+            <p className="text-[14px] text-text-secondary mb-8">{result.message}</p>
 
             {result.errors.length > 0 && (
               <div className="text-left rounded-lg bg-red-950/30 border border-red-800/40 p-4 mb-8">
@@ -444,13 +444,13 @@ export default function UploadPage() {
                   setPreviewRows([]);
                   setResult(null);
                 }}
-                className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                className="h-9 px-5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors"
               >
                 Import Another
               </button>
               <button
                 onClick={() => router.push("/renewals")}
-                className="h-9 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+                className="h-9 px-5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity"
               >
                 View Renewals
               </button>

@@ -74,7 +74,7 @@ export function EmailSection({ profile }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Email &amp; Signatures</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Email &amp; Signatures</h2>
         <p className="text-[13px] text-zinc-500 mt-1">Control how your emails appear to clients.</p>
       </div>
 
@@ -129,7 +129,7 @@ export function EmailSection({ profile }: Props) {
 
       <div className="flex items-center justify-between py-3 border-y border-[#1e1e2a]">
         <div>
-          <p className="text-[14px] font-medium text-[#f5f5f7]">CC me on all client emails</p>
+          <p className="text-[14px] font-medium text-text-primary">CC me on all client emails</p>
           <p className="text-[12px] text-zinc-500 mt-0.5">Receive a copy of every automated email sent to your clients.</p>
         </div>
         <Toggle checked={cc} onChange={(v) => setValue("cc_self_on_client_emails", v)} />
@@ -153,14 +153,14 @@ export function EmailSection({ profile }: Props) {
         <div className="px-4 py-2 border-b border-[#2a2a36] bg-[#111118]">
           <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Signature preview</p>
         </div>
-        <div className="px-4 py-4 bg-[#0C0C0C] text-[13px] text-zinc-400 space-y-3 font-mono leading-relaxed">
+        <div className="px-4 py-4 bg-background text-[13px] text-zinc-400 space-y-3 font-mono leading-relaxed">
           <p className="text-zinc-300">
             Hi Jane,<br />
             Your policy renewal is due on 1 June 2026. Please review the attached renewal notice…
           </p>
           <hr className="border-[#2a2a36]" />
           <pre className="whitespace-pre-wrap text-zinc-400 font-mono text-[13px]">
-            {signature || <span className="italic text-[#6b6b6b]">Your signature will appear here.</span>}
+            {signature || <span className="italic text-text-tertiary">Your signature will appear here.</span>}
           </pre>
         </div>
       </div>

@@ -61,7 +61,7 @@ export function AgencySection({ profile }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Agency</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Agency</h2>
         <p className="text-[13px] text-zinc-500 mt-1">Your agency details as they appear on COIs and client emails.</p>
       </div>
 

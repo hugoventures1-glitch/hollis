@@ -126,8 +126,8 @@ const HOLLIS_FIELD_LABELS: Record<string, string> = {
 };
 
 const CONFIDENCE_STYLES = {
-  high: { label: "High confidence", className: "text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border-[#1C1C1C]" },
-  medium: { label: "Medium confidence", className: "text-[#9e9e9e] bg-[#1C1C1C] border-[#1C1C1C]" },
+  high: { label: "High confidence", className: "text-text-primary bg-hover-overlay border-border" },
+  medium: { label: "Medium confidence", className: "text-text-secondary bg-border border-border" },
   low: { label: "Low confidence", className: "text-red-400 bg-red-900/20 border-red-700/30" },
 };
 
@@ -467,17 +467,17 @@ function SummaryCard({
   accent?: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-5 flex flex-col gap-1.5">
-      <span className="text-[11px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
+    <div className="rounded-xl bg-surface border border-border px-6 py-5 flex flex-col gap-1.5">
+      <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-[0.1em]">
         {label}
       </span>
       <span
-        className={`text-[36px] font-bold leading-none tracking-tight ${accent ?? "text-[#FAFAFA]"}`}
+        className={`text-[36px] font-bold leading-none tracking-tight ${accent ?? "text-text-primary"}`}
       >
         {value}
       </span>
       {sub && (
-        <span className="text-[12px] text-[#6b6b6b] font-medium">{sub}</span>
+        <span className="text-[12px] text-text-tertiary font-medium">{sub}</span>
       )}
     </div>
   );
@@ -493,25 +493,25 @@ function MappingRow({
   sample: string;
 }) {
   return (
-    <tr className="border-b border-[#1C1C1C]/50 last:border-b-0">
+    <tr className="border-b border-border/50 last:border-b-0">
       <td className="px-5 py-3 w-[200px]">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
-            <Check size={9} className="text-[#FAFAFA]" strokeWidth={3} />
+          <div className="w-4 h-4 rounded-full bg-hover-overlay border border-border flex items-center justify-center shrink-0">
+            <Check size={9} className="text-text-primary" strokeWidth={3} />
           </div>
-          <span className="text-[13px] text-[#FAFAFA] font-medium">
+          <span className="text-[13px] text-text-primary font-medium">
             {HOLLIS_FIELD_LABELS[field] ?? field}
           </span>
         </div>
       </td>
       <td className="px-5 py-3">
-        <span className="text-[12px] font-mono text-[#8a8a8a] bg-[#1a1a24] border border-[#1C1C1C] px-2 py-0.5 rounded">
+        <span className="text-[12px] font-mono text-text-secondary bg-[#1a1a24] border border-border px-2 py-0.5 rounded">
           {header}
         </span>
       </td>
       <td className="px-5 py-3">
-        <span className="text-[13px] text-[#FAFAFA] truncate max-w-[220px] block">
-          {sample || <span className="text-[#6b6b6b]">—</span>}
+        <span className="text-[13px] text-text-primary truncate max-w-[220px] block">
+          {sample || <span className="text-text-tertiary">—</span>}
         </span>
       </td>
     </tr>
@@ -645,19 +645,6 @@ export default function FullBookImportPage() {
       setStep("drop");
     }
   }, []);
-
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      const dropped = Array.from(e.dataTransfer.files).filter((f) => {
-        const ext = f.name.toLowerCase().split(".").pop() ?? "";
-        return ["xlsx", "xls", "csv"].includes(ext);
-      });
-      if (dropped.length) setStagedFiles((prev) => [...prev, ...dropped]);
-    },
-    []
-  );
 
   const startTransfer = useCallback(() => {
     if (!stagedFiles.length) return;
@@ -890,18 +877,31 @@ export default function FullBookImportPage() {
   // ── Render ────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C] text-[#FAFAFA] antialiased">
+    <div
+      className="flex flex-col h-full bg-background text-text-primary antialiased"
+      onDragOver={(e) => { if (step === "drop") { e.preventDefault(); setDragging(true); } }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
+      onDrop={(e) => {
+        e.preventDefault(); setDragging(false);
+        if (step !== "drop") return;
+        const dropped = Array.from(e.dataTransfer.files).filter((f) => {
+          const ext = f.name.toLowerCase().split(".").pop() ?? "";
+          return ["xlsx", "xls", "csv"].includes(ext);
+        });
+        if (dropped.length) setStagedFiles((prev) => [...prev, ...dropped]);
+      }}
+    >
 
       {/* Header */}
-      <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center px-10 gap-3">
+      <header className="h-[56px] shrink-0 border-b border-border flex items-center px-10 gap-3">
         <div className="flex items-center gap-2 text-[13px]">
-          <span className="text-[#6b6b6b]">settings</span>
-          <span className="text-[#3b3b3b]">/</span>
-          <span className="text-[#6b6b6b]">import</span>
+          <span className="text-text-tertiary">settings</span>
+          <span style={{ color: "var(--border)" }}>/</span>
+          <span className="text-text-tertiary">import</span>
           {step !== "confirm" && (
             <>
-              <span className="text-[#3b3b3b]">/</span>
-              <span className="text-[#FAFAFA] font-medium">
+              <span style={{ color: "var(--border)" }}>/</span>
+              <span className="text-text-primary font-medium">
                 {step === "drop" ? "upload" : step === "analysing" ? "analysing" : step === "importing" ? "importing" : "done"}
               </span>
             </>
@@ -909,8 +909,8 @@ export default function FullBookImportPage() {
         </div>
         {step !== "confirm" && (
           <div className="ml-auto flex items-center gap-2">
-            <Zap size={13} className="text-[#FAFAFA]" />
-            <span className="text-[12px] text-[#6b6b6b] font-medium">AI-Powered</span>
+            <Zap size={13} className="text-text-primary" />
+            <span className="text-[12px] text-text-tertiary font-medium">AI-Powered</span>
           </div>
         )}
       </header>
@@ -922,50 +922,47 @@ export default function FullBookImportPage() {
 
             {/* Headline */}
             <div className="text-center mb-10">
-              <h1 className="text-[28px] font-bold text-[#FAFAFA] tracking-tight mb-2">
+              <h1 className="text-[28px] font-bold text-text-primary tracking-tight mb-2">
                 Drop your AMS export
               </h1>
-              <p className="text-[15px] text-[#6b6b6b]">
+              <p className="text-[15px] text-text-tertiary">
                 Hollis reads any WinBEAT, Sunrise, or Applied Epic export and maps every field automatically.
               </p>
             </div>
 
             {/* Drop zone */}
             <div
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
               onClick={() => fileInputRef.current?.click()}
               className={`relative flex flex-col items-center justify-center min-h-[200px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 dragging
-                  ? "border-[#FAFAFA] bg-[#FAFAFA]/[0.04] shadow-[0_0_60px_rgba(0,212,170,0.08)]"
+                  ? "border-text-primary bg-hover-overlay shadow-[0_0_60px_rgba(0,212,170,0.08)]"
                   : stagedFiles.length > 0
-                  ? "border-[#3e3e4a] bg-[#111111] hover:border-[#555555]"
-                  : "border-[#1C1C1C] bg-[#111111] hover:border-[#3e3e4a] hover:bg-[#111820]"
+                  ? "border-[#3e3e4a] bg-surface hover:border-text-secondary"
+                  : "border-border bg-surface hover:border-[#3e3e4a] hover:bg-[#111820]"
               }`}
             >
               <div
                 className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
                   dragging
-                    ? "bg-[#FAFAFA]/[0.08] border border-[#1C1C1C]"
-                    : "bg-[#1a1a24] border border-[#1C1C1C]"
+                    ? "bg-hover-overlay border border-border"
+                    : "bg-[#1a1a24] border border-border"
                 }`}
               >
                 <Upload
                   size={22}
-                  className={`transition-colors ${dragging ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}`}
+                  className={`transition-colors ${dragging ? "text-text-primary" : "text-text-tertiary"}`}
                 />
               </div>
 
-              <p className="text-[16px] font-semibold mb-1 text-[#FAFAFA]">
+              <p className="text-[16px] font-semibold mb-1 text-text-primary">
                 {dragging ? "Release to add" : stagedFiles.length > 0 ? "Drop more files" : "Drop files here"}
               </p>
-              <p className="text-[13px] text-[#6b6b6b] mb-5">
+              <p className="text-[13px] text-text-tertiary mb-5">
                 Excel (.xlsx, .xls) or CSV · max 10 MB each
               </p>
 
               <div
-                className="h-9 px-5 rounded-lg border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors font-medium"
+                className="h-9 px-5 rounded-lg border border-border text-[13px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors font-medium"
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
               >
                 Browse files
@@ -987,18 +984,18 @@ export default function FullBookImportPage() {
 
             {/* Staged file list */}
             {stagedFiles.length > 0 && (
-              <div className="mt-4 rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-[#1C1C1C] bg-[#0C0C0C]">
-                  <span className="text-[11px] font-bold text-[#6b6b6b] uppercase tracking-[0.1em]">
+              <div className="mt-4 rounded-xl border border-border bg-surface overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border bg-background">
+                  <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-[0.1em]">
                     {stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""} ready to transfer
                   </span>
                 </div>
-                <ul className="divide-y divide-[#1C1C1C]">
+                <ul className="divide-y divide-border">
                   {stagedFiles.map((f, i) => (
                     <li key={i} className="flex items-center gap-3 px-4 py-3">
-                      <FileSpreadsheet size={14} className="text-[#6b6b6b] shrink-0" />
-                      <span className="flex-1 text-[13px] text-[#FAFAFA] truncate">{f.name}</span>
-                      <span className="text-[11px] text-[#6b6b6b] shrink-0">
+                      <FileSpreadsheet size={14} className="text-text-tertiary shrink-0" />
+                      <span className="flex-1 text-[13px] text-text-primary truncate">{f.name}</span>
+                      <span className="text-[11px] text-text-tertiary shrink-0">
                         {(f.size / 1024).toFixed(0)} KB
                       </span>
                       <button
@@ -1006,7 +1003,7 @@ export default function FullBookImportPage() {
                           e.stopPropagation();
                           setStagedFiles((prev) => prev.filter((_, idx) => idx !== i));
                         }}
-                        className="text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors shrink-0"
+                        className="text-text-tertiary hover:text-text-primary transition-colors shrink-0"
                       >
                         <X size={13} />
                       </button>
@@ -1020,7 +1017,7 @@ export default function FullBookImportPage() {
             {stagedFiles.length > 0 && (
               <button
                 onClick={startTransfer}
-                className="mt-4 w-full h-12 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center justify-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
+                className="mt-4 w-full h-12 rounded-xl bg-text-primary text-text-inverse text-[14px] font-bold hover:opacity-80 transition-opacity flex items-center justify-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.3),0_0_8px_rgba(0,212,170,0.15)]"
               >
                 <ArrowRight size={15} strokeWidth={2.5} />
                 Transfer {stagedFiles.length > 1 ? `${stagedFiles.length} Files` : "File"}
@@ -1040,7 +1037,7 @@ export default function FullBookImportPage() {
               {["WinBEAT", "Sunrise", "Applied Epic", "Insight", "Any CSV"].map((s) => (
                 <span
                   key={s}
-                  className="text-[11px] text-[#6b6b6b] font-medium px-2 py-0.5 rounded border border-[#1C1C1C]"
+                  className="text-[11px] text-text-tertiary font-medium px-2 py-0.5 rounded border border-border"
                 >
                   {s}
                 </span>
@@ -1057,21 +1054,21 @@ export default function FullBookImportPage() {
 
             {/* Pulsing ring */}
             <div className="relative w-20 h-20 mx-auto mb-8">
-              <div className="absolute inset-0 rounded-full border-2 border-[#1C1C1C] animate-ping" />
-              <div className="absolute inset-0 rounded-full border-2 border-[#FAFAFA]/10 animate-ping [animation-delay:0.5s]" />
-              <div className="w-20 h-20 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center relative">
-                <Zap size={26} className="text-[#FAFAFA]" />
+              <div className="absolute inset-0 rounded-full border-2 border-border animate-ping" />
+              <div className="absolute inset-0 rounded-full border-2 border-text-primary/10 animate-ping [animation-delay:0.5s]" />
+              <div className="w-20 h-20 rounded-full bg-hover-overlay border border-border flex items-center justify-center relative">
+                <Zap size={26} className="text-text-primary" />
               </div>
             </div>
 
-            <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
+            <h2 className="text-[20px] font-bold text-text-primary mb-2">
               {analysingPhase <= 1 ? "Reading your file…" : analysingPhase === 2 ? "Analysing format…" : "Building mapping…"}
             </h2>
-            <p className="text-[13px] text-[#6b6b6b] mb-1">
+            <p className="text-[13px] text-text-tertiary mb-1">
               {stagedFiles[currentFileIndex]?.name ?? parsedFile?.name ?? "Processing"}
             </p>
             {stagedFiles.length > 1 && (
-              <p className="text-[12px] text-[#6b6b6b]/60 mb-10">
+              <p className="text-[12px] text-text-tertiary/60 mb-10">
                 File {currentFileIndex + 1} of {stagedFiles.length}
               </p>
             )}
@@ -1087,19 +1084,19 @@ export default function FullBookImportPage() {
                 <div key={phase} className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
                     analysingPhase > phase
-                      ? "bg-[#FAFAFA]/20 border border-[#555555]"
+                      ? "bg-text-primary/20 border border-text-secondary"
                       : analysingPhase === phase
-                      ? "border border-[#1C1C1C] bg-transparent"
-                      : "border border-[#1C1C1C] bg-transparent"
+                      ? "border border-border bg-transparent"
+                      : "border border-border bg-transparent"
                   }`}>
                     {analysingPhase > phase ? (
-                      <Check size={10} className="text-[#FAFAFA]" strokeWidth={3} />
+                      <Check size={10} className="text-text-primary" strokeWidth={3} />
                     ) : analysingPhase === phase ? (
-                      <Loader2 size={11} className="text-[#FAFAFA] animate-spin" />
+                      <Loader2 size={11} className="text-text-primary animate-spin" />
                     ) : null}
                   </div>
                   <span className={`text-[13px] transition-colors ${
-                    analysingPhase >= phase ? "text-[#FAFAFA]" : "text-[#6b6b6b]"
+                    analysingPhase >= phase ? "text-text-primary" : "text-text-tertiary"
                   }`}>
                     {label}
                   </span>
@@ -1117,7 +1114,7 @@ export default function FullBookImportPage() {
 
             {/* Title row */}
             <div className="flex items-start justify-between mb-1">
-              <h1 className="text-[32px] font-bold text-[#FAFAFA] tracking-tight leading-none">
+              <h1 className="text-[32px] font-bold text-text-primary tracking-tight leading-none">
                 review import
               </h1>
               {/* View tabs */}
@@ -1125,16 +1122,16 @@ export default function FullBookImportPage() {
                 <button
                   onClick={() => setConfirmTab("unique")}
                   className={`text-[12px] transition-colors ${
-                    confirmTab === "unique" ? "text-[#FAFAFA]" : "text-[#6b6b6b] hover:text-[#FAFAFA]"
+                    confirmTab === "unique" ? "text-text-primary" : "text-text-tertiary hover:text-text-primary"
                   }`}
                 >
                   unique
                 </button>
-                <span className="text-[#1C1C1C]">·</span>
+                <span style={{ color: "var(--border)" }}>·</span>
                 <button
                   onClick={() => setConfirmTab("policy_schedule")}
                   className={`text-[12px] transition-colors ${
-                    confirmTab === "policy_schedule" ? "text-[#FAFAFA]" : "text-[#6b6b6b] hover:text-[#FAFAFA]"
+                    confirmTab === "policy_schedule" ? "text-text-primary" : "text-text-tertiary hover:text-text-primary"
                   }`}
                 >
                   policy schedule
@@ -1143,10 +1140,10 @@ export default function FullBookImportPage() {
             </div>
 
             {/* Filename */}
-            <p className="text-[11px] text-[#6b6b6b] font-mono mb-6">{parsedFile.name}</p>
+            <p className="text-[11px] text-text-tertiary font-mono mb-6">{parsedFile.name}</p>
 
             {/* Stats row */}
-            <div className="flex items-end gap-10 mb-8 pb-6 border-b border-[#1C1C1C]">
+            <div className="flex items-end gap-10 mb-8 pb-6 border-b border-border">
               {[
                 { value: aiAnalysis.summary.clients_detected, label: "clients" },
                 { value: aiAnalysis.summary.policies_detected, label: "policies" },
@@ -1154,10 +1151,10 @@ export default function FullBookImportPage() {
                 { value: renewalsIn30Days ?? aiAnalysis.summary.overdue_renewals ?? 0, label: "≤ 30 days" },
               ].map(({ value, label }) => (
                 <div key={label} className="flex flex-col">
-                  <span className="text-[52px] font-bold text-[#FAFAFA] leading-none tabular-nums">
+                  <span className="text-[52px] font-bold text-text-primary leading-none tabular-nums">
                     {value}
                   </span>
-                  <span className="text-[11px] text-[#6b6b6b] mt-1.5">{label}</span>
+                  <span className="text-[11px] text-text-tertiary mt-1.5">{label}</span>
                 </div>
               ))}
             </div>
@@ -1176,14 +1173,14 @@ export default function FullBookImportPage() {
             {/* Policy table */}
             <table className="w-full mb-5">
               <thead>
-                <tr className="border-b border-[#1C1C1C]">
+                <tr className="border-b border-border">
                   {(confirmTab === "unique"
                     ? ["CLIENT", "POLICIES", "NEXT EXPIRY", "TOTAL PREMIUM", "STATUS"]
                     : ["CLIENT", "CLASS", "INSURER", "EXPIRY", "PREMIUM", "STATUS"]
                   ).map((col) => (
                     <th
                       key={col}
-                      className="pb-2 pt-0 text-left text-[10px] font-medium text-[#6b6b6b] uppercase tracking-wider pr-5 last:pr-0"
+                      className="pb-2 pt-0 text-left text-[10px] font-medium text-text-tertiary uppercase tracking-wider pr-5 last:pr-0"
                     >
                       {col}
                     </th>
@@ -1192,26 +1189,26 @@ export default function FullBookImportPage() {
               </thead>
               <tbody>
                 {previewRows.map((row, i) => (
-                  <tr key={i} className="border-b border-[#1C1C1C]/30 last:border-b-0">
-                    <td className="py-2.5 pr-5 text-[13px] font-medium text-[#FAFAFA] max-w-[180px] truncate">
+                  <tr key={i} className="border-b border-border/30 last:border-b-0">
+                    <td className="py-2.5 pr-5 text-[13px] font-medium text-text-primary max-w-[180px] truncate">
                       {row.client}
                     </td>
-                    <td className="py-2.5 pr-5 text-[13px] text-[#8a8a8a]">
+                    <td className="py-2.5 pr-5 text-[13px] text-text-secondary">
                       {row.policyClass}
                     </td>
                     {confirmTab === "policy_schedule" && (
-                      <td className="py-2.5 pr-5 text-[13px] text-[#8a8a8a]">
+                      <td className="py-2.5 pr-5 text-[13px] text-text-secondary">
                         {row.insurer}
                       </td>
                     )}
-                    <td className={`py-2.5 pr-5 text-[13px] font-medium ${row.isUrgent ? "text-[#FAFAFA]" : "text-[#8a8a8a]"}`}>
+                    <td className={`py-2.5 pr-5 text-[13px] font-medium ${row.isUrgent ? "text-text-primary" : "text-text-secondary"}`}>
                       {row.expiry}
                     </td>
-                    <td className="py-2.5 pr-5 text-[13px] text-[#8a8a8a]">
+                    <td className="py-2.5 pr-5 text-[13px] text-text-secondary">
                       {row.premium}
                     </td>
                     <td className="py-2.5">
-                      <span className="text-[11px] text-[#6b6b6b]">pending</span>
+                      <span className="text-[11px] text-text-tertiary">pending</span>
                     </td>
                   </tr>
                 ))}
@@ -1221,24 +1218,24 @@ export default function FullBookImportPage() {
             {/* Notes */}
             <div className="space-y-1 mb-7">
               {aiAnalysis.warnings.map((w, i) => (
-                <p key={i} className="text-[12px] text-[#6b6b6b] flex items-start gap-2">
+                <p key={i} className="text-[12px] text-text-tertiary flex items-start gap-2">
                   <span className="shrink-0">→</span>
                   <span>{w}</span>
                 </p>
               ))}
               {mappedFields.some(([f]) => f === "coverage_description") && (
-                <p className="text-[12px] text-[#6b6b6b] flex items-start gap-2">
+                <p className="text-[12px] text-text-tertiary flex items-start gap-2">
                   <span className="shrink-0">→</span>
                   <span>
                     import / description mapped to policy_notes —{" "}
-                    <button className="underline hover:text-[#FAFAFA] transition-colors">
+                    <button className="underline hover:text-text-primary transition-colors">
                       adjust if incorrect
                     </button>
                   </span>
                 </p>
               )}
               {aiAnalysis.confidence === "low" && (
-                <p className="text-[12px] text-[#6b6b6b] flex items-start gap-2">
+                <p className="text-[12px] text-text-tertiary flex items-start gap-2">
                   <span className="shrink-0">→</span>
                   <span>low confidence mapping — review column assignments before confirming</span>
                 </p>
@@ -1250,7 +1247,7 @@ export default function FullBookImportPage() {
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="flex-1 h-11 rounded-lg bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-medium hover:bg-[#E8E8E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="flex-1 h-11 rounded-lg bg-text-primary text-text-inverse text-[13px] font-medium hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {importing ? (
                   <Loader2 size={13} className="animate-spin" />
@@ -1260,14 +1257,14 @@ export default function FullBookImportPage() {
               </button>
               <button
                 onClick={reset}
-                className="text-[13px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors shrink-0"
+                className="text-[13px] text-text-tertiary hover:text-text-primary transition-colors shrink-0"
               >
                 cancel
               </button>
             </div>
 
             {/* Footer note */}
-            <p className="text-[11px] text-[#6b6b6b]/50">
+            <p className="text-[11px] text-text-tertiary/50">
               hollis will not start sequences until confirmation. this action can be undone from the client list.
             </p>
 
@@ -1279,13 +1276,13 @@ export default function FullBookImportPage() {
       {step === "importing" && (
         <div className="flex-1 flex flex-col items-center justify-center px-10 py-16">
           <div className="w-full max-w-[400px] text-center">
-            <div className="w-20 h-20 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mx-auto mb-6">
-              <Loader2 size={30} className="text-[#FAFAFA] animate-spin" />
+            <div className="w-20 h-20 rounded-full bg-hover-overlay border border-border flex items-center justify-center mx-auto mb-6">
+              <Loader2 size={30} className="text-text-primary animate-spin" />
             </div>
-            <h2 className="text-[20px] font-bold text-[#FAFAFA] mb-2">
+            <h2 className="text-[20px] font-bold text-text-primary mb-2">
               Writing to your book…
             </h2>
-            <p className="text-[13px] text-[#6b6b6b]">
+            <p className="text-[13px] text-text-tertiary">
               Matching clients, creating policies, scheduling renewals.
             </p>
           </div>
@@ -1299,12 +1296,12 @@ export default function FullBookImportPage() {
 
             {/* Icon */}
             <div className="flex justify-center mb-7">
-              <div className="w-20 h-20 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shadow-[0_0_40px_rgba(0,212,170,0.15)]">
-                <CheckCircle2 size={32} className="text-[#FAFAFA]" />
+              <div className="w-20 h-20 rounded-full bg-hover-overlay border border-border flex items-center justify-center shadow-[0_0_40px_rgba(0,212,170,0.15)]">
+                <CheckCircle2 size={32} className="text-text-primary" />
               </div>
             </div>
 
-            <h1 className="text-[26px] font-bold text-[#FAFAFA] text-center tracking-tight mb-8">
+            <h1 className="text-[26px] font-bold text-text-primary text-center tracking-tight mb-8">
               {stagedFiles.length > 1 && currentFileIndex >= stagedFiles.length - 1
                 ? `All ${stagedFiles.length} files imported`
                 : stagedFiles.length > 1
@@ -1323,17 +1320,17 @@ export default function FullBookImportPage() {
                       { label: "Clients", inserted: displayResult.clients.inserted, dupes: displayResult.clients.duplicates },
                       { label: "Policies", inserted: displayResult.policies.inserted, dupes: displayResult.policies.duplicates },
                     ].map(({ label, inserted, dupes }) => (
-                      <div key={label} className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-6 py-4 flex items-center justify-between">
-                        <span className="text-[14px] font-semibold text-[#8a8a8a]">{label}</span>
+                      <div key={label} className="rounded-xl bg-surface border border-border px-6 py-4 flex items-center justify-between">
+                        <span className="text-[14px] font-semibold text-text-secondary">{label}</span>
                         <div className="flex items-baseline gap-4">
                           <div className="text-right">
-                            <span className="text-[22px] font-bold tabular-nums text-[#FAFAFA]">{inserted}</span>
-                            <span className="text-[12px] text-[#6b6b6b] ml-1.5">added</span>
+                            <span className="text-[22px] font-bold tabular-nums text-text-primary">{inserted}</span>
+                            <span className="text-[12px] text-text-tertiary ml-1.5">added</span>
                           </div>
                           {dupes > 0 && (
                             <div className="text-right">
-                              <span className="text-[16px] font-bold tabular-nums text-[#6b6b6b]">{dupes}</span>
-                              <span className="text-[12px] text-[#6b6b6b] ml-1">skipped</span>
+                              <span className="text-[16px] font-bold tabular-nums text-text-tertiary">{dupes}</span>
+                              <span className="text-[12px] text-text-tertiary ml-1">skipped</span>
                             </div>
                           )}
                         </div>
@@ -1342,18 +1339,18 @@ export default function FullBookImportPage() {
                   </div>
 
                   {displayResult.errors.length > 0 && (
-                    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] px-5 py-4 mb-6">
-                      <p className="text-[12px] text-[#6b6b6b] mb-2">
+                    <div className="rounded-xl bg-surface border border-border px-5 py-4 mb-6">
+                      <p className="text-[12px] text-text-tertiary mb-2">
                         {displayResult.errors.length} row{displayResult.errors.length !== 1 ? "s" : ""} couldn&apos;t be imported and were skipped.
                       </p>
                       <ul className="space-y-1 max-h-24 overflow-y-auto">
                         {displayResult.errors.slice(0, 5).map((err, i) => (
-                          <li key={i} className="text-[11px] text-[#6b6b6b] font-mono">
+                          <li key={i} className="text-[11px] text-text-tertiary font-mono">
                             Row {err.row}: {err.reason}
                           </li>
                         ))}
                         {displayResult.errors.length > 5 && (
-                          <li className="text-[11px] text-[#6b6b6b]">+ {displayResult.errors.length - 5} more</li>
+                          <li className="text-[11px] text-text-tertiary">+ {displayResult.errors.length - 5} more</li>
                         )}
                       </ul>
                     </div>
@@ -1368,14 +1365,14 @@ export default function FullBookImportPage() {
                 <>
                   <button
                     onClick={advanceToNextFile}
-                    className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
+                    className="h-11 px-7 rounded-xl bg-text-primary text-text-inverse text-[14px] font-bold hover:opacity-80 transition-opacity flex items-center gap-2.5 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
                   >
                     <ArrowRight size={14} strokeWidth={2.5} />
                     Next file ({currentFileIndex + 2} of {stagedFiles.length})
                   </button>
                   <button
                     onClick={reset}
-                    className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                    className="h-11 px-5 rounded-xl border border-border text-[14px] text-text-tertiary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
                   >
                     Stop
                   </button>
@@ -1384,14 +1381,14 @@ export default function FullBookImportPage() {
                 <>
                   <Link
                     href="/clients"
-                    className="h-11 px-7 rounded-xl bg-[#FAFAFA] text-[#0C0C0C] text-[14px] font-bold hover:bg-[#E8E8E8] transition-colors flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
+                    className="h-11 px-7 rounded-xl bg-text-primary text-text-inverse text-[14px] font-bold hover:opacity-80 transition-opacity flex items-center gap-2 shadow-[0_0_30px_rgba(0,212,170,0.25)]"
                   >
                     View your book
                     <ArrowRight size={14} strokeWidth={2.5} />
                   </Link>
                   <button
                     onClick={reset}
-                    className="h-11 px-5 rounded-xl border border-[#1C1C1C] text-[14px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                    className="h-11 px-5 rounded-xl border border-border text-[14px] text-text-tertiary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
                   >
                     Import more files
                   </button>

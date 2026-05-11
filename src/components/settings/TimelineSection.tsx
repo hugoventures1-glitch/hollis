@@ -44,7 +44,7 @@ export function TimelineSection() {
   return (
     <div className="px-8 py-8 w-full">
       <div className="mb-6">
-        <h2 className="text-[16px] font-semibold text-[#FAFAFA]">Renewal Timeline</h2>
+        <h2 className="text-[16px] font-semibold text-text-primary">Renewal Timeline</h2>
         <p className="text-[13px] text-zinc-500 mt-1">
           The default outreach schedule applied to all new renewals. Changes here apply to future imports only — policies already in progress keep their existing schedule.
         </p>

@@ -51,7 +51,7 @@ export function FeedInput() {
             key={label}
             href={href}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-opacity hover:opacity-70"
-            style={{ background: "#111111", border: "1px solid #222222", color: "#888888" }}
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             <Icon size={11} />
             {label}
@@ -67,8 +67,8 @@ export function FeedInput() {
             href={href}
             className="block text-[14px] transition-opacity hover:opacity-60"
           >
-            <span style={{ color: "#777777" }}>I want to </span>
-            <span style={{ color: "#555555" }}>{prompt}</span>
+            <span style={{ color: "var(--text-tertiary)" }}>I want to </span>
+            <span style={{ color: "var(--text-secondary)" }}>{prompt}</span>
           </Link>
         ))}
       </div>
@@ -77,27 +77,27 @@ export function FeedInput() {
       <form onSubmit={handleSubmit}>
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: "#111111", border: "1px solid #222222" }}
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           {/* Left action icons */}
-          <div className="flex items-center gap-2.5" style={{ color: "#383838" }}>
-            <button type="button" className="transition-colors hover:text-[#666666]">
+          <div className="flex items-center gap-2.5" style={{ color: "var(--text-tertiary)" }}>
+            <button type="button" className="transition-colors hover:text-text-secondary">
               <Plus size={15} />
             </button>
-            <button type="button" className="transition-colors hover:text-[#666666]">
+            <button type="button" className="transition-colors hover:text-text-secondary">
               <Zap size={15} />
             </button>
-            <button type="button" className="transition-colors hover:text-[#666666]">
+            <button type="button" className="transition-colors hover:text-text-secondary">
               <Globe size={15} />
             </button>
-            <button type="button" className="transition-colors hover:text-[#666666]">
+            <button type="button" className="transition-colors hover:text-text-secondary">
               <Clock size={15} />
             </button>
           </div>
 
           {/* Text input */}
           <div className="flex-1 flex items-center gap-2 min-w-0">
-            <span className="text-[13px] shrink-0" style={{ color: "#444444" }}>
+            <span className="text-[13px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
               I want to
             </span>
             <input
@@ -106,7 +106,7 @@ export function FeedInput() {
               onChange={(e) => setValue(e.target.value)}
               placeholder=""
               className="flex-1 bg-transparent outline-none text-[13px] min-w-0"
-              style={{ color: "#FAFAFA", caretColor: "#FAFAFA" }}
+              style={{ color: "var(--text-primary)", caretColor: "var(--text-primary)" }}
             />
           </div>
 
@@ -114,15 +114,15 @@ export function FeedInput() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              className="transition-colors hover:text-[#666666]"
-              style={{ color: "#383838" }}
+              className="transition-colors hover:text-text-secondary"
+              style={{ color: "var(--text-tertiary)" }}
             >
               <Mic size={15} />
             </button>
             <button
               type="submit"
               className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-opacity hover:opacity-80"
-              style={{ background: "#FAFAFA", color: "#0C0C0C" }}
+              style={{ background: "var(--accent)", color: "var(--text-inverse)" }}
             >
               <ArrowUp size={13} />
             </button>

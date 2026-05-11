@@ -93,12 +93,12 @@ export function HollisSection({
         style={
           paused
             ? { background: "#1a1100", borderColor: "#4a3000" }
-            : { background: "#111111", borderColor: "#1C1C1C" }
+            : { background: "var(--surface)", borderColor: "var(--border)" }
         }
       >
         <div
           className="mt-0.5 flex-shrink-0 rounded-full p-2"
-          style={{ background: paused ? "#2a1e00" : "#181818" }}
+          style={{ background: paused ? "#2a1e00" : "var(--surface-raised)" }}
         >
           {paused ? (
             <Pause size={18} className="text-amber-400" strokeWidth={2} />
@@ -107,10 +107,10 @@ export function HollisSection({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold" style={{ color: paused ? "#f5c842" : "#f5f5f7" }}>
+          <p className="text-[14px] font-semibold" style={{ color: paused ? "#f5c842" : "var(--text-primary)" }}>
             {paused ? "Automation paused" : "Automation active"}
           </p>
-          <p className="text-[13px] mt-0.5 leading-relaxed" style={{ color: paused ? "#a07830" : "#505057" }}>
+          <p className="text-[13px] mt-0.5 leading-relaxed" style={{ color: paused ? "#a07830" : "var(--text-secondary)" }}>
             {paused
               ? "Hollis is not taking autonomous actions. All inbound signals are being queued for your review."
               : "Hollis is acting autonomously on high-confidence signals. Pause to hold everything for your review."}
@@ -123,8 +123,8 @@ export function HollisSection({
           className="shrink-0 px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-50"
           style={
             paused
-              ? { background: "#f5c842", color: "#0C0C0C" }
-              : { background: "#1C1C1C", color: "#f5f5f7", border: "1px solid #2a2a2a" }
+              ? { background: "#f5c842", color: "var(--text-inverse)" }
+              : { background: "var(--border)", color: "var(--text-primary)", border: "1px solid #2a2a2a" }
           }
         >
           {toggling ? "Saving…" : paused ? "Resume automation" : "Pause automation"}
@@ -133,7 +133,7 @@ export function HollisSection({
 
       {/* Header */}
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Hollis Instructions</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Hollis Instructions</h2>
         <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">
           Tell Hollis how to behave — it reads these before every outbound decision. Write naturally, like briefing a new employee on how you run your book.
         </p>
@@ -141,7 +141,7 @@ export function HollisSection({
 
       {/* Main textarea */}
       <div className="space-y-2">
-        <label className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider block">
+        <label className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider block">
           Standing orders
         </label>
         <textarea
@@ -149,7 +149,7 @@ export function HollisSection({
           onChange={(e) => setValue(e.target.value.slice(0, MAX_CHARS))}
           rows={10}
           placeholder="e.g. Always use the client's first name. For construction clients, lead with our specialist liability cover. Never send SMS to clients I've flagged as phone-only..."
-          className="w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-4 py-3 text-[14px] text-[#f5f5f7] placeholder-[#3a3a3a] focus:outline-none focus:border-[#333333] resize-none leading-relaxed transition-colors"
+          className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-[14px] text-text-primary placeholder-[#3a3a3a] focus:outline-none focus:border-[#333333] resize-none leading-relaxed transition-colors"
           style={{ fontFamily: "inherit" }}
         />
         <div className="flex items-center justify-between">
@@ -167,7 +167,7 @@ export function HollisSection({
 
       {/* Examples */}
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Examples</p>
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Examples</p>
         <div className="space-y-2">
           {EXAMPLES.map((ex, i) => (
             <button
@@ -178,14 +178,14 @@ export function HollisSection({
                 setValue((prev) => (prev + sep + ex).slice(0, MAX_CHARS));
               }}
               className="w-full text-left px-3 py-2.5 rounded-md text-[13px] leading-snug transition-colors"
-              style={{ background: "#111111", border: "1px solid #1C1C1C", color: "#555555" }}
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.color       = "#FAFAFA";
-                (e.currentTarget as HTMLElement).style.borderColor = "#333333";
+                (e.currentTarget as HTMLElement).style.color       = "var(--text-primary)";
+                (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.color       = "#555555";
-                (e.currentTarget as HTMLElement).style.borderColor = "#1C1C1C";
+                (e.currentTarget as HTMLElement).style.color       = "var(--text-secondary)";
+                (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
               }}
             >
               <span className="text-[#2a2a2a] mr-2">+</span>

@@ -53,10 +53,10 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
   const isFullWidth = activeTab === "import" || activeTab === "timeline";
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#0C0C0C]">
+    <div className="flex h-full overflow-hidden bg-background">
       {/* Left tab rail */}
-      <nav className="w-[200px] shrink-0 border-r border-[#181818] pt-8 pb-4 flex flex-col gap-0.5 px-2">
-        <p className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
+      <nav className="w-[200px] shrink-0 border-r border-border-subtle pt-8 pb-4 flex flex-col gap-0.5 px-2">
+        <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-[0.1em] px-2 mb-3">Settings</p>
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
           return (
@@ -66,14 +66,14 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
               onClick={() => handleTab(id)}
               className={`w-full flex items-center gap-2.5 px-2.5 py-[9px] rounded-[4px] text-left transition-colors text-[14px] font-medium ${
                 active
-                  ? "bg-[#1C1C1C] border-l-2 border-[#FAFAFA] text-[#FAFAFA] pl-[9px]"
+                  ? "bg-border border-l-2 border-text-primary text-text-primary pl-[9px]"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03] border-l-2 border-transparent"
               }`}
             >
               <Icon
                 size={16}
                 strokeWidth={active ? 2 : 1.5}
-                className={active ? "text-[#FAFAFA]" : "text-[#6b6b6b]"}
+                className={active ? "text-text-primary" : "text-text-tertiary"}
               />
               {label}
             </button>

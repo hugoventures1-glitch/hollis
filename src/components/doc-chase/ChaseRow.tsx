@@ -39,7 +39,7 @@ export function escalationLabel(level: string): string {
 
 function urgencyColor(chase: DocChaseRequestSummary): string {
   const days = daysSince(chase.created_at);
-  if (chase.touches_sent >= chase.touches_total) return "#FF4444";
+  if (chase.touches_sent >= chase.touches_total) return "var(--danger)";
   if (days > 14) return "#F59E0B";
   return "#AAAAAA";
 }
@@ -53,7 +53,7 @@ export function TouchDots({ sent, total }: { sent: number; total: number }) {
         <div
           key={i}
           className="w-1.5 h-1.5 rounded-full transition-colors"
-          style={{ background: i < sent ? "#FAFAFA" : "#252525" }}
+          style={{ background: i < sent ? "var(--text-primary)" : "var(--border)" }}
         />
       ))}
       <span className="text-[11px] ml-1" style={{ color: "#444" }}>
@@ -77,7 +77,7 @@ function MessageHistoryItem({ msg }: { msg: DocChaseMessage }) {
     <div
       className="px-3 py-2 border-l-2 space-y-1"
       style={{
-        borderColor: isCancelled ? "#252525" : "#1C1C1C",
+        borderColor: isCancelled ? "var(--border)" : "var(--border)",
         opacity: isCancelled ? 0.6 : 1,
       }}
     >
@@ -85,29 +85,29 @@ function MessageHistoryItem({ msg }: { msg: DocChaseMessage }) {
         {/* Touch badge */}
         <span
           className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider"
-          style={{ background: "#1A1A1A", color: "#555" }}
+          style={{ background: "var(--surface-raised)", color: "var(--text-secondary)" }}
         >
           T{msg.touch_number}
         </span>
 
         {/* Channel icon + label */}
-        <div className="flex items-center gap-0.5 text-[11px]" style={{ color: "#888" }}>
+        <div className="flex items-center gap-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
           <EscalationIcon level={msg.channel} size={9} />
           <span>{escalationLabel(msg.channel)}</span>
         </div>
 
         {/* Timestamp */}
         {timestamp && (
-          <span className="text-[10px]" style={{ color: "#555" }}>
+          <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
             {timeAgo(timestamp)}
           </span>
         )}
 
         {/* Status indicator */}
         <div className="flex items-center gap-1 ml-auto">
-          {isSent && <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#FAFAFA" }} />}
-          {isScheduled && <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#555" }} />}
-          <span className="text-[10px]" style={{ color: isSent ? "#888" : isCancelled ? "#333" : "#666" }}>
+          {isSent && <div className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--text-primary)" }} />}
+          {isScheduled && <div className="w-1.5 h-1.5 rounded-full" style={{ color: "var(--text-secondary)" }} />}
+          <span className="text-[10px]" style={{ color: isSent ? "var(--text-secondary)" : isCancelled ? "var(--text-tertiary)" : "var(--text-secondary)" }}>
             {isCancelled ? "Cancelled" : isSent ? "Sent" : "Scheduled"}
           </span>
         </div>
@@ -126,7 +126,7 @@ function MessageHistoryItem({ msg }: { msg: DocChaseMessage }) {
           <div className="space-y-1 mt-1">
             {msg.phone_script.split("\n").map((line, i) => (
               <div key={i} className="flex gap-2">
-                <span style={{ color: "#333" }}>•</span>
+                <span style={{ color: "var(--text-tertiary)" }}>•</span>
                 <span>{line.trim()}</span>
               </div>
             ))}
@@ -266,17 +266,17 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
   return (
     <div
       className="px-6 py-4 flex items-start gap-4 transition-colors hover:bg-white/[0.02]"
-      style={{ borderBottom: "1px solid #111111" }}
+      style={{ borderBottom: "1px solid var(--surface)" }}
     >
       {/* Icon */}
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
         style={{
-          background: isResolved ? "#0D1A0D" : isOverdue ? "#1A0D0D" : "#111",
-          border: `1px solid ${isResolved ? "#1A3A1A" : isOverdue ? "#3A1A1A" : "#1C1C1C"}`,
+          background: isResolved ? "#0D1A0D" : isOverdue ? "#1A0D0D" : "var(--surface)",
+          border: `1px solid ${isResolved ? "#1A3A1A" : isOverdue ? "#3A1A1A" : "var(--border)"}`,
         }}
       >
-        <FileText size={13} style={{ color: isResolved ? "#00D97E" : isOverdue ? "#FF4444" : "#555" }} />
+        <FileText size={13} style={{ color: isResolved ? "#00D97E" : isOverdue ? "var(--danger)" : "var(--text-secondary)" }} />
       </div>
 
       {/* Main content */}
@@ -284,7 +284,7 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
         <div className="flex items-start justify-between gap-2">
           <span
             className="text-[13px] font-medium leading-tight"
-            style={{ color: isResolved ? "#555" : "#FAFAFA" }}
+            style={{ color: isResolved ? "var(--text-secondary)" : "var(--text-primary)" }}
           >
             {chase.document_type}
           </span>
@@ -311,10 +311,10 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
               </span>
             )}
             {chase.status === "cancelled" && (
-              <span className="text-[11px] font-medium" style={{ color: "#3A3A3A" }}>Cancelled</span>
+              <span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>Cancelled</span>
             )}
             {isOverdue && (
-              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "#FF4444" }}>
+              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--danger)" }}>
                 <AlertCircle size={10} /> Overdue
               </span>
             )}
@@ -333,9 +333,9 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
                   key={lvl}
                   className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors"
                   style={{
-                    background: idx <= escalIdx ? "#1A1A1A" : "transparent",
-                    border: idx <= escalIdx ? "1px solid #252525" : "1px solid transparent",
-                    color: idx === escalIdx ? "#AAAAAA" : idx < escalIdx ? "#555" : "#2A2A2A",
+                    background: idx <= escalIdx ? "var(--surface-raised)" : "transparent",
+                    border: idx <= escalIdx ? "1px solid var(--border)" : "1px solid transparent",
+                    color: idx === escalIdx ? "#AAAAAA" : idx < escalIdx ? "var(--text-secondary)" : "var(--border)",
                   }}
                 >
                   <EscalationIcon level={lvl} size={9} />
@@ -348,12 +348,12 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
 
         {/* Meta row */}
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="flex items-center gap-1 text-[11px]" style={{ color: "#333" }}>
+          <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
             <Clock size={9} />
             {daysIn === 0 ? "Started today" : `${daysIn}d in chase`}
           </span>
           {chase.last_contact && (
-            <span className="text-[11px]" style={{ color: "#333" }}>
+            <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
               Last touch: {timeAgo(chase.last_contact)}
             </span>
           )}
@@ -363,8 +363,8 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
               disabled={historyLoading}
               className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded transition-colors"
               style={{
-                background: "#1A1A1A",
-                border: "1px solid #252525",
+                background: "var(--surface-raised)",
+                border: "1px solid var(--border)",
                 color: "#AAAAAA",
                 cursor: historyLoading ? "not-allowed" : "pointer",
               }}
@@ -385,8 +385,8 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
               disabled={sending || uploading}
               className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded transition-colors"
               style={{
-                background: sending ? "#151515" : "#1A1A1A",
-                border: "1px solid #252525",
+                background: sending ? "#151515" : "var(--surface-raised)",
+                border: "1px solid var(--border)",
                 color: sending ? "#444" : "#AAAAAA",
                 cursor: (sending || uploading) ? "not-allowed" : "pointer",
               }}
@@ -416,8 +416,8 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
                 disabled={uploading || sending}
                 className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded transition-colors"
                 style={{
-                  background: uploading ? "#151515" : "#1A1A1A",
-                  border: "1px solid #252525",
+                  background: uploading ? "#151515" : "var(--surface-raised)",
+                  border: "1px solid var(--border)",
                   color: uploading ? "#444" : "#AAAAAA",
                   cursor: (uploading || sending) ? "not-allowed" : "pointer",
                 }}
@@ -432,7 +432,7 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
             </>
           )}
           {sendError && (
-            <span className="text-[11px]" style={{ color: "#FF4444" }}>{sendError}</span>
+            <span className="text-[11px]" style={{ color: "var(--danger)" }}>{sendError}</span>
           )}
         </div>
 
@@ -494,7 +494,7 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
         {showHistory && historyOpen && history && (
           <div className="mt-2 rounded-md" style={{ background: "#0A0A0A", border: "1px solid #0F0F0F" }}>
             {history.length === 0 ? (
-              <div className="px-3 py-2 text-[11px]" style={{ color: "#333" }}>
+              <div className="px-3 py-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                 No messages yet
               </div>
             ) : (
@@ -509,19 +509,19 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
         {onStatusChange && !isResolved && (
           <div className="mt-2 flex items-center gap-2">
             {confirming ? (
-              <div className="flex items-center gap-2 text-[11px]" style={{ color: "#888" }}>
+              <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-secondary)" }}>
                 <span>Stop pending follow-ups?</span>
                 <button
                   onClick={() => handleStatusChange(confirming)}
                   className="px-2 py-0.5 rounded text-[11px] font-medium transition-colors"
-                  style={{ background: "#1A1A1A", border: "1px solid #252525", color: "#FAFAFA" }}
+                  style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                 >
                   Confirm
                 </button>
                 <button
                   onClick={() => setConfirming(null)}
                   className="px-2 py-0.5 rounded text-[11px] transition-colors"
-                  style={{ color: "#555" }}
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   Back
                 </button>
@@ -532,8 +532,8 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
                   onClick={() => setConfirming("received")}
                   className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded transition-colors"
                   style={{
-                    background: "#1A1A1A",
-                    border: "1px solid #252525",
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border)",
                     color: "#AAAAAA",
                     cursor: "pointer",
                   }}
@@ -545,8 +545,8 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
                   className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded transition-colors"
                   style={{
                     background: "transparent",
-                    border: "1px solid #252525",
-                    color: "#666",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
                     cursor: "pointer",
                   }}
                 >

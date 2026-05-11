@@ -108,18 +108,18 @@ export function AccountSection({ planName }: Props) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Account</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Account</h2>
         <p className="text-[13px] text-zinc-500 mt-1">Manage your plan, password, and account data.</p>
       </div>
 
       {/* Plan & Billing */}
       <div className="space-y-3">
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Plan &amp; Billing</p>
-        <div className="rounded-lg border border-[#1C1C1C] bg-[#111111] px-4 py-4 space-y-3">
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Plan &amp; Billing</p>
+        <div className="rounded-lg border border-border bg-surface px-4 py-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[13px] text-[#888888]">Current plan</p>
-              <p className="text-[16px] font-semibold text-[#FAFAFA] mt-0.5 capitalize">{planName}</p>
+              <p className="text-[13px] text-text-secondary">Current plan</p>
+              <p className="text-[16px] font-semibold text-text-primary mt-0.5 capitalize">{planName}</p>
             </div>
             <span
               className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
@@ -128,13 +128,13 @@ export function AccountSection({ planName }: Props) {
               Active
             </span>
           </div>
-          <div className="pt-1" style={{ borderTop: "1px solid #1C1C1C" }}>
+          <div className="pt-1" style={{ borderTop: "1px solid var(--border)" }}>
             <a
               href="mailto:support@hollis.ai?subject=Billing enquiry"
               className="text-[13px] transition-colors"
-              style={{ color: "#666666" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#FAFAFA")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#666666")}
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
             >
               Contact us to change or cancel your plan →
             </a>
@@ -146,7 +146,7 @@ export function AccountSection({ planName }: Props) {
 
       {/* Change password */}
       <div className="space-y-4">
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Change Password</p>
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Change Password</p>
 
         <SettingsField label="New password" error={errors.new_password?.message}>
           <SettingsInput
@@ -170,7 +170,7 @@ export function AccountSection({ planName }: Props) {
           <p className="text-[13px] text-red-400">{pwError}</p>
         )}
         {pwSaved && (
-          <div className="flex items-center gap-2 text-[13px] text-[#FAFAFA]">
+          <div className="flex items-center gap-2 text-[13px] text-text-primary">
             <CheckCircle2 size={14} />
             Password updated successfully.
           </div>
@@ -184,7 +184,7 @@ export function AccountSection({ planName }: Props) {
       {/* Dev tool — Reset account data */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Developer</p>
+          <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Developer</p>
           <span
             className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{ background: "#1a1200", color: "#F59E0B", border: "1px solid #F59E0B33" }}
@@ -229,7 +229,7 @@ export function AccountSection({ planName }: Props) {
                 value={resetInput}
                 onChange={(e) => setResetInput(e.target.value)}
                 placeholder="RESET"
-                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#111111] text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] focus:outline-none transition-colors"
+                className="w-full max-w-xs px-3 py-2 rounded-md bg-surface text-[14px] text-text-primary placeholder-text-tertiary focus:outline-none transition-colors"
                 style={{ border: "1px solid #F59E0B33" }}
                 onFocus={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "#F59E0B88")}
                 onBlur={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "#F59E0B33")}
@@ -241,7 +241,7 @@ export function AccountSection({ planName }: Props) {
                   disabled={resetInput !== "RESET" || resetting}
                   onClick={handleResetData}
                   className="px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ background: "#F59E0B", color: "#0C0C0C" }}
+                  style={{ background: "#F59E0B", color: "var(--text-inverse)" }}
                 >
                   {resetting ? "Resetting…" : "Confirm reset"}
                 </button>
@@ -262,7 +262,7 @@ export function AccountSection({ planName }: Props) {
 
       {/* Danger zone */}
       <div className="space-y-4">
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">Danger Zone</p>
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Danger Zone</p>
         <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 space-y-3">
           <div className="flex items-start gap-3">
             <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
@@ -292,7 +292,7 @@ export function AccountSection({ planName }: Props) {
                 value={deleteInput}
                 onChange={(e) => setDeleteInput(e.target.value)}
                 placeholder="DELETE"
-                className="w-full max-w-xs px-3 py-2 rounded-md bg-[#111111] border border-red-700/40 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] focus:outline-none focus:border-red-500/60 transition-colors"
+                className="w-full max-w-xs px-3 py-2 rounded-md bg-surface border border-red-700/40 text-[14px] text-text-primary placeholder-text-tertiary focus:outline-none focus:border-red-500/60 transition-colors"
               />
               {deleteError && <p className="text-[12px] text-red-400">{deleteError}</p>}
               <div className="flex items-center gap-2 pt-1">
@@ -300,7 +300,7 @@ export function AccountSection({ planName }: Props) {
                   type="button"
                   disabled={deleteInput !== "DELETE" || deleting}
                   onClick={handleDeleteAccount}
-                  className="px-3 py-1.5 rounded-md bg-red-700 text-[#0C0C0C] text-[13px] font-medium hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1.5 rounded-md bg-red-700 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {deleting ? "Deleting…" : "Confirm delete"}
                 </button>

@@ -75,6 +75,14 @@ function PolicyTableRow({
           toast(data.error ?? "Could not send renewal action", "error");
           return;
         }
+        if (data.blocked) {
+          toast(`Blocked — ${data.reason}`, "error");
+          return;
+        }
+        if (data.flagged) {
+          toast(`Review required — ${data.reason}`, "info");
+          return;
+        }
 
         setSent(true);
         toast(`Sent to ${policy.client_name}`, "success");
@@ -99,19 +107,19 @@ function PolicyTableRow({
           ? `/clients/${clientId}?trail=${buildTrailParam([], "Renewals", "/renewals")}`
           : `/renewals/${policy.id}`
       )}
-      className="grid grid-cols-12 items-center px-6 py-[10px] border-b border-[#1C1C1C]/60 hover:bg-white/[0.015] group transition-colors cursor-pointer"
+      className="grid grid-cols-12 items-center px-6 py-[10px] border-b border-border hover:bg-hover-overlay group transition-colors cursor-pointer"
     >
       {/* ID */}
       <div className="col-span-1 flex items-start gap-2">
         <CheckCircle2
           size={14}
-          className="opacity-0 group-hover:opacity-100 text-[#6b6b6b] transition-opacity shrink-0 mt-0.5"
+          className="opacity-0 group-hover:opacity-100 text-text-tertiary transition-opacity shrink-0 mt-0.5"
         />
         <div className="flex flex-col leading-tight">
-          <span className="text-[11px] font-mono text-[#6b6b6b] uppercase">
+          <span className="text-[11px] font-mono text-text-tertiary uppercase">
             {prefix}-
           </span>
-          <span className="text-[12px] font-mono text-[#8a8a8a] uppercase">
+          <span className="text-[12px] font-mono text-text-secondary uppercase">
             {num}
           </span>
         </div>
@@ -122,7 +130,7 @@ function PolicyTableRow({
         <span className="text-[15px] font-medium text-white shrink-0 truncate">
           {policy.policy_name ?? policy.carrier ?? "Policy"}
         </span>
-        <span className="text-[14px] text-[#8a8a8a] truncate">
+        <span className="text-[14px] text-text-secondary truncate">
           {policy.client_name}
         </span>
       </div>
@@ -142,29 +150,29 @@ function PolicyTableRow({
       <div className="col-span-1 flex items-center justify-center">
         <div
           className={`w-2 h-2 rounded-full ${
-            priority === "High" ? "bg-[#ff4d4d]" : "bg-[#1C1C1C]"
+            priority === "High" ? "bg-[#ff4d4d]" : "bg-border"
           }`}
         />
       </div>
 
       {/* Date */}
-      <div className="col-span-1 text-[14px] text-[#6b6b6b] font-medium text-right">
+      <div className="col-span-1 text-[14px] text-text-tertiary font-medium text-right">
         {formatDate(policy.expiration_date)}
       </div>
 
       {/* Send action (replaces MoreHorizontal) */}
       <div className="col-span-1 flex justify-end">
         {sent ? (
-          <span className="text-[11px] text-[#FAFAFA] font-medium">Sent</span>
+          <span className="text-[11px] text-text-primary font-medium">Sent</span>
         ) : loading ? (
           <Loader2
             size={14}
-            className="text-[#8a8a8a] animate-spin"
+            className="text-text-secondary animate-spin"
           />
         ) : (
           <button
             onClick={handleSend}
-            className="text-[12px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors opacity-0 group-hover:opacity-100 font-medium whitespace-nowrap"
+            className="text-[12px] text-text-tertiary hover:text-text-primary transition-colors opacity-0 group-hover:opacity-100 font-medium whitespace-nowrap"
           >
             → Send
           </button>

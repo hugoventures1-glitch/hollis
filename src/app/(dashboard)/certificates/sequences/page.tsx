@@ -40,9 +40,9 @@ const SEQ_STATUS_STYLES: Record<
   SequenceRow["sequence_status"],
   { className: string; icon: React.ElementType; label: string }
 > = {
-  active:    { className: "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",    icon: Clock,        label: "Active"    },
-  completed: { className: "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]",       icon: CheckCircle2, label: "Completed" },
-  cancelled: { className: "bg-[#ffffff08] text-[#6b6b6b] border border-[#ffffff10]",       icon: XCircle,      label: "Cancelled" },
+  active:    { className: "bg-hover-overlay text-text-primary border border-border",          icon: Clock,        label: "Active"    },
+  completed: { className: "bg-hover-overlay text-text-secondary border border-border-subtle", icon: CheckCircle2, label: "Completed" },
+  cancelled: { className: "bg-hover-overlay text-text-tertiary border border-border-subtle",  icon: XCircle,      label: "Cancelled" },
 };
 
 // ── Page ─────────────────────────────────────────────────────
@@ -74,29 +74,29 @@ export default async function SequencesPage() {
   const totalCompleted = sequences.filter((s) => s.sequence_status === "completed").length;
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C]">
+    <div className="flex flex-col h-full bg-background">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-border shrink-0">
         <Link
           href="/certificates"
-          className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft size={13} />
           Certificates
         </Link>
-        <ChevronRight size={12} className="text-[#6b6b6b]" />
-        <span className="text-[13px] text-[#FAFAFA]">Follow-Up Sequences</span>
+        <ChevronRight size={12} className="text-text-tertiary" />
+        <span className="text-[13px] text-text-primary">Follow-Up Sequences</span>
 
         <div className="ml-auto flex items-center gap-3">
           {totalActive > 0 && (
-            <span className="flex items-center gap-1.5 text-[11px] text-[#FAFAFA] bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] rounded-full px-2.5 py-1">
+            <span className="flex items-center gap-1.5 text-[11px] text-text-primary bg-hover-overlay border border-border rounded-full px-2.5 py-1">
               <Clock size={10} />
               {totalActive} active
             </span>
           )}
           {totalCompleted > 0 && (
-            <span className="flex items-center gap-1.5 text-[11px] text-[#8a8a8a] bg-[#ffffff08] border border-[#ffffff10] rounded-full px-2.5 py-1">
+            <span className="flex items-center gap-1.5 text-[11px] text-text-secondary bg-hover-overlay border border-border-subtle rounded-full px-2.5 py-1">
               <CheckCircle2 size={10} />
               {totalCompleted} completed
             </span>
@@ -110,35 +110,35 @@ export default async function SequencesPage() {
 
           {sequences.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-14 h-14 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mb-4">
-                <Mail size={22} className="text-[#FAFAFA]" />
+              <div className="w-14 h-14 rounded-full bg-hover-overlay border border-border flex items-center justify-center mb-4">
+                <Mail size={22} className="text-text-primary" />
               </div>
-              <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">
+              <div className="text-[16px] font-semibold text-text-primary mb-1">
                 No follow-up sequences yet
               </div>
-              <div className="text-[13px] text-[#6b6b6b] max-w-xs">
+              <div className="text-[13px] text-text-tertiary max-w-xs">
                 Start a sequence from any certificate detail page to automatically
                 follow up with certificate holders after expiry.
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] overflow-hidden">
+            <div className="rounded-xl border border-border bg-surface overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1C1C1C]">
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider">
+                  <tr className="border-b border-border">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
                       Holder
                     </th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
                       Certificate
                     </th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
                       Touches
                     </th>
-                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
                       Started
                     </th>
                   </tr>
@@ -153,28 +153,28 @@ export default async function SequencesPage() {
                     return (
                       <tr
                         key={seq.id}
-                        className="border-b border-[#1C1C1C] last:border-0 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                        className="border-b border-border last:border-0 hover:bg-white/[0.02] transition-colors cursor-pointer group"
                       >
                         <td className="px-5 py-3.5">
                           <Link
                             href={`/certificates/${seq.certificate_id}`}
                             className="block"
                           >
-                            <div className="text-[13px] font-medium text-[#FAFAFA] group-hover:text-[#FAFAFA] transition-colors">
+                            <div className="text-[13px] font-medium text-text-primary group-hover:text-text-primary transition-colors">
                               {seq.holder_name}
                             </div>
-                            <div className="text-[11px] text-[#6b6b6b] font-mono mt-0.5">
+                            <div className="text-[11px] text-text-tertiary font-mono mt-0.5">
                               {seq.holder_email}
                             </div>
                           </Link>
                         </td>
                         <td className="px-5 py-3.5">
                           <Link href={`/certificates/${seq.certificate_id}`} className="block">
-                            <div className="text-[13px] text-[#FAFAFA]">
+                            <div className="text-[13px] text-text-primary">
                               {seq.certificates?.insured_name ?? "—"}
                             </div>
                             {seq.certificates?.certificate_number && (
-                              <div className="text-[11px] text-[#6b6b6b] font-mono mt-0.5">
+                              <div className="text-[11px] text-text-tertiary font-mono mt-0.5">
                                 {seq.certificates.certificate_number}
                               </div>
                             )}
@@ -192,19 +192,19 @@ export default async function SequencesPage() {
                         </td>
                         <td className="px-5 py-3.5">
                           <Link href={`/certificates/${seq.certificate_id}`} className="block">
-                            <div className="text-[13px] text-[#FAFAFA] tabular-nums">
+                            <div className="text-[13px] text-text-primary tabular-nums">
                               {sentCount} / {msgs.length}
                             </div>
-                            <div className="text-[11px] text-[#6b6b6b] mt-0.5">sent</div>
+                            <div className="text-[11px] text-text-tertiary mt-0.5">sent</div>
                           </Link>
                         </td>
                         <td className="px-5 py-3.5">
                           <Link href={`/certificates/${seq.certificate_id}`} className="block">
-                            <div className="text-[13px] text-[#FAFAFA]">
+                            <div className="text-[13px] text-text-primary">
                               {fmtDate(seq.created_at)}
                             </div>
                             {seq.completed_at && (
-                              <div className="text-[11px] text-[#6b6b6b] mt-0.5">
+                              <div className="text-[11px] text-text-tertiary mt-0.5">
                                 Done {fmtDate(seq.completed_at)}
                               </div>
                             )}

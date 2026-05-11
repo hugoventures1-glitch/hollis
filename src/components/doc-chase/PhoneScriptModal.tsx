@@ -96,14 +96,14 @@ export function PhoneScriptModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2a] shrink-0">
           <div className="flex items-center gap-2">
-            <Phone size={16} className="text-[#9e9e9e]" />
-            <span className="text-[15px] font-semibold text-[#f5f5f7]">
+            <Phone size={16} className="text-text-secondary" />
+            <span className="text-[15px] font-semibold text-text-primary">
               Phone Script
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+            className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-hover-overlay transition-colors"
             aria-label="Close"
           >
             <X size={16} />
@@ -121,7 +121,7 @@ export function PhoneScriptModal({
             <>
               <div className="mb-4">
                 <p className="text-[12px] text-zinc-500">Calling about</p>
-                <p className="text-[14px] font-medium text-[#f5f5f7]">
+                <p className="text-[14px] font-medium text-text-primary">
                   {data.client_name}
                 </p>
                 <p className="text-[13px] text-zinc-400 mt-0.5">
@@ -136,7 +136,7 @@ export function PhoneScriptModal({
                       key={i}
                       className="flex gap-3 text-[14px] text-[#c5c5cb] leading-relaxed"
                     >
-                      <span className="text-[#9e9e9e] shrink-0">•</span>
+                      <span className="text-text-secondary shrink-0">•</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -150,11 +150,11 @@ export function PhoneScriptModal({
           ) : null}
         </div>
 
-        <div className="px-5 py-4 border-t border-[#1e1e2a] bg-[#0C0C0C] shrink-0">
+        <div className="px-5 py-4 border-t border-[#1e1e2a] bg-background shrink-0">
           <button
             onClick={handleMarkCalled}
             disabled={submitting || loading}
-            className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-[#FAFAFA] hover:bg-[#E8E8E8] text-[#0C0C0C] text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full h-9 flex items-center justify-center gap-2 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <>
@@ -165,7 +165,7 @@ export function PhoneScriptModal({
               "Mark as Called"
             )}
           </button>
-          <p className="text-[11px] text-[#6b6b6b] mt-2 text-center">
+          <p className="text-[11px] text-text-tertiary mt-2 text-center">
             Marks the document as received and cancels pending follow-ups
           </p>
         </div>

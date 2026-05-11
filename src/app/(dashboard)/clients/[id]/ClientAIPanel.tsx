@@ -26,16 +26,16 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
     return (
       <div className="flex flex-col h-full overflow-y-auto">
         {artifact.title && (
-          <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#555" }}>
+          <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>
             {artifact.title}
           </div>
         )}
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
-              <tr style={{ borderBottom: "1px solid #1C1C1C" }}>
+              <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 {artifact.columns.map((col) => (
-                  <th key={col} className="text-left pb-2 pr-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#444" }}>
+                  <th key={col} className="text-left pb-2 pr-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                     {col}
                   </th>
                 ))}
@@ -43,9 +43,9 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
             </thead>
             <tbody>
               {artifact.rows.map((row, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #111" }} className="transition-colors hover:bg-white/[0.02]">
+                <tr key={i} style={{ borderBottom: "1px solid var(--surface)" }} className="transition-colors hover:bg-white/[0.02]">
                   {artifact.columns!.map((col) => (
-                    <td key={col} className="py-2.5 pr-4 align-top" style={{ color: "#AAAAAA" }}>
+                    <td key={col} className="py-2.5 pr-4 align-top" style={{ color: "var(--text-secondary)" }}>
                       {row[col] ?? "—"}
                     </td>
                   ))}
@@ -54,7 +54,7 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
             </tbody>
           </table>
           {artifact.rows.length === 0 && (
-            <div className="py-8 text-center text-[13px]" style={{ color: "#333" }}>No records found</div>
+            <div className="py-8 text-center text-[13px]" style={{ color: "var(--text-tertiary)" }}>No records found</div>
           )}
         </div>
       </div>
@@ -65,15 +65,15 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
     return (
       <div>
         {artifact.title && (
-          <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#555" }}>
+          <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>
             {artifact.title}
           </div>
         )}
         <div className="grid grid-cols-2 gap-4">
           {artifact.fields.map((field) => (
             <div key={field.label}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#444" }}>{field.label}</div>
-              <div className="text-[14px]" style={{ color: "#FAFAFA" }}>{field.value || "—"}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>{field.label}</div>
+              <div className="text-[14px]" style={{ color: "var(--text-primary)" }}>{field.value || "—"}</div>
             </div>
           ))}
         </div>
@@ -85,12 +85,12 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
     return (
       <div className="flex flex-col gap-1 overflow-y-auto">
         {artifact.title && (
-          <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#555" }}>
+          <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>
             {artifact.title}
           </div>
         )}
         {artifact.items.length === 0 ? (
-          <div className="py-8 text-center text-[13px]" style={{ color: "#333" }}>No communications found</div>
+          <div className="py-8 text-center text-[13px]" style={{ color: "var(--text-tertiary)" }}>No communications found</div>
         ) : (
           artifact.items.map((item: ArtifactTimelineItem) => {
             const Icon =
@@ -99,13 +99,13 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
               item.channel === "coi"   ? FileText :
               MessageSquare;
             const inner = (
-              <div className="flex items-start gap-3 px-3 py-2.5" style={{ borderBottom: "1px solid #111" }}>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#1A1A1A", border: "1px solid #2A2A2A" }}>
-                  <Icon size={11} style={{ color: "#555" }} />
+              <div className="flex items-start gap-3 px-3 py-2.5" style={{ borderBottom: "1px solid var(--surface)" }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "var(--surface-raised)", border: "1px solid var(--border)" }}>
+                  <Icon size={11} style={{ color: "var(--text-secondary)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] truncate" style={{ color: "#AAAAAA" }}>{item.description}</div>
-                  <div className="text-[11px] mt-0.5" style={{ color: "#444" }}>{item.timestamp} · {item.status}</div>
+                  <div className="text-[13px] truncate" style={{ color: "var(--text-secondary)" }}>{item.description}</div>
+                  <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{item.timestamp} · {item.status}</div>
                 </div>
               </div>
             );
@@ -121,11 +121,11 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactResponse }) {
   return (
     <div>
       {artifact.title && (
-        <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#555" }}>
+        <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>
           {artifact.title}
         </div>
       )}
-      <p className="text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: "#AAAAAA" }}>
+      <p className="text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>
         {artifact.content ?? ""}
       </p>
     </div>
@@ -166,16 +166,16 @@ function ChatPanel({
               className="px-3 py-2 rounded-lg text-[13px] leading-relaxed max-w-[90%]"
               style={
                 msg.role === "user"
-                  ? { background: "#1A1A1A", color: "#FAFAFA", border: "1px solid #252525" }
-                  : { color: "#AAAAAA" }
+                  ? { background: "var(--surface-raised)", color: "var(--text-primary)", border: "1px solid var(--border)" }
+                  : { color: "var(--text-secondary)" }
               }
             >
               {msg.content}
             </div>
             {msg.role === "assistant" && msg.artifact && msg.artifact !== currentArtifact && (
               <button
-                className="text-[11px] transition-colors hover:text-[#AAAAAA]"
-                style={{ color: "#333" }}
+                className="text-[11px] transition-colors hover:text-text-secondary"
+                style={{ color: "var(--text-tertiary)" }}
                 onClick={() => onArtifactSelect(msg.artifact!)}
               >
                 View result →
@@ -185,13 +185,13 @@ function ChatPanel({
         ))}
         {loading && (
           <div className="flex items-start">
-            <Loader2 size={14} className="animate-spin mt-0.5" style={{ color: "#333" }} />
+            <Loader2 size={14} className="animate-spin mt-0.5" style={{ color: "var(--text-tertiary)" }} />
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2.5" style={{ borderTop: "1px solid #1A1A1A" }}>
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2.5" style={{ borderTop: "1px solid var(--surface-raised)" }}>
         <input
           ref={inputRef}
           type="text"
@@ -202,14 +202,14 @@ function ChatPanel({
           }}
           placeholder={placeholder}
           className="flex-1 bg-transparent outline-none"
-          style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "#AAAAAA" }}
+          style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--text-secondary)" }}
           autoFocus
         />
         <button
           onClick={() => onSend(input)}
           disabled={!input.trim() || loading}
           className="shrink-0 transition-opacity"
-          style={{ opacity: input.trim() && !loading ? 1 : 0.3, color: "#555" }}
+          style={{ opacity: input.trim() && !loading ? 1 : 0.3, color: "var(--text-secondary)" }}
         >
           <Send size={13} />
         </button>
@@ -286,7 +286,7 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
 
   if (!expanded) {
     return (
-      <div className="rounded-xl" style={{ background: "#0E0E0E", border: "1px solid #1C1C1C" }}>
+      <div className="rounded-xl" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
         <div className="flex items-center gap-3 px-4 py-3.5">
           <input
             ref={inputRef}
@@ -298,13 +298,13 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
             }}
             placeholder={`Ask about ${clientName}…`}
             className="flex-1 bg-transparent outline-none"
-            style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "#AAAAAA" }}
+            style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--text-secondary)" }}
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim()}
             className="shrink-0 transition-opacity"
-            style={{ opacity: input.trim() ? 1 : 0.3, color: "#555" }}
+            style={{ opacity: input.trim() ? 1 : 0.3, color: "var(--text-secondary)" }}
           >
             <Send size={14} />
           </button>
@@ -333,26 +333,26 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
         style={{
           maxWidth: 1100,
           height: "80vh",
-          background: "#0C0C0C",
-          border: "1px solid #1C1C1C",
+          background: "var(--background)",
+          border: "1px solid var(--border)",
           animation: "panelExpand 0.2s ease-out",
         }}
       >
         {/* Modal header */}
-        <div className="shrink-0 flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid #1A1A1A" }}>
-          <span className="text-[12px] font-medium" style={{ color: "#555" }}>{clientName}</span>
-          <button onClick={() => setMaximized(false)} className="transition-colors hover:text-[#FAFAFA]" style={{ color: "#444" }}>
+        <div className="shrink-0 flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--surface-raised)" }}>
+          <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{clientName}</span>
+          <button onClick={() => setMaximized(false)} className="transition-colors hover:text-text-primary" style={{ color: "var(--text-tertiary)" }}>
             <X size={14} />
           </button>
         </div>
 
         {/* Modal body */}
         <div className="flex flex-1 min-h-0">
-          <div className="flex flex-col" style={{ width: showSplit ? "38%" : "100%", borderRight: showSplit ? "1px solid #1A1A1A" : "none" }}>
+          <div className="flex flex-col" style={{ width: showSplit ? "38%" : "100%", borderRight: showSplit ? "1px solid var(--surface-raised)" : "none" }}>
             <ChatPanel {...chatProps} />
           </div>
           {showSplit && (
-            <div className="flex-1 min-w-0 overflow-y-auto p-6" style={{ background: "#0E0E0E" }}>
+            <div className="flex-1 min-w-0 overflow-y-auto p-6" style={{ background: "var(--background)" }}>
               <ArtifactRenderer artifact={currentArtifact!} />
             </div>
           )}
@@ -370,7 +370,7 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          border: "1px solid #1C1C1C",
+          border: "1px solid var(--border)",
           height: showSplit ? 440 : 320,
           display: "flex",
           flexDirection: "column",
@@ -381,14 +381,14 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
         {/* Toolbar */}
         <div
           className="shrink-0 flex items-center justify-between px-4 py-2"
-          style={{ borderBottom: "1px solid #1A1A1A", background: "#0C0C0C" }}
+          style={{ borderBottom: "1px solid var(--surface-raised)", background: "var(--background)" }}
         >
-          <span className="text-[11px]" style={{ color: "#333" }}>{clientName}</span>
+          <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{clientName}</span>
           <button
             onClick={() => setMaximized(true)}
             title="Expand"
-            className="transition-colors hover:text-[#AAAAAA]"
-            style={{ color: "#333" }}
+            className="transition-colors hover:text-text-secondary"
+            style={{ color: "var(--text-tertiary)" }}
           >
             <Maximize2 size={12} />
           </button>
@@ -401,8 +401,8 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
             className="flex flex-col"
             style={{
               width: showSplit ? "40%" : "100%",
-              borderRight: showSplit ? "1px solid #1A1A1A" : "none",
-              background: "#0C0C0C",
+              borderRight: showSplit ? "1px solid var(--surface-raised)" : "none",
+              background: "var(--background)",
               transition: "width 0.25s ease",
             }}
           >
@@ -414,15 +414,15 @@ export function ClientAIPanel({ clientId, clientName }: ClientAIPanelProps) {
             <div
               className="flex-1 min-w-0 overflow-y-auto p-5"
               style={{
-                background: "#0E0E0E",
+                background: "var(--background)",
                 animation: "artifactSlide 0.2s ease-out",
               }}
             >
               {loading ? (
                 <div className="flex flex-col gap-3 animate-pulse">
-                  <div className="h-3 rounded w-1/3" style={{ background: "#1A1A1A" }} />
-                  <div className="h-3 rounded w-3/4" style={{ background: "#1A1A1A" }} />
-                  <div className="h-3 rounded w-1/2" style={{ background: "#1A1A1A" }} />
+                  <div className="h-3 rounded w-1/3" style={{ background: "var(--surface-raised)" }} />
+                  <div className="h-3 rounded w-3/4" style={{ background: "var(--surface-raised)" }} />
+                  <div className="h-3 rounded w-1/2" style={{ background: "var(--surface-raised)" }} />
                 </div>
               ) : (
                 <ArtifactRenderer artifact={currentArtifact!} />

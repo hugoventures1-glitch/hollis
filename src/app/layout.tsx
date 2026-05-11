@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import { PostHogPageView } from "@/components/analytics/PostHogPageView";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,16 +33,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} antialiased`}
       >
-        <PostHogProvider>
-          <Suspense>
-            <PostHogPageView />
-          </Suspense>
-          {children}
-        </PostHogProvider>
+        <ThemeProvider>
+          <PostHogProvider>
+            <Suspense>
+              <PostHogPageView />
+            </Suspense>
+            {children}
+          </PostHogProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -48,7 +48,7 @@ function OffsetInput({
           max={365}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value, 10) || 1)}
-          className="w-16 bg-[#111] border border-[#2a2a2a] rounded-md px-2 py-1.5 text-[13px] text-[#f5f5f7] text-center focus:outline-none focus:border-zinc-500"
+          className="w-16 bg-surface border border-[#2a2a2a] rounded-md px-2 py-1.5 text-[13px] text-text-primary text-center focus:outline-none focus:border-zinc-500"
         />
         <span className="text-[12px] text-zinc-600">days</span>
       </div>
@@ -177,7 +177,7 @@ export function LeadTimesSection() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Renewal Timing</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Renewal Timing</h2>
         <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">
           Configure how far in advance Hollis starts outreach for each line of business. Different policy
           types need different lead times — BI renewals typically start 90 days out while home insurance
@@ -186,7 +186,7 @@ export function LeadTimesSection() {
       </div>
 
       {/* Global defaults — always shown as reference */}
-      <div className="rounded-md border border-[#1e1e1e] bg-[#111] px-4 py-3">
+      <div className="rounded-md border border-border-subtle bg-surface px-4 py-3">
         <p className="text-[12px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
           Global defaults (used when no policy type is set)
         </p>
@@ -221,10 +221,10 @@ export function LeadTimesSection() {
             return (
               <div
                 key={cfg.policy_type}
-                className="rounded-md border border-[#1e1e1e] bg-[#111] px-4 py-4 space-y-4"
+                className="rounded-md border border-border-subtle bg-surface px-4 py-4 space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-[14px] font-semibold text-[#f5f5f7] capitalize">
+                  <p className="text-[14px] font-semibold text-text-primary capitalize">
                     {cfg.policy_type}
                   </p>
                   <button
@@ -273,7 +273,7 @@ export function LeadTimesSection() {
 
       {/* Add new policy type */}
       <div className="space-y-3 pt-2">
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider">
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
           Add policy type
         </p>
         <div className="flex items-start gap-3">
@@ -281,7 +281,7 @@ export function LeadTimesSection() {
             <select
               value={addType}
               onChange={(e) => { setAddType(e.target.value); setAddError(""); }}
-              className="bg-[#111] border border-[#2a2a2a] rounded-md px-3 py-2 text-[13px] text-[#f5f5f7] focus:outline-none focus:border-zinc-500"
+              className="bg-surface border border-[#2a2a2a] rounded-md px-3 py-2 text-[13px] text-text-primary focus:outline-none focus:border-zinc-500"
             >
               <option value="">Select a policy type…</option>
               {STANDARD_POLICY_TYPES.map((t) => (
@@ -295,7 +295,7 @@ export function LeadTimesSection() {
                 placeholder="e.g. Farm & Rural"
                 value={customType}
                 onChange={(e) => { setCustomType(e.target.value); setAddError(""); }}
-                className="bg-[#111] border border-[#2a2a2a] rounded-md px-3 py-2 text-[13px] text-[#f5f5f7] placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
+                className="bg-surface border border-[#2a2a2a] rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
               />
             )}
           </div>
@@ -303,7 +303,7 @@ export function LeadTimesSection() {
             type="button"
             onClick={handleAdd}
             disabled={adding}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-[#1e1e1e] hover:bg-[#252525] text-zinc-300 text-[13px] font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-border hover:bg-border text-zinc-300 text-[13px] font-medium transition-colors disabled:opacity-50"
           >
             {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
             Add

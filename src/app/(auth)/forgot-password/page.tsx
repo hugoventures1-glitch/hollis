@@ -33,17 +33,17 @@ export default function ForgotPasswordPage() {
     return (
       <>
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
             Check your email
           </h1>
-          <p className="mt-2 text-sm text-[#9e9e9e] leading-relaxed">
-            If an account exists for <span className="text-[#FAFAFA]">{email}</span>, we&apos;ve
+          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+            If an account exists for <span className="text-text-primary">{email}</span>, we&apos;ve
             sent a password reset link. Check your inbox and spam folder.
           </p>
         </div>
         <Link
           href="/login"
-          className="text-sm text-[#666666] hover:text-[#FAFAFA] transition-colors"
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
           ← Back to sign in
         </Link>
@@ -54,10 +54,10 @@ export default function ForgotPasswordPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
           Reset your password
         </h1>
-        <p className="mt-1 text-sm text-[#9e9e9e]">
+        <p className="mt-1 text-sm text-text-secondary">
           Enter your email and we&apos;ll send you a reset link.
         </p>
       </div>
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             Email
           </label>
@@ -83,14 +83,14 @@ export default function ForgotPasswordPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none"
+            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-border focus:outline-none"
           />
         </div>
 
         <button
           type="submit"
           disabled={submitting || !email}
-          className="w-full rounded-lg bg-[#FAFAFA] px-4 py-2.5 text-sm font-semibold text-[#0C0C0C] transition-colors hover:bg-[#E8E8E8] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-text-inverse transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Sending…" : "Send reset link"}
         </button>
@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
       <p className="mt-6 text-center text-sm">
         <Link
           href="/login"
-          className="text-[#666666] hover:text-[#FAFAFA] transition-colors"
+          className="text-text-secondary hover:text-text-primary transition-colors"
         >
           ← Back to sign in
         </Link>

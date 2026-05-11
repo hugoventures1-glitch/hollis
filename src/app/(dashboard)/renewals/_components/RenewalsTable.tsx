@@ -48,13 +48,13 @@ function toastMessageForAction(
 const HEALTH_CONFIG: Record<HealthLabel, { color: string; pulse: boolean }> = {
   healthy:  { color: "#00D97E", pulse: false },
   at_risk:  { color: "#F59E0B", pulse: true  },
-  critical: { color: "#FF4444", pulse: true  },
-  stalled:  { color: "#2E2E2E", pulse: false },
+  critical: { color: "var(--danger)", pulse: true  },
+  stalled:  { color: "var(--border)", pulse: false },
 };
 
 function HealthDot({ label }: { label: HealthLabel | null | undefined }) {
   if (!label) {
-    return <div className="w-2 h-2 shrink-0 rounded-full" style={{ background: "#1E1E1E" }} />;
+    return <div className="w-2 h-2 shrink-0 rounded-full" style={{ background: "var(--border)" }} />;
   }
   const { color, pulse } = HEALTH_CONFIG[label];
   return (
@@ -107,9 +107,9 @@ function StageDots({ stage }: { stage: CampaignStage }) {
             className="w-1.5 h-1.5 rounded-full transition-all duration-300"
             style={{
               background: done
-                ? current ? "#AAAAAA" : "#3A3A3A"
-                : progress === 5 ? "#00D97E33" : "#1E1E1E",
-              boxShadow: done && current ? "0 0 4px #AAAAAA" : "none",
+                ? current ? "var(--text-secondary)" : "#3A3A3A"
+                : progress === 5 ? "#00D97E33" : "var(--border)",
+              boxShadow: done && current ? "0 0 4px var(--text-secondary)" : "none",
             }}
             title={label}
           />
@@ -122,9 +122,9 @@ function StageDots({ stage }: { stage: CampaignStage }) {
 // ── Urgency helpers ───────────────────────────────────────────────────────────
 
 function urgencyColor(days: number): string {
-  if (days <= 14) return "#FF4444";
+  if (days <= 14) return "var(--danger)";
   if (days <= 30) return "#F59E0B";
-  if (days <= 60) return "#666666";
+  if (days <= 60) return "var(--text-secondary)";
   return "#3A3A3A";
 }
 
@@ -251,7 +251,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         const clientInfo = (e.currentTarget as HTMLElement).querySelector('[data-client-info]') as HTMLElement;
         if (clientInfo) {
           const policyId = clientInfo.querySelector('[data-policy-id]') as HTMLElement;
-          if (policyId) policyId.style.color = "#FAFAFA";
+          if (policyId) policyId.style.color = "var(--text-primary)";
         }
       }}
       onMouseLeave={(e) => {
@@ -259,7 +259,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         const clientInfo = (e.currentTarget as HTMLElement).querySelector('[data-client-info]') as HTMLElement;
         if (clientInfo) {
           const policyId = clientInfo.querySelector('[data-policy-id]') as HTMLElement;
-          if (policyId) policyId.style.color = "rgba(250,250,250,0.2)";
+          if (policyId) policyId.style.color = "var(--text-tertiary)";
         }
       }}
     >
@@ -273,7 +273,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
               fontFamily: "var(--font-display)",
               fontSize:   15,
               fontWeight: 600,
-              color:      "#FAFAFA",
+              color:      "var(--text-primary)",
               letterSpacing: "-0.01em",
             }}
           >
@@ -283,14 +283,13 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
             className="truncate mt-0.5 flex items-center gap-2 transition-colors duration-200"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize:   11,
-              color:      "rgba(250,250,250,0.2)",
+              fontSize:   11,color: "var(--text-tertiary)",
             }}
             data-policy-id
           >
             {policy.policy_name}
             {policy.carrier && (
-              <span style={{ color: "rgba(250,250,250,0.1)" }}>· {policy.carrier}</span>
+              <span style={{ color: "var(--text-tertiary)" }}>· {policy.carrier}</span>
             )}
           </div>
         </div>
@@ -301,7 +300,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
 
       {/* Expiry date */}
       <div className="shrink-0 hidden sm:block" style={{ width: 68 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#2E2E2E" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>
           {expiry}
         </span>
       </div>
@@ -319,14 +318,14 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         >
           {Math.abs(days)}
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#2E2E2E", marginTop: 2, letterSpacing: "0.04em" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, letterSpacing: "0.04em" }}>
           {days < 0 ? "PAST" : "DAYS"}
         </div>
       </div>
 
       {/* Premium */}
       <div className="shrink-0 text-right hidden md:block" style={{ width: 72 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#333" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)" }}>
           {policy.premium ? `$${Number(policy.premium).toLocaleString()}` : "—"}
         </span>
       </div>
@@ -350,9 +349,9 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
           title={archiveConfirm ? "Click again to archive" : "Archive policy"}
           className="flex items-center justify-center h-7 rounded-md transition-all duration-150 shrink-0"
           style={{
-            background: archiveConfirm ? "#2A0A0A" : "#141414",
-            color: archiveConfirm ? "#FF6666" : "#444",
-            border: `1px solid ${archiveConfirm ? "#FF444433" : "#222"}`,
+            background: archiveConfirm ? "#2A0A0A" : "var(--surface-raised)",
+            color: archiveConfirm ? "#FF6666" : "var(--text-tertiary)",
+            border: `1px solid ${archiveConfirm ? "#FF444433" : "var(--border)"}`,
             width: archiveConfirm ? 80 : 28,
             gap: 4,
             fontSize: 11,
@@ -370,8 +369,8 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
           }}
           onMouseLeave={(e) => {
             if (!archiveConfirm) {
-              (e.currentTarget as HTMLElement).style.color = "#444";
-              (e.currentTarget as HTMLElement).style.borderColor = "#222";
+              (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)";
+              (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
             }
           }}
         >
@@ -384,14 +383,14 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
           onClick={(e) => { e.stopPropagation(); onLogSignal(policy.id, policy.client_name); }}
           title="Log client response"
           className="flex items-center justify-center h-7 w-7 rounded-md transition-colors shrink-0"
-          style={{ background: "#141414", color: "#444", border: "1px solid #222" }}
+          style={{ background: "var(--surface-raised)", color: "var(--text-tertiary)", border: "1px solid var(--border)" }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.color = "#00d4aa";
             (e.currentTarget as HTMLElement).style.borderColor = "#00d4aa33";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "#444";
-            (e.currentTarget as HTMLElement).style.borderColor = "#222";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
           }}
         >
           <MessageSquare size={12} />
@@ -407,7 +406,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         ) : (
           <div
             className="flex items-center justify-center h-7 w-7 rounded-md transition-colors"
-            style={{ background: "#1A1A1A", color: "#333" }}
+            style={{ background: "var(--surface)", color: "var(--text-tertiary)" }}
           >
             <ChevronRight size={13} />
           </div>
@@ -459,7 +458,7 @@ function PolicyGroup({
         {group.urgent && (
           <span
             className="w-2 h-2 rounded-full animate-pulse shrink-0"
-            style={{ background: "#FF4444", boxShadow: "0 0 6px #FF444488" }}
+            style={{ background: "var(--danger)", boxShadow: "0 0 6px rgba(204,41,41,0.53)" }}
           />
         )}
         <span
@@ -468,13 +467,13 @@ function PolicyGroup({
             fontWeight:    700,
             letterSpacing: "0.02em",
             textTransform: "capitalize",
-            color:         group.urgent ? "#FF6666" : "#FAFAFA",
+            color:         group.urgent ? "#FF6666" : "var(--text-primary)",
             fontFamily:    "var(--font-sans)",
           }}
         >
           {group.title}
         </span>
-        <span style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", fontWeight: 500 }}>
+        <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontWeight: 500 }}>
           {group.policies.length}
         </span>
       </div>
@@ -654,6 +653,6 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
 
 export function RenewalsBreadcrumb() {
   return (
-    <span className="text-[13px]" style={{ color: "#FAFAFA" }}>Renewals</span>
+    <span className="text-[13px]" style={{ color: "var(--text-primary)" }}>Renewals</span>
   );
 }

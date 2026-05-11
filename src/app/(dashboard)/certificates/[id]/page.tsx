@@ -15,36 +15,36 @@ interface PageProps {
 }
 
 const STATUS_STYLES = {
-  draft:    "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]",
-  sent:     "bg-[#FAFAFA]/[0.06] text-[#FAFAFA] border border-[#1C1C1C]",
+  draft:    "bg-hover-overlay text-text-secondary border border-border-subtle",
+  sent:     "bg-hover-overlay text-text-primary border border-border",
   expired:  "bg-red-900/30 text-red-400 border border-red-700/30",
-  outdated: "bg-[#FF4444]/[0.06] text-[#FF4444] border border-[#FF4444]/[0.2]",
+  outdated: "bg-danger/[0.06] text-danger border border-danger/[0.2]",
 };
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-0.5">{label}</div>
-      <div className="text-[13px] text-[#FAFAFA]">{value || "—"}</div>
+      <div className="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-0.5">{label}</div>
+      <div className="text-[13px] text-text-primary">{value || "—"}</div>
     </div>
   );
 }
 
 function CoverageSection({ label, enabled, rows }: { label: string; enabled: boolean; rows: [string, string][] }) {
   return (
-    <div className={`rounded-lg border p-4 ${enabled ? "border-[#1C1C1C] bg-[#0C0C0C]" : "border-[#1C1C1C]/40 bg-[#0C0C0C] opacity-40"}`}>
+    <div className={`rounded-lg border p-4 ${enabled ? "border-border bg-background" : "border-border/40 bg-background opacity-40"}`}>
       <div className="flex items-center gap-2 mb-3">
-        <div className={`w-4 h-4 rounded border flex items-center justify-center ${enabled ? "bg-[#FAFAFA] border-[#FAFAFA]" : "border-[#333333]"}`}>
+        <div className={`w-4 h-4 rounded border flex items-center justify-center ${enabled ? "bg-text-primary border-text-primary" : "border-text-tertiary"}`}>
           {enabled && <CheckCircle size={10} className="text-black" />}
         </div>
-        <span className="text-[13px] font-semibold text-[#FAFAFA]">{label}</span>
+        <span className="text-[13px] font-semibold text-text-primary">{label}</span>
       </div>
       {enabled && (
         <div className="space-y-1.5">
           {rows.map(([k, v]) => v ? (
             <div key={k} className="flex justify-between text-[12px]">
-              <span className="text-[#6b6b6b]">{k}</span>
-              <span className="text-[#FAFAFA] font-medium">{v}</span>
+              <span className="text-text-tertiary">{k}</span>
+              <span className="text-text-primary font-medium">{v}</span>
             </div>
           ) : null)}
         </div>
@@ -74,15 +74,15 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
   const snap = cert.coverage_snapshot;
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C]">
+    <div className="flex flex-col h-full bg-background">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <Link href={backHref} className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors">
+      <div className="flex items-center gap-3 px-10 h-[56px] border-b border-border shrink-0">
+        <Link href={backHref} className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors">
           <ArrowLeft size={13} /> {backLabel}
         </Link>
-        <ChevronRight size={12} className="text-[#6b6b6b]" />
-        <span className="font-mono text-[12px] text-[#6b6b6b]">{cert.certificate_number}</span>
+        <ChevronRight size={12} className="text-text-tertiary" />
+        <span className="font-mono text-[12px] text-text-tertiary">{cert.certificate_number}</span>
 
         <div className="ml-auto flex items-center gap-3">
           {cert.has_gap && (
@@ -93,7 +93,7 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${STATUS_STYLES[cert.status]}`}>
             {cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
           </span>
-          <span className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#555555]">
+          <span className="h-8 px-4 flex items-center gap-1.5 rounded-md border border-border text-[12px] text-text-tertiary">
             Certificate generation coming soon
           </span>
           {cert.status === "draft" && (
@@ -126,8 +126,8 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
             <div className="col-span-2 space-y-5">
 
               {/* Summary card */}
-              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
-                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-4">Certificate Summary</div>
+              <div className="rounded-xl bg-surface border border-border p-6">
+                <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest mb-4">Certificate Summary</div>
                 <div className="grid grid-cols-2 gap-5">
                   <InfoBlock label="Insured" value={cert.insured_name} />
                   <InfoBlock label="Insured Address" value={cert.insured_address ?? ""} />
@@ -139,22 +139,22 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
                   <InfoBlock label="Expires" value={cert.expiration_date ? new Date(cert.expiration_date + "T00:00:00").toLocaleDateString("en-AU", { month: "long", day: "numeric", year: "numeric" }) : ""} />
                 </div>
                 {cert.additional_insured_language && (
-                  <div className="mt-4 pt-4 border-t border-[#1C1C1C]">
-                    <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Additional Insured Language</div>
-                    <p className="text-[12px] text-[#8a8a8a] leading-relaxed">{cert.additional_insured_language}</p>
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-1">Additional Insured Language</div>
+                    <p className="text-[12px] text-text-secondary leading-relaxed">{cert.additional_insured_language}</p>
                   </div>
                 )}
                 {cert.description && (
-                  <div className="mt-4 pt-4 border-t border-[#1C1C1C]">
-                    <div className="text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider mb-1">Description of Operations</div>
-                    <p className="text-[12px] text-[#8a8a8a] leading-relaxed">{cert.description}</p>
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-1">Description of Operations</div>
+                    <p className="text-[12px] text-text-secondary leading-relaxed">{cert.description}</p>
                   </div>
                 )}
               </div>
 
               {/* Coverage */}
-              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6">
-                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-4">Coverage Detail</div>
+              <div className="rounded-xl bg-surface border border-border p-6">
+                <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest mb-4">Coverage Detail</div>
                 <div className="grid grid-cols-2 gap-3">
                   <CoverageSection
                     label="General Liability"
@@ -218,22 +218,22 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
             <div className="space-y-4">
 
               {/* Send status */}
-              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">Delivery</div>
+              <div className="rounded-xl bg-surface border border-border p-5">
+                <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest mb-3">Delivery</div>
                 {cert.status === "sent" ? (
                   <div>
-                    <div className="flex items-center gap-2 text-[#FAFAFA] text-[13px] font-medium mb-2">
+                    <div className="flex items-center gap-2 text-text-primary text-[13px] font-medium mb-2">
                       <CheckCircle size={14} /> Sent
                     </div>
-                    <div className="text-[12px] text-[#8a8a8a]">{cert.sent_to_email}</div>
-                    <div className="text-[11px] text-[#6b6b6b] mt-1">
+                    <div className="text-[12px] text-text-secondary">{cert.sent_to_email}</div>
+                    <div className="text-[11px] text-text-tertiary mt-1">
                       {cert.sent_at && new Date(cert.sent_at).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div className="text-[12px] text-[#8a8a8a] mb-3">Not yet sent</div>
-                    <div className="w-full h-8 flex items-center justify-center rounded-md border border-[#1C1C1C] text-[12px] text-[#555555] mb-2">
+                    <div className="text-[12px] text-text-secondary mb-3">Not yet sent</div>
+                    <div className="w-full h-8 flex items-center justify-center rounded-md border border-border text-[12px] text-text-tertiary mb-2">
                       Certificate generation coming soon
                     </div>
                     <div className="w-full">
@@ -244,8 +244,8 @@ export default async function CertificateDetailPage({ params, searchParams }: Pa
               </div>
 
               {/* Meta */}
-              <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-3">
-                <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest mb-3">Metadata</div>
+              <div className="rounded-xl bg-surface border border-border p-5 space-y-3">
+                <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest mb-3">Metadata</div>
                 <InfoBlock label="Certificate #" value={cert.certificate_number} />
                 <InfoBlock label="Created" value={new Date(cert.created_at).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" })} />
                 {cert.request_id && <InfoBlock label="Source Request" value={cert.request_id.slice(0, 8) + "…"} />}

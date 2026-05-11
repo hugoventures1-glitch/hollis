@@ -53,7 +53,7 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
     return (
       <button
         onClick={handleOpen}
-        className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+        className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity"
       >
         <Send size={12} /> Send
       </button>
@@ -69,19 +69,19 @@ export function SendCOIButton({ certId, defaultEmail }: Props) {
         onChange={(e) => setEmail(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSend()}
         placeholder="recipient@email.com"
-        className="h-8 px-3 rounded-md bg-[#111111] border border-[#1C1C1C] text-[13px] text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] w-52"
+        className="h-8 px-3 rounded-md bg-surface border border-border text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary w-52"
       />
       <button
         onClick={handleSend}
         disabled={sending || !email.trim()}
-        className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="h-8 px-3.5 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         {sending ? "Sending…" : "Send"}
       </button>
       <button
         onClick={() => setShowForm(false)}
-        className="h-8 px-3 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+        className="h-8 px-3 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors"
       >
         Cancel
       </button>

@@ -127,11 +127,11 @@ export async function POST(
 
   if (tierResult.tier === 3) {
     return NextResponse.json(
-      { blocked: true, tier: 3, reason: tierResult.reason },
+      { error: tierResult.reason, blocked: true, tier: 3, reason: tierResult.reason },
       { status: 403 },
     );
   }
-  if (tierResult.tier === 2 && (!override || tierResult.mode === "learning")) {
+  if (tierResult.tier === 2 && !override) {
     return NextResponse.json(
       { flagged: true, tier: 2, reason: tierResult.reason, mode: tierResult.mode },
       { status: 200 },

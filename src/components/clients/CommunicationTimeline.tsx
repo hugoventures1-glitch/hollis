@@ -58,10 +58,10 @@ function statusColor(status: string): string {
     status === "received" ||
     status === "delivered"
   )
-    return "text-[#FAFAFA]";
+    return "text-text-primary";
   if (status === "failed" || status === "bounced" || status === "cancelled")
     return "text-red-400";
-  return "text-[#8a8b91]";
+  return "text-text-secondary";
 }
 
 export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) {
@@ -89,12 +89,12 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="flex gap-4 px-5 py-3.5 rounded-xl bg-[#111118] border border-[#1e1e2a] animate-pulse"
+            className="flex gap-4 px-5 py-3.5 rounded-xl bg-surface border border-border animate-pulse"
           >
-            <div className="w-[14px] h-[14px] rounded-full bg-zinc-800 shrink-0" />
+            <div className="w-[14px] h-[14px] rounded-full bg-surface-raised shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="h-4 w-3/4 rounded bg-zinc-800" />
-              <div className="h-3 w-1/2 rounded bg-zinc-800 mt-2" />
+              <div className="h-4 w-3/4 rounded bg-surface-raised" />
+              <div className="h-3 w-1/2 rounded bg-surface-raised mt-2" />
             </div>
           </div>
         ))}
@@ -104,7 +104,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
 
   if (error) {
     return (
-      <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-6 text-center">
+      <div className="rounded-xl bg-surface border border-border p-6 text-center">
         <p className="text-[13px] text-red-400">{error}</p>
       </div>
     );
@@ -112,8 +112,8 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
 
   if (items.length === 0) {
     return (
-      <div className="rounded-xl bg-[#111118] border border-[#1e1e2a] p-8 text-center">
-        <p className="text-[13px] text-[#505057]">
+      <div className="rounded-xl bg-surface border border-border p-8 text-center">
+        <p className="text-[13px] text-text-secondary">
           No communication history yet.
         </p>
       </div>
@@ -133,7 +133,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
               <div className={`text-[13px] font-medium ${colorClass}`}>
                 {item.description}
               </div>
-              <div className="text-[12px] text-[#505057] mt-0.5">
+              <div className="text-[12px] text-text-secondary mt-0.5">
                 {formatTimestamp(item.timestamp)}
               </div>
             </div>
@@ -141,7 +141,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
         );
 
         const className =
-          "flex gap-4 px-5 py-3.5 rounded-xl bg-[#111118] border border-[#1e1e2a] hover:border-[#1C1C1C] transition-colors group";
+          "flex gap-4 px-5 py-3.5 rounded-xl bg-surface border border-border hover:border-border transition-colors group";
 
         if (item.link) {
           return (
@@ -151,7 +151,7 @@ export function CommunicationTimeline({ clientId }: CommunicationTimelineProps) 
               className={className}
             >
               {content}
-              <span className="text-[#6b6b6b] group-hover:text-[#FAFAFA] transition-colors shrink-0 self-center">
+              <span className="text-text-tertiary group-hover:text-text-primary transition-colors shrink-0 self-center">
                 →
               </span>
             </Link>

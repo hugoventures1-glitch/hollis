@@ -50,9 +50,9 @@ function SeverityBadge({ severity }: { severity: FlagSeverity }) {
 
 function VerdictIcon({ verdict }: { verdict: SummaryVerdict | null }) {
   if (!verdict || verdict === "all_clear") {
-    return <ShieldCheck size={18} className="text-[#FAFAFA]" />;
+    return <ShieldCheck size={18} className="text-text-primary" />;
   }
-  return <AlertTriangle size={18} className="text-[#9e9e9e]" />;
+  return <AlertTriangle size={18} className="text-text-secondary" />;
 }
 
 function formatDate(iso: string) {
@@ -109,7 +109,7 @@ function FlagCard({
     flag.severity === "critical"
       ? "border-l-red-500"
       : flag.severity === "warning"
-      ? "border-l-[#888888]"
+      ? "border-l-text-secondary"
       : "border-l-blue-500";
 
   const isAnnotated = !!flag.annotation_status;
@@ -174,7 +174,7 @@ function FlagCard({
 
   return (
     <div
-      className={`rounded-xl border border-[#1C1C1C] bg-[#111111] border-l-2 ${borderColor} mb-2 overflow-hidden`}
+      className={`rounded-xl border border-border bg-surface border-l-2 ${borderColor} mb-2 overflow-hidden`}
     >
       {/* Card header — always visible */}
       <button
@@ -182,20 +182,20 @@ function FlagCard({
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
       >
         <SeverityBadge severity={flag.severity} />
-        <span className="flex-1 text-[13px] font-medium text-[#FAFAFA] text-left">
+        <span className="flex-1 text-[13px] font-medium text-text-primary text-left">
           {flag.title}
         </span>
 
         {/* Action chip */}
         {flag.action_label && !isResolved && (
-          <span className="hidden sm:inline-flex items-center gap-1 shrink-0 text-[10px] font-medium text-[#FAFAFA] bg-[#FAFAFA]/[0.12] border border-[#1C1C1C] rounded-full px-2 py-0.5">
+          <span className="hidden sm:inline-flex items-center gap-1 shrink-0 text-[10px] font-medium text-text-primary bg-hover-overlay border border-border rounded-full px-2 py-0.5">
             <Zap size={9} />
             {flag.action_label}
           </span>
         )}
 
         {flag.coverage_line && (
-          <span className="text-[10px] text-[#6b6b6b] bg-[#ffffff06] border border-[#ffffff0e] rounded px-1.5 py-0.5 shrink-0">
+          <span className="text-[10px] text-text-tertiary bg-[#ffffff06] border border-[#ffffff0e] rounded px-1.5 py-0.5 shrink-0">
             {flag.coverage_line.toUpperCase()}
           </span>
         )}
@@ -205,22 +205,22 @@ function FlagCard({
           {flag.confidence} conf.
         </span>
         {isAnnotated && !expanded && (
-          <span className="text-[10px] text-[#6b6b6b] shrink-0">
+          <span className="text-[10px] text-text-tertiary shrink-0">
             {ANNOTATION_LABELS[flag.annotation_status!]}
           </span>
         )}
         {expanded ? (
-          <ChevronUp size={14} className="text-[#6b6b6b] shrink-0" />
+          <ChevronUp size={14} className="text-text-tertiary shrink-0" />
         ) : (
-          <ChevronDown size={14} className="text-[#6b6b6b] shrink-0" />
+          <ChevronDown size={14} className="text-text-tertiary shrink-0" />
         )}
       </button>
 
       {/* Annotation ribbon (collapsed) */}
       {isAnnotated && !expanded && (
         <div className="px-4 pb-2.5 flex items-center gap-2">
-          <CheckCircle2 size={11} className="text-[#6b6b6b]" />
-          <span className="text-[11px] text-[#6b6b6b]">
+          <CheckCircle2 size={11} className="text-text-tertiary" />
+          <span className="text-[11px] text-text-tertiary">
             {ANNOTATION_LABELS[flag.annotation_status!]}
             {flag.annotation_reason ? ` — ${flag.annotation_reason}` : ""}
             {flag.annotated_at ? ` · ${formatDate(flag.annotated_at)}` : ""}
@@ -230,72 +230,72 @@ function FlagCard({
 
       {/* Expanded body */}
       {expanded && (
-        <div className="px-4 pb-4 border-t border-[#1C1C1C]/60">
+        <div className="px-4 pb-4 border-t border-border/60">
           <div className="pt-3 space-y-3">
             <div>
-              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                 Flag Type
               </div>
-              <div className="text-[12px] text-[#8a8a8a]">
+              <div className="text-[12px] text-text-secondary">
                 {FLAG_TYPE_LABELS[flag.flag_type]}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                 What Was Found
               </div>
-              <div className="text-[13px] text-[#FAFAFA] leading-relaxed">
+              <div className="text-[13px] text-text-primary leading-relaxed">
                 {flag.what_found}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                 What Was Expected
               </div>
-              <div className="text-[13px] text-[#FAFAFA] leading-relaxed">
+              <div className="text-[13px] text-text-primary leading-relaxed">
                 {flag.what_expected}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                 Why It Matters
               </div>
-              <div className="text-[13px] text-[#FAFAFA] leading-relaxed">
+              <div className="text-[13px] text-text-primary leading-relaxed">
                 {flag.why_it_matters}
               </div>
             </div>
           </div>
 
           {/* ── Resolution section ──────────────────────────── */}
-          <div className="mt-4 pt-3 border-t border-[#1C1C1C]/60">
-            <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-2.5">
+          <div className="mt-4 pt-3 border-t border-border/60">
+            <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-2.5">
               Resolve Flag
             </div>
 
             {flag.resolution_status === "actioned" ? (
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-[#FAFAFA]" />
-                <span className="text-[12px] text-[#8a8a8a]">
-                  Marked as <span className="text-[#FAFAFA] font-medium">Actioned</span>
+                <CheckCircle2 size={13} className="text-text-primary" />
+                <span className="text-[12px] text-text-secondary">
+                  Marked as <span className="text-text-primary font-medium">Actioned</span>
                 </span>
                 <button
                   onClick={() => onResolve("open")}
                   disabled={resolving}
-                  className="ml-auto text-[11px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
+                  className="ml-auto text-[11px] text-text-tertiary hover:text-text-primary transition-colors"
                 >
                   Undo
                 </button>
               </div>
             ) : flag.resolution_status === "dismissed" ? (
               <div className="flex items-center gap-2">
-                <X size={13} className="text-[#6b6b6b]" />
-                <span className="text-[12px] text-[#8a8a8a]">
+                <X size={13} className="text-text-tertiary" />
+                <span className="text-[12px] text-text-secondary">
                   Dismissed
                 </span>
                 <button
                   onClick={() => onResolve("open")}
                   disabled={resolving}
-                  className="ml-auto text-[11px] text-[#6b6b6b] hover:text-[#FAFAFA] transition-colors"
+                  className="ml-auto text-[11px] text-text-tertiary hover:text-text-primary transition-colors"
                 >
                   Undo
                 </button>
@@ -304,7 +304,7 @@ function FlagCard({
               <>
                 {/* Action chip full-width (mobile fallback) */}
                 {flag.action_label && (
-                  <div className="flex items-center gap-1.5 mb-3 text-[11px] font-medium text-[#FAFAFA]">
+                  <div className="flex items-center gap-1.5 mb-3 text-[11px] font-medium text-text-primary">
                     <Zap size={10} />
                     {flag.action_label}
                   </div>
@@ -314,7 +314,7 @@ function FlagCard({
                   <button
                     onClick={handleAct}
                     disabled={resolving || draftLoading}
-                    className="h-7 px-3 rounded-md bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] text-[#FAFAFA] text-[12px] font-medium hover:bg-[#FAFAFA]/20 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                    className="h-7 px-3 rounded-md bg-hover-overlay border border-border text-text-primary text-[12px] font-medium hover:bg-hover-overlay transition-colors disabled:opacity-40 flex items-center gap-1.5"
                   >
                     {draftLoading ? (
                       <Loader2 size={11} className="animate-spin" />
@@ -326,7 +326,7 @@ function FlagCard({
                   <button
                     onClick={() => onResolve("dismissed")}
                     disabled={resolving || draftLoading}
-                    className="h-7 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-40"
+                    className="h-7 px-3 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors disabled:opacity-40"
                   >
                     {resolving ? (
                       <Loader2 size={11} className="animate-spin" />
@@ -338,10 +338,10 @@ function FlagCard({
 
                 {/* Inline draft area */}
                 {draftOpen && (
-                  <div className="mt-3 rounded-lg bg-[#0C0C0C] border border-[#1C1C1C] overflow-hidden">
+                  <div className="mt-3 rounded-lg bg-background border border-border overflow-hidden">
                     {draftLoading && (
-                      <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-[#6b6b6b]">
-                        <Loader2 size={12} className="animate-spin text-[#FAFAFA]" />
+                      <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-text-tertiary">
+                        <Loader2 size={12} className="animate-spin text-text-primary" />
                         Generating draft…
                       </div>
                     )}
@@ -356,15 +356,15 @@ function FlagCard({
                           value={draft}
                           onChange={(e) => setDraft(e.target.value)}
                           rows={10}
-                          className="w-full bg-transparent px-3 py-3 text-[12px] text-[#FAFAFA] font-mono leading-relaxed outline-none resize-none"
+                          className="w-full bg-transparent px-3 py-3 text-[12px] text-text-primary font-mono leading-relaxed outline-none resize-none"
                         />
-                        <div className="flex items-center gap-2 px-3 py-2 border-t border-[#1C1C1C] bg-[#ffffff03]">
+                        <div className="flex items-center gap-2 px-3 py-2 border-t border-border bg-[#ffffff03]">
                           <button
                             onClick={handleCopy}
-                            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+                            className="h-7 px-3 flex items-center gap-1.5 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
                           >
                             {copied ? (
-                              <Check size={11} className="text-[#FAFAFA]" />
+                              <Check size={11} className="text-text-primary" />
                             ) : (
                               <Copy size={11} />
                             )}
@@ -373,7 +373,7 @@ function FlagCard({
                           <button
                             onClick={handleMarkActioned}
                             disabled={resolving}
-                            className="h-7 px-3 flex items-center gap-1.5 rounded-md bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] text-[#FAFAFA] text-[12px] font-medium hover:bg-[#FAFAFA]/20 transition-colors disabled:opacity-40"
+                            className="h-7 px-3 flex items-center gap-1.5 rounded-md bg-hover-overlay border border-border text-text-primary text-[12px] font-medium hover:bg-hover-overlay transition-colors disabled:opacity-40"
                           >
                             {resolving ? (
                               <Loader2 size={11} className="animate-spin" />
@@ -392,15 +392,15 @@ function FlagCard({
           </div>
 
           {/* ── E&O annotation section ──────────────────────── */}
-          <div className="mt-4 pt-3 border-t border-[#1C1C1C]/60">
-            <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-2.5">
+          <div className="mt-4 pt-3 border-t border-border/60">
+            <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-2.5">
               E&amp;O Documentation
             </div>
             {isAnnotated ? (
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-[#FAFAFA]" />
-                <span className="text-[12px] text-[#8a8a8a]">
-                  <span className="text-[#FAFAFA] font-medium">
+                <CheckCircle2 size={13} className="text-text-primary" />
+                <span className="text-[12px] text-text-secondary">
+                  <span className="text-text-primary font-medium">
                     {ANNOTATION_LABELS[flag.annotation_status!]}
                   </span>
                   {flag.annotation_reason
@@ -413,7 +413,7 @@ function FlagCard({
               </div>
             ) : dismissMode ? (
               <div>
-                <div className="text-[11px] text-[#8a8a8a] mb-2">
+                <div className="text-[11px] text-text-secondary mb-2">
                   Reason for dismissal{" "}
                   <span className="text-red-400">*required</span>
                 </div>
@@ -422,13 +422,13 @@ function FlagCard({
                   onChange={(e) => setDismissReason(e.target.value)}
                   placeholder="e.g. Client confirmed this coverage is not required by contract"
                   rows={3}
-                  className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#FAFAFA] placeholder:text-[#6b6b6b] outline-none focus:border-[#555555] resize-none mb-3"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-[13px] text-text-primary placeholder:text-text-tertiary outline-none focus:border-text-secondary resize-none mb-3"
                 />
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleAnnotate("dismissed", dismissReason)}
                     disabled={!dismissReason.trim() || annotating}
-                    className="h-7 px-3 rounded-md bg-[#888888] text-white text-[12px] font-medium hover:bg-[#FAFAFA] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    className="h-7 px-3 rounded-md bg-text-secondary text-white text-[12px] font-medium hover:bg-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
                   >
                     {annotating && (
                       <Loader2 size={11} className="animate-spin" />
@@ -440,7 +440,7 @@ function FlagCard({
                       setDismissMode(false);
                       setDismissReason("");
                     }}
-                    className="h-7 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                    className="h-7 px-3 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary transition-colors"
                   >
                     Cancel
                   </button>
@@ -451,7 +451,7 @@ function FlagCard({
                 <button
                   onClick={() => handleAnnotate("accepted")}
                   disabled={annotating}
-                  className="h-7 px-3 rounded-md bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] text-[#FAFAFA] text-[12px] font-medium hover:bg-[#FAFAFA]/20 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                  className="h-7 px-3 rounded-md bg-hover-overlay border border-border text-text-primary text-[12px] font-medium hover:bg-hover-overlay transition-colors disabled:opacity-40 flex items-center gap-1.5"
                 >
                   {annotating && <Loader2 size={11} className="animate-spin" />}
                   Accept
@@ -459,7 +459,7 @@ function FlagCard({
                 <button
                   onClick={() => setDismissMode(true)}
                   disabled={annotating}
-                  className="h-7 px-3 rounded-md bg-[#1C1C1C] border border-[#1C1C1C] text-[#9e9e9e] text-[12px] font-medium hover:bg-[#1C1C1C] transition-colors disabled:opacity-40"
+                  className="h-7 px-3 rounded-md bg-border border border-border text-text-secondary text-[12px] font-medium hover:bg-border transition-colors disabled:opacity-40"
                 >
                   Dismiss
                 </button>
@@ -512,7 +512,7 @@ function FlagGroup({
         <span className={`text-[11px] font-semibold uppercase tracking-wider ${labelColor}`}>
           {label}
         </span>
-        <span className="text-[11px] text-[#6b6b6b]">
+        <span className="text-[11px] text-text-tertiary">
           {flags.length} {flags.length === 1 ? nounSingular : nounPlural}
         </span>
       </div>
@@ -664,18 +664,18 @@ export default function PolicyCheckDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full bg-[#0C0C0C]">
-        <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex items-center gap-3 px-10 h-[56px] border-b border-border shrink-0">
           <Link
             href="/policies"
-            className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+            className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors"
           >
             <ArrowLeft size={13} />
             Policy Audit
           </Link>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 size={20} className="text-[#6b6b6b] animate-spin" />
+          <Loader2 size={20} className="text-text-tertiary animate-spin" />
         </div>
       </div>
     );
@@ -683,18 +683,18 @@ export default function PolicyCheckDetailPage() {
 
   if (error || !check) {
     return (
-      <div className="flex flex-col h-full bg-[#0C0C0C]">
-        <div className="flex items-center gap-3 px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex items-center gap-3 px-10 h-[56px] border-b border-border shrink-0">
           <Link
             href="/policies"
-            className="flex items-center gap-1.5 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+            className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors"
           >
             <ArrowLeft size={13} />
             Policy Audit
           </Link>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-[14px] text-[#6b6b6b]">{error ?? "Not found"}</div>
+          <div className="text-[14px] text-text-tertiary">{error ?? "Not found"}</div>
         </div>
       </div>
     );
@@ -749,26 +749,26 @@ export default function PolicyCheckDetailPage() {
   // ── Render ─────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C]">
+    <div className="flex flex-col h-full bg-background">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <div className="flex items-center gap-2 text-[13px] text-[#8a8a8a]">
+      <div className="flex items-center justify-between px-10 h-[56px] border-b border-border shrink-0">
+        <div className="flex items-center gap-2 text-[13px] text-text-secondary">
           <Link
             href={backHref}
-            className="flex items-center gap-1.5 hover:text-[#FAFAFA] transition-colors"
+            className="flex items-center gap-1.5 hover:text-text-primary transition-colors"
           >
             <ArrowLeft size={13} />
             {backLabel}
           </Link>
-          <ChevronRight size={12} className="text-[#6b6b6b]" />
-          <span className="text-[#FAFAFA]">{clientName}</span>
+          <ChevronRight size={12} className="text-text-tertiary" />
+          <span className="text-text-primary">{clientName}</span>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Unannotated badge */}
           {unannotated > 0 && (
-            <span className="flex items-center gap-1.5 text-[11px] text-[#9e9e9e] bg-[#1C1C1C] border border-[#1C1C1C] rounded-full px-2.5 py-1">
+            <span className="flex items-center gap-1.5 text-[11px] text-text-secondary bg-border border border-border rounded-full px-2.5 py-1">
               <Clock size={10} />
               {unannotated} need review
             </span>
@@ -790,7 +790,7 @@ export default function PolicyCheckDetailPage() {
               href={`/api/policy-checks/${id}/report`}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors"
+              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
             >
               <Download size={12} />
               Export PDF
@@ -803,21 +803,21 @@ export default function PolicyCheckDetailPage() {
       <div className="flex-1 overflow-hidden flex">
 
         {/* Left: Flag list (scrollable) */}
-        <div className="flex-1 overflow-y-auto border-r border-[#1C1C1C]">
+        <div className="flex-1 overflow-y-auto border-r border-border">
           <div className="px-8 py-6">
 
             {/* Failed doc notice */}
             {failedDocs.length > 0 && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3 mb-5">
+              <div className="flex items-start gap-2.5 rounded-lg bg-border border border-border px-4 py-3 mb-5">
                 <AlertTriangle
                   size={14}
-                  className="text-[#9e9e9e] shrink-0 mt-0.5"
+                  className="text-text-secondary shrink-0 mt-0.5"
                 />
-                <div className="text-[12px] text-[#9e9e9e]">
+                <div className="text-[12px] text-text-secondary">
                   {failedDocs.length} document
                   {failedDocs.length !== 1 ? "s" : ""} could not be read —
                   flags may be incomplete.{" "}
-                  <span className="text-[#9e9e9e]/70">
+                  <span className="text-text-secondary/70">
                     {failedDocs.map((d) => d.original_filename).join(", ")}
                   </span>
                 </div>
@@ -828,14 +828,14 @@ export default function PolicyCheckDetailPage() {
             {totalFlags > 0 && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] text-[#6b6b6b]">Resolution progress</span>
-                  <span className="text-[11px] text-[#8a8a8a] tabular-nums">
+                  <span className="text-[11px] text-text-tertiary">Resolution progress</span>
+                  <span className="text-[11px] text-text-secondary tabular-nums">
                     {resolvedCount} / {totalFlags} resolved
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-[#1C1C1C] overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[#FAFAFA] transition-all duration-500"
+                    className="h-full rounded-full bg-text-primary transition-all duration-500"
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
@@ -844,15 +844,15 @@ export default function PolicyCheckDetailPage() {
 
             {/* Tab filter */}
             {totalFlags > 0 && (
-              <div className="flex items-center gap-1 mb-5 bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg p-1 w-fit">
+              <div className="flex items-center gap-1 mb-5 bg-background border border-border rounded-lg p-1 w-fit">
                 {TABS.map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
                     className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium transition-colors ${
                       activeTab === tab.key
-                        ? "bg-[#1C1C1C] text-[#FAFAFA]"
-                        : "text-[#6b6b6b] hover:text-[#8a8a8a]"
+                        ? "bg-border text-text-primary"
+                        : "text-text-tertiary hover:text-text-secondary"
                     }`}
                   >
                     {tab.label}
@@ -860,9 +860,9 @@ export default function PolicyCheckDetailPage() {
                       className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] tabular-nums font-semibold ${
                         activeTab === tab.key
                           ? tab.key === "open"
-                            ? "bg-[#1C1C1C] text-[#9e9e9e]"
-                            : "bg-[#FAFAFA]/[0.06] text-[#FAFAFA]"
-                          : "bg-[#ffffff08] text-[#6b6b6b]"
+                            ? "bg-border text-text-secondary"
+                            : "bg-hover-overlay text-text-primary"
+                          : "bg-[#ffffff08] text-text-tertiary"
                       }`}
                     >
                       {tab.count}
@@ -875,13 +875,13 @@ export default function PolicyCheckDetailPage() {
             {/* All clear */}
             {flags.length === 0 && check.overall_status === "complete" && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-14 h-14 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mb-4">
-                  <ShieldCheck size={24} className="text-[#FAFAFA]" />
+                <div className="w-14 h-14 rounded-full bg-hover-overlay border border-border flex items-center justify-center mb-4">
+                  <ShieldCheck size={24} className="text-text-primary" />
                 </div>
-                <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">
+                <div className="text-[16px] font-semibold text-text-primary mb-1">
                   No issues found
                 </div>
-                <div className="text-[13px] text-[#8a8a8a]">
+                <div className="text-[13px] text-text-secondary">
                   This policy meets all coverage requirements.
                 </div>
               </div>
@@ -890,8 +890,8 @@ export default function PolicyCheckDetailPage() {
             {/* Empty tab state */}
             {totalFlags > 0 && tabFlags.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle2 size={20} className="text-[#6b6b6b] mb-3" />
-                <div className="text-[13px] text-[#6b6b6b]">
+                <CheckCircle2 size={20} className="text-text-tertiary mb-3" />
+                <div className="text-[13px] text-text-tertiary">
                   No {activeTab} flags
                 </div>
               </div>
@@ -916,7 +916,7 @@ export default function PolicyCheckDetailPage() {
             />
             <FlagGroup
               label="Warnings"
-              labelColor="text-[#9e9e9e]"
+              labelColor="text-text-secondary"
               flags={tabWarning}
               checkId={id}
               clientName={clientName}
@@ -955,10 +955,10 @@ export default function PolicyCheckDetailPage() {
           <div className="px-5 py-6 space-y-4">
 
             {/* Verdict card */}
-            <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] p-4">
+            <div className="rounded-xl border border-border bg-surface p-4">
               <div className="flex items-center gap-2 mb-3">
                 <VerdictIcon verdict={verdict} />
-                <span className={`text-[14px] font-semibold ${verdictStyle?.text ?? "text-[#FAFAFA]"}`}>
+                <span className={`text-[14px] font-semibold ${verdictStyle?.text ?? "text-text-primary"}`}>
                   {verdictLabel}
                 </span>
               </div>
@@ -972,9 +972,9 @@ export default function PolicyCheckDetailPage() {
               )}
 
               {check.requires_review && (
-                <div className="flex items-start gap-2 mt-3 rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-3 py-2.5">
-                  <AlertTriangle size={13} className="text-[#9e9e9e] shrink-0 mt-0.5" />
-                  <div className="text-[11px] text-[#9e9e9e] leading-snug">
+                <div className="flex items-start gap-2 mt-3 rounded-lg bg-border border border-border px-3 py-2.5">
+                  <AlertTriangle size={13} className="text-text-secondary shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-text-secondary leading-snug">
                     <span className="font-semibold block">Manual review required</span>
                     AI confidence is low. Verify each flag against the source document before acting.
                   </div>
@@ -982,7 +982,7 @@ export default function PolicyCheckDetailPage() {
               )}
 
               {check.summary_note && (
-                <p className="text-[12px] text-[#8a8a8a] leading-relaxed mt-3">
+                <p className="text-[12px] text-text-secondary leading-relaxed mt-3">
                   {check.summary_note}
                 </p>
               )}
@@ -991,31 +991,31 @@ export default function PolicyCheckDetailPage() {
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <div className="text-center">
                   <div
-                    className={`text-[20px] font-bold tabular-nums ${criticalFlags.length > 0 ? "text-red-400" : "text-[#FAFAFA]"}`}
+                    className={`text-[20px] font-bold tabular-nums ${criticalFlags.length > 0 ? "text-red-400" : "text-text-primary"}`}
                   >
                     {criticalFlags.length}
                   </div>
-                  <div className="text-[10px] text-[#6b6b6b] mt-0.5">
+                  <div className="text-[10px] text-text-tertiary mt-0.5">
                     Critical
                   </div>
                 </div>
                 <div className="text-center">
                   <div
-                    className={`text-[20px] font-bold tabular-nums ${warningFlags.length > 0 ? "text-[#9e9e9e]" : "text-[#FAFAFA]"}`}
+                    className={`text-[20px] font-bold tabular-nums ${warningFlags.length > 0 ? "text-text-secondary" : "text-text-primary"}`}
                   >
                     {warningFlags.length}
                   </div>
-                  <div className="text-[10px] text-[#6b6b6b] mt-0.5">
+                  <div className="text-[10px] text-text-tertiary mt-0.5">
                     Warning
                   </div>
                 </div>
                 <div className="text-center">
                   <div
-                    className={`text-[20px] font-bold tabular-nums ${advisoryFlags.length > 0 ? "text-blue-400" : "text-[#FAFAFA]"}`}
+                    className={`text-[20px] font-bold tabular-nums ${advisoryFlags.length > 0 ? "text-blue-400" : "text-text-primary"}`}
                   >
                     {advisoryFlags.length}
                   </div>
-                  <div className="text-[10px] text-[#6b6b6b] mt-0.5">
+                  <div className="text-[10px] text-text-tertiary mt-0.5">
                     Advisory
                   </div>
                 </div>
@@ -1023,8 +1023,8 @@ export default function PolicyCheckDetailPage() {
             </div>
 
             {/* Documents card */}
-            <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] p-4">
-              <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-3">
+            <div className="rounded-xl border border-border bg-surface p-4">
+              <div className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
                 Documents Reviewed
               </div>
               <div className="space-y-3">
@@ -1032,19 +1032,19 @@ export default function PolicyCheckDetailPage() {
                   <div key={doc.id} className="flex items-start gap-2.5">
                     <FileText
                       size={12}
-                      className="text-[#6b6b6b] shrink-0 mt-0.5"
+                      className="text-text-tertiary shrink-0 mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] text-[#FAFAFA] truncate">
+                      <div className="text-[12px] text-text-primary truncate">
                         {doc.original_filename}
                       </div>
                       {doc.extracted_named_insured && (
-                        <div className="text-[11px] text-[#8a8a8a] mt-0.5 truncate">
+                        <div className="text-[11px] text-text-secondary mt-0.5 truncate">
                           {doc.extracted_named_insured}
                         </div>
                       )}
                       {doc.extracted_expiry_date && (
-                        <div className="text-[10px] text-[#6b6b6b] mt-0.5">
+                        <div className="text-[10px] text-text-tertiary mt-0.5">
                           Expires{" "}
                           {new Date(doc.extracted_expiry_date).toLocaleDateString(
                             "en-AU",
@@ -1069,53 +1069,53 @@ export default function PolicyCheckDetailPage() {
             </div>
 
             {/* Metadata card */}
-            <div className="rounded-xl border border-[#1C1C1C] bg-[#111111] p-4">
-              <div className="text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-3">
+            <div className="rounded-xl border border-border bg-surface p-4">
+              <div className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
                 Check Details
               </div>
               <div className="space-y-2">
                 {check.clients && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#6b6b6b]">Client</span>
-                    <span className="text-[11px] text-[#FAFAFA]">
+                    <span className="text-[11px] text-text-tertiary">Client</span>
+                    <span className="text-[11px] text-text-primary">
                       {check.clients.name}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#6b6b6b]">Checked</span>
-                  <span className="text-[11px] text-[#FAFAFA]">
+                  <span className="text-[11px] text-text-tertiary">Checked</span>
+                  <span className="text-[11px] text-text-primary">
                     {formatDate(check.created_at)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#6b6b6b]">Documents</span>
-                  <span className="text-[11px] text-[#FAFAFA]">
+                  <span className="text-[11px] text-text-tertiary">Documents</span>
+                  <span className="text-[11px] text-text-primary">
                     {check.document_count}
                   </span>
                 </div>
                 {unannotated > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#6b6b6b]">
+                    <span className="text-[11px] text-text-tertiary">
                       Awaiting review
                     </span>
-                    <span className="text-[11px] text-[#9e9e9e]">
+                    <span className="text-[11px] text-text-secondary">
                       {unannotated} flags
                     </span>
                   </div>
                 )}
                 {resolvedCount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#6b6b6b]">Resolved</span>
-                    <span className="text-[11px] text-[#FAFAFA]">
+                    <span className="text-[11px] text-text-tertiary">Resolved</span>
+                    <span className="text-[11px] text-text-primary">
                       {resolvedCount} / {totalFlags}
                     </span>
                   </div>
                 )}
                 {check.client_industry && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#6b6b6b]">Industry</span>
-                    <span className="text-[11px] text-[#FAFAFA]">
+                    <span className="text-[11px] text-text-tertiary">Industry</span>
+                    <span className="text-[11px] text-text-primary">
                       {check.client_industry}
                     </span>
                   </div>
@@ -1124,7 +1124,7 @@ export default function PolicyCheckDetailPage() {
             </div>
 
             {/* E&O notice */}
-            <p className="text-[10px] text-[#6b6b6b] leading-relaxed px-1">
+            <p className="text-[10px] text-text-tertiary leading-relaxed px-1">
               All flag annotations are logged with timestamp for E&amp;O
               documentation.
             </p>

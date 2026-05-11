@@ -59,17 +59,17 @@ export default function FeedbackButton() {
         onClick={() => setOpen(true)}
         title="Share feedback"
         className="fixed bottom-6 right-6 z-40 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-        style={{ background: "#1C1C1C", border: "1px solid #282828", color: "#555" }}
+        style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
         onMouseEnter={(e) => {
           const el = e.currentTarget as HTMLElement;
-          el.style.color       = "#FAFAFA";
-          el.style.borderColor = "#383838";
+          el.style.color       = "var(--text-primary)";
+          el.style.borderColor = "var(--text-tertiary)";
           el.style.transform   = "scale(1.1)";
         }}
         onMouseLeave={(e) => {
           const el = e.currentTarget as HTMLElement;
-          el.style.color       = "#555";
-          el.style.borderColor = "#282828";
+          el.style.color       = "var(--text-secondary)";
+          el.style.borderColor = "var(--border)";
           el.style.transform   = "scale(1)";
         }}
       >
@@ -91,30 +91,30 @@ export default function FeedbackButton() {
             className="relative flex flex-col rounded-2xl pointer-events-auto"
             style={{
               width:     360,
-              background: "#111111",
-              border:     "1px solid #222222",
-              boxShadow:  "0 24px 64px rgba(0,0,0,0.7)",
+              background: "var(--surface)",
+              border:     "1px solid var(--border)",
+              boxShadow:  "var(--shadow)",
             }}
           >
             {/* Header */}
             <div
               className="flex items-start justify-between px-5 pt-5 pb-4"
-              style={{ borderBottom: "1px solid #1A1A1A" }}
+              style={{ borderBottom: "1px solid var(--border-subtle)" }}
             >
               <div>
-                <div className="text-[14px] font-semibold" style={{ color: "#FAFAFA" }}>
+                <div className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>
                   Share feedback
                 </div>
-                <div className="text-[12px] mt-0.5" style={{ color: "#555" }}>
+                <div className="text-[12px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
                   We read every message.
                 </div>
               </div>
               <button
                 onClick={close}
                 className="w-6 h-6 flex items-center justify-center rounded-md transition-colors mt-0.5"
-                style={{ color: "#444" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#FAFAFA")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#444")}
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
               >
                 <X size={14} />
               </button>
@@ -129,16 +129,16 @@ export default function FeedbackButton() {
                 className="w-full resize-none rounded-xl text-[13px] outline-none"
                 style={{
                   height:      110,
-                  background:  "#0C0C0C",
-                  border:      "1px solid #222",
-                  color:       "#FAFAFA",
+                  background:  "var(--background)",
+                  border:      "1px solid var(--border)",
+                  color:       "var(--text-primary)",
                   padding:     "12px 14px",
-                  caretColor:  "#FAFAFA",
+                  caretColor:  "var(--text-primary)",
                   lineHeight:  1.6,
                   transition:  "border-color 0.15s",
                 }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "#333")}
-                onBlur={(e)  => (e.currentTarget.style.borderColor = "#222")}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--text-tertiary)")}
+                onBlur={(e)  => (e.currentTarget.style.borderColor = "var(--border)")}
                 autoFocus
               />
 
@@ -146,7 +146,7 @@ export default function FeedbackButton() {
               {screenshotPreview ? (
                 <div
                   className="relative rounded-xl overflow-hidden"
-                  style={{ border: "1px solid #222" }}
+                  style={{ border: "1px solid var(--border)" }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -158,7 +158,7 @@ export default function FeedbackButton() {
                   <button
                     onClick={() => { setScreenshot(null); setScreenshotPreview(null); }}
                     className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(0,0,0,0.75)", color: "#FAFAFA" }}
+                    style={{ background: "rgba(0,0,0,0.75)", color: "#FFFFFF" }}
                   >
                     <X size={10} />
                   </button>
@@ -169,16 +169,16 @@ export default function FeedbackButton() {
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-2 rounded-xl px-4 py-3 cursor-pointer"
-                  style={{ border: "1px dashed #222", color: "#444", transition: "border-color 0.15s, color 0.15s" }}
+                  style={{ border: "1px dashed var(--border)", color: "var(--text-tertiary)", transition: "border-color 0.15s, color 0.15s" }}
                   onMouseEnter={(e) => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = "#333";
-                    el.style.color       = "#888";
+                    el.style.borderColor = "var(--text-tertiary)";
+                    el.style.color       = "var(--text-secondary)";
                   }}
                   onMouseLeave={(e) => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = "#222";
-                    el.style.color       = "#444";
+                    el.style.borderColor = "var(--border)";
+                    el.style.color       = "var(--text-tertiary)";
                   }}
                 >
                   <Paperclip size={13} strokeWidth={1.6} />
@@ -206,8 +206,8 @@ export default function FeedbackButton() {
                 disabled={!canSend}
                 className="w-full h-9 rounded-xl text-[13px] font-medium flex items-center justify-center gap-2 transition-all duration-200"
                 style={{
-                  background: canSend ? "#FAFAFA" : "#1C1C1C",
-                  color:      canSend ? "#0C0C0C" : "#333",
+                  background: canSend ? "var(--text-primary)" : "var(--surface-raised)",
+                  color:      canSend ? "var(--text-inverse)" : "var(--text-tertiary)",
                   cursor:     canSend ? "pointer"  : "default",
                 }}
               >

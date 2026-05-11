@@ -34,7 +34,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
   return (
     <div className="flex items-center justify-between gap-6 py-3">
       <div className="min-w-0">
-        <p className="text-[14px] font-medium text-[#f5f5f7]">{label}</p>
+        <p className="text-[14px] font-medium text-text-primary">{label}</p>
         <p className="text-[12px] text-zinc-500 mt-0.5 leading-snug">{description}</p>
       </div>
       <Toggle checked={checked} onChange={onChange} />
@@ -76,13 +76,13 @@ export function NotificationsSection({ profile }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Notifications</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Notifications</h2>
         <p className="text-[13px] text-zinc-500 mt-1">Choose which events Hollis notifies you about.</p>
       </div>
 
       {/* Automation alerts */}
       <div>
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-1">Automation Alerts</p>
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Automation Alerts</p>
         <div className="divide-y divide-[#1e1e2a]">
           <ToggleRow
             label="Renewal email fired"
@@ -113,7 +113,7 @@ export function NotificationsSection({ profile }: Props) {
 
       {/* Summary reports */}
       <div>
-        <p className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-1">Summary Reports</p>
+        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Summary Reports</p>
         <div className="divide-y divide-[#1e1e2a]">
           <ToggleRow
             label="Daily digest"

@@ -225,8 +225,8 @@ function BentoStat({
     <div
       className={`flex flex-col gap-1.5 p-4 rounded-xl ${col2 ? "col-span-2" : ""}`}
       style={{
-        background: "rgba(255,255,255,0.025)",
-        border: "1px solid #1C1C1C",
+        background: "var(--surface-raised)",
+        border: "1px solid var(--border-subtle)",
       }}
     >
       <span
@@ -323,13 +323,13 @@ function ActivityCard({
       <div
         className="flex-1 min-w-0 mb-2 flex items-start gap-3 px-3 py-2.5 rounded-lg"
         style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid #1A1A1A",
+          background: "var(--surface-raised)",
+          border: "1px solid var(--border-subtle)",
         }}
       >
         <div
           className="w-6 h-6 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5"
-          style={{ background: "rgba(255,255,255,0.04)", color: "#555555" }}
+          style={{ background: "var(--surface)", color: "#555555" }}
         >
           {icon}
         </div>
@@ -372,12 +372,12 @@ function SessionBlock({
   );
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1C1C1C" }}>
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-subtle)" }}>
       {/* Header row */}
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
-        style={{ background: "rgba(255,255,255,0.02)" }}
+        style={{ background: "var(--surface-raised)" }}
       >
         <span
           className="text-[11px] font-medium"
@@ -401,7 +401,7 @@ function SessionBlock({
 
       {/* Expanded items */}
       {expanded && (
-        <div style={{ borderTop: "1px solid #1A1A1A" }}>
+        <div style={{ borderTop: "1px solid var(--border-subtle)" }}>
           <div className="relative pl-8 pr-4 py-3 flex flex-col gap-1">
             {/* Thread */}
             <div
@@ -454,7 +454,7 @@ function SessionBlock({
           </div>
 
           {/* Log toggle */}
-          <div style={{ borderTop: "1px solid #1A1A1A" }}>
+          <div style={{ borderTop: "1px solid var(--border-subtle)" }}>
             <button
               onClick={onToggleLog}
               className="w-full px-4 py-2 text-left text-[10px] transition-colors font-mono"
@@ -607,7 +607,7 @@ export default function ActivityClient({
           className="flex items-center gap-0.5 p-0.5 rounded-md"
           style={{
             background: "rgba(255,255,255,0.04)",
-            border: "1px solid #1C1C1C",
+            border: "1px solid var(--border-subtle)",
           }}
         >
           {(["live", "history"] as const).map((v) => (

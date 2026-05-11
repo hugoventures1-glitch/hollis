@@ -107,21 +107,21 @@ export function ClientSidebar({ clientId, policies }: ClientSidebarProps) {
 
           {/* Renewal Checklist */}
           <div className="px-6 pt-7 pb-6">
-            <div className="text-[12px] font-semibold uppercase tracking-widest mb-5" style={{ color: "#444" }}>
+            <div className="text-[12px] font-semibold uppercase tracking-widest mb-5" style={{ color: "var(--text-tertiary)" }}>
               Renewal Checklist
             </div>
 
             {!nearestPolicy ? (
               <div className="flex flex-col items-center justify-center py-6 gap-2">
-                <Circle size={16} style={{ color: "#252525" }} />
-                <span className="text-[12px]" style={{ color: "#333" }}>No active renewals</span>
+                <Circle size={16} style={{ color: "var(--border)" }} />
+                <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>No active renewals</span>
               </div>
             ) : (() => {
               const stage = nearestPolicy.campaign_stage ?? "pending";
               const isLapsed = stage === "lapsed";
               return (
                 <div className="flex flex-col gap-3">
-                  <div className="text-[12px] truncate font-medium mb-1" style={{ color: "#555" }}>
+                  <div className="text-[12px] truncate font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
                     {nearestPolicy.policy_name}
                   </div>
                   {CHECKLIST_MILESTONES.map(({ key, label }) => {
@@ -142,24 +142,24 @@ export function ClientSidebar({ clientId, policies }: ClientSidebarProps) {
                         <div
                           className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center"
                           style={{
-                            background: done ? (isFinal ? "#00D97E22" : "#FAFAFA11") : "transparent",
+                            background: done ? (isFinal ? "#00D97E22" : "var(--hover-overlay)") : "transparent",
                             border: done
-                              ? `1px solid ${isFinal ? "#00D97E" : "#444"}`
+                              ? `1px solid ${isFinal ? "#00D97E" : "var(--text-tertiary)"}`
                               : current
                                 ? "1px solid rgba(255,255,255,0.22)"
-                                : "1px solid #252525",
+                                : "1px solid var(--border)",
                           }}
                         >
                           {done && (
-                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: isFinal ? "#00D97E" : "#555" }} />
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: isFinal ? "#00D97E" : "var(--text-secondary)" }} />
                           )}
                         </div>
                         <span
                           className="text-[13px] leading-tight"
                           style={{
                             color: done
-                              ? isFinal ? "#00D97E" : "#AAAAAA"
-                              : current ? "#DDDDDD" : "#444",
+                              ? isFinal ? "#00D97E" : "var(--text-secondary)"
+                              : current ? "#DDDDDD" : "var(--text-tertiary)",
                           }}
                         >
                           {label}
@@ -168,7 +168,7 @@ export function ClientSidebar({ clientId, policies }: ClientSidebarProps) {
                     );
                   })}
                   {isLapsed && (
-                    <div className="mt-1 text-[12px]" style={{ color: "#FF4444" }}>Lapsed</div>
+                    <div className="mt-1 text-[12px]" style={{ color: "var(--danger)" }}>Lapsed</div>
                   )}
                 </div>
               );

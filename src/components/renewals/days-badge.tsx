@@ -4,10 +4,10 @@ interface DaysBadgeProps {
 }
 
 function getDaysColor(days: number): string {
-  if (days < 0)    return "#FF4444";
-  if (days <= 30)  return "#FF4444";
-  if (days <= 60)  return "#888888";
-  return "#333333";
+  if (days < 0)    return "var(--danger)";
+  if (days <= 30)  return "var(--danger)";
+  if (days <= 60)  return "var(--text-secondary)";
+  return "var(--text-tertiary)";
 }
 
 function getDaysLabel(days: number): string {

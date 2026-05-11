@@ -64,26 +64,26 @@ function ClientRow({ client }: { client: Client }) {
       className="group grid grid-cols-12 items-center px-4 cursor-pointer select-none transition-colors duration-100"
       style={{
         minHeight: 68,
-        backgroundImage: "linear-gradient(to right, transparent 0%, transparent 16px, #353535 16px, #353535 calc(100% - 16px), transparent calc(100% - 16px), transparent 100%)",
+        backgroundImage: "linear-gradient(to right, transparent 0%, transparent 16px, var(--border) 16px, var(--border) calc(100% - 16px), transparent calc(100% - 16px), transparent 100%)",
         backgroundRepeat: "no-repeat",
         backgroundSize: "100% 1px",
         backgroundPosition: "0 100%",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.018)";
-        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "#FAFAFA"; });
-        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "rgba(250,250,250,0.25)"; });
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "var(--text-primary)"; });
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "var(--text-secondary)"; });
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.backgroundColor = "";
-        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "rgba(250,250,250,0.2)"; });
-        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "rgba(250,250,250,0.1)"; });
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='bright']").forEach((d) => { d.style.color = "var(--text-secondary)"; });
+        (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("[data-dim='meta']").forEach((d) => { d.style.color = "var(--text-tertiary)"; });
       }}
     >
       {/* Name + Contact — single unified scale block */}
       <div className="col-span-7 flex items-center gap-3 min-w-0 py-4 transition-transform duration-200 group-hover:scale-105">
-        <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(250,250,250,0.06)", border: "1px solid #1C1C1C" }}>
-          <span className="text-[11px] font-bold" style={{ color: "#FAFAFA" }}>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(250,250,250,0.06)", border: "1px solid var(--border)" }}>
+          <span className="text-[11px] font-bold" style={{ color: "var(--text-primary)" }}>
             {client.name.charAt(0).toUpperCase()}
           </span>
         </div>
@@ -95,7 +95,7 @@ function ClientRow({ client }: { client: Client }) {
               fontSize: 15,
               fontWeight: 600,
               letterSpacing: "-0.01em",
-              color: "#FAFAFA",
+              color: "var(--text-primary)",
             }}
           >
             {client.name}
@@ -103,7 +103,7 @@ function ClientRow({ client }: { client: Client }) {
           {client.email && (
             <div
               className="flex items-center gap-1.5 mt-0.5 truncate transition-colors duration-200"
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(250,250,250,0.2)" }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" }}
               data-dim="bright"
             >
               <Mail size={10} className="shrink-0" />
@@ -113,7 +113,7 @@ function ClientRow({ client }: { client: Client }) {
           {!client.email && client.phone && (
             <div
               className="flex items-center gap-1.5 mt-0.5 transition-colors duration-200"
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(250,250,250,0.1)" }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}
               data-dim="meta"
             >
               <Phone size={10} className="shrink-0" />
@@ -128,7 +128,7 @@ function ClientRow({ client }: { client: Client }) {
         {client.business_type && (
           <span
             className="text-[11px] capitalize transition-colors duration-200"
-            style={{ fontFamily: "var(--font-mono)", color: "rgba(250,250,250,0.1)" }}
+            style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}
             data-dim="meta"
           >
             {client.business_type.replace(/_/g, " ")}
@@ -140,7 +140,7 @@ function ClientRow({ client }: { client: Client }) {
       <div className="col-span-1">
         <span
           className="text-[11px] transition-colors duration-200"
-          style={{ fontFamily: "var(--font-mono)", color: "rgba(250,250,250,0.1)" }}
+          style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}
           data-dim="meta"
         >
           {client.primary_state ?? "—"}
@@ -161,7 +161,7 @@ function ClientRow({ client }: { client: Client }) {
         <Link
           href={`/clients/${client.id}`}
           className="inline-flex items-center h-7 px-2 transition-colors"
-          style={{ color: "#444" }}
+          style={{ color: "var(--text-tertiary)" }}
           title="View client"
         >
           <ArrowRight size={13} />
@@ -177,14 +177,14 @@ export function ClientsTable({ clients }: ClientsTableProps) {
   return (
     <div className="px-6 py-4">
       {/* Column headers */}
-      <div className="grid grid-cols-12 px-4 pb-2 mb-1" style={{ borderBottom: "1px solid #353535" }}>
-        <div className="col-span-7 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
+      <div className="grid grid-cols-12 px-4 pb-2 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="col-span-7 text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
           Client
         </div>
-        <div className="col-span-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
+        <div className="col-span-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
           Type
         </div>
-        <div className="col-span-1 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#333333" }}>
+        <div className="col-span-1 text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
           State
         </div>
         <div className="col-span-2" />

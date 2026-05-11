@@ -62,7 +62,7 @@ function sourceBadge(item: InboxItem): { label: string; color: string; showSuffi
     if (isLearning) {
       return { label: "Learning", color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20", showSuffix: false };
     }
-    return { label: "Scheduled", color: "text-white/40 bg-white/5 border-white/10", showSuffix: false };
+    return { label: "Scheduled", color: "text-text-secondary bg-hover-overlay border-border-subtle", showSuffix: false };
   }
   return confidenceBadge(item.confidence_score);
 }
@@ -112,12 +112,12 @@ function InboxRow({
     >
       <p
         className="text-[12px] font-semibold truncate mb-1 leading-tight"
-        style={{ color: isUrgent ? "#FF4444" : "var(--text-primary)" }}
+        style={{ color: isUrgent ? "var(--danger)" : "var(--text-primary)" }}
       >
         {policyRef && (
           <>
             <span>{policyRef}</span>
-            <span className="mx-1.5 font-normal" style={{ color: isUrgent ? "#FF4444" : "var(--text-tertiary)" }}>—</span>
+            <span className="mx-1.5 font-normal" style={{ color: isUrgent ? "var(--danger)" : "var(--text-tertiary)" }}>—</span>
           </>
         )}
         {policyName}
@@ -126,14 +126,14 @@ function InboxRow({
         {!selected && (
           <span
             className="flex-shrink-0 w-1.5 h-1.5 rounded-full"
-            style={{ background: isUrgent ? "#FF4444" : "var(--text-tertiary)" }}
+            style={{ background: isUrgent ? "var(--danger)" : "var(--text-tertiary)" }}
           />
         )}
         {carrierShort && (
           <span
             className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold"
             style={{
-              background: isUrgent ? "#FF4444" : "var(--text-primary)",
+              background: isUrgent ? "var(--danger)" : "var(--text-primary)",
               color: "var(--background)",
             }}
           >
@@ -203,7 +203,7 @@ function DetailPanel({
   const isUrgent  = item.tier === 3;
 
   const expiryColor =
-    days !== null && days <= 14 ? "#FF4444" :
+    days !== null && days <= 14 ? "var(--danger)" :
     days !== null && days <= 30 ? "var(--text-secondary)" :
     "var(--text-tertiary)";
 
@@ -254,7 +254,7 @@ function DetailPanel({
               <>
                 <h2
                   className="text-[18px] font-semibold leading-tight"
-                  style={{ color: isUrgent ? "#FF4444" : "var(--text-primary)" }}
+                  style={{ color: isUrgent ? "var(--danger)" : "var(--text-primary)" }}
                 >
                   {intentLabel(item.classified_intent)}
                 </h2>
@@ -651,7 +651,7 @@ function TodoDetailPanel({
   const allChecked = changes.length > 0 && checked.size === changes.length;
 
   const expiryColor =
-    days !== null && days <= 14 ? "#FF4444" :
+    days !== null && days <= 14 ? "var(--danger)" :
     days !== null && days <= 30 ? "var(--text-secondary)" :
     "var(--text-tertiary)";
 
@@ -1015,7 +1015,7 @@ function DocChaseDetailPanel({
         fontSize: 10,
         letterSpacing: "0.12em",
         textTransform: "uppercase" as const,
-        color: "#333",
+        color: "var(--text-tertiary)",
         marginBottom: 10,
       }}
     >
@@ -1024,7 +1024,7 @@ function DocChaseDetailPanel({
   );
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "#0C0C0C" }}>
+    <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto px-8 py-8 min-h-0">
@@ -1035,7 +1035,7 @@ function DocChaseDetailPanel({
           <Link
             href="/documents"
             className="flex items-center gap-1 text-[11px] transition-opacity hover:opacity-70"
-            style={{ color: "#444" }}
+            style={{ color: "var(--text-tertiary)" }}
           >
             View chase <ArrowUpRight size={11} />
           </Link>
@@ -1047,7 +1047,7 @@ function DocChaseDetailPanel({
             fontFamily: "var(--font-display)",
             fontSize: 28,
             fontWeight: 700,
-            color: "#FAFAFA",
+            color: "var(--text-primary)",
             lineHeight: 1.1,
             marginBottom: 6,
           }}
@@ -1056,7 +1056,7 @@ function DocChaseDetailPanel({
         </h1>
 
         {/* Document type */}
-        <div style={{ fontSize: 14, color: "#555", marginBottom: 28 }}>
+        <div style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 28 }}>
           {item.document_type}
         </div>
 
@@ -1071,7 +1071,7 @@ function DocChaseDetailPanel({
                   ? "text-[#f87171] bg-[#dc2626]/10 border-[#dc2626]/20"
                   : currentValidationStatus === "partial"
                   ? "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20"
-                  : "text-white/40 bg-white/5 border-white/10"
+                  : "text-text-secondary bg-hover-overlay border-border-subtle"
               }`}
             >
               {currentValidationStatus.charAt(0).toUpperCase() + currentValidationStatus.slice(1)}
@@ -1084,13 +1084,13 @@ function DocChaseDetailPanel({
           <SL>Client Reply</SL>
           <div className="flex items-center justify-between mb-2">
             {item.last_client_reply_at && (
-              <span style={{ fontSize: 10, color: "#444" }}>{timeAgo(item.last_client_reply_at)}</span>
+              <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>{timeAgo(item.last_client_reply_at)}</span>
             )}
           </div>
           <p
             style={{
               fontSize: 14,
-              color: item.last_client_reply ? "#AAAAAA" : "#444",
+              color: item.last_client_reply ? "var(--text-secondary)" : "var(--text-tertiary)",
               lineHeight: 1.6,
               fontStyle: item.last_client_reply ? "normal" : "italic",
             }}
@@ -1103,7 +1103,7 @@ function DocChaseDetailPanel({
         {(validationResult?.summary || item.validation_summary) && (
           <div style={{ marginBottom: 28 }}>
             <SL>AI Validation</SL>
-            <p style={{ fontSize: 13, color: "#888", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
               {validationResult?.summary ?? item.validation_summary}
             </p>
             {((validationResult?.issues ?? item.validation_issues) ?? []).length > 0 && (
@@ -1126,13 +1126,13 @@ function DocChaseDetailPanel({
               marginBottom: 28,
               padding: "14px 16px",
               borderRadius: 10,
-              border: "1px solid #252525",
-              background: "#111",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
             }}
           >
             <div className="flex items-center justify-between gap-3">
-              <p style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>
-                Add <strong style={{ color: "#FAFAFA" }}>{refDocSuggestion.suggestedLabel}</strong> to this client&apos;s AI reference docs?
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                Add <strong style={{ color: "var(--text-primary)" }}>{refDocSuggestion.suggestedLabel}</strong> to this client&apos;s AI reference docs?
               </p>
               {refDocAdded ? (
                 <span className="flex items-center gap-1.5 shrink-0 text-[11px] font-semibold" style={{ color: "#4ade80" }}>
@@ -1148,11 +1148,11 @@ function DocChaseDetailPanel({
                       height: 28,
                       padding: "0 12px",
                       borderRadius: 6,
-                      border: "1px solid #333",
+                      border: "1px solid var(--border)",
                       background: "transparent",
                       fontSize: 11,
                       fontWeight: 600,
-                      color: refDocBusy ? "#555" : "#FAFAFA",
+                      color: refDocBusy ? "var(--text-secondary)" : "var(--text-primary)",
                       cursor: refDocBusy ? "default" : "pointer",
                       display: "flex",
                       alignItems: "center",
@@ -1171,7 +1171,7 @@ function DocChaseDetailPanel({
                       border: "none",
                       background: "transparent",
                       fontSize: 11,
-                      color: "#444",
+                      color: "var(--text-tertiary)",
                       cursor: "pointer",
                     }}
                   >
@@ -1188,15 +1188,15 @@ function DocChaseDetailPanel({
           <div style={{ marginBottom: 28 }}>
             <SL>Attachment</SL>
             {urlLoading ? (
-              <div className="flex items-center gap-2" style={{ fontSize: 13, color: "#555" }}>
+              <div className="flex items-center gap-2" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                 <Loader2 size={13} className="animate-spin" /> Loading…
               </div>
             ) : urlError ? (
-              <div className="flex items-center gap-3" style={{ fontSize: 13, color: "#555" }}>
+              <div className="flex items-center gap-3" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                 <span>{urlError}</span>
                 <button
                   onClick={fetchSignedUrl}
-                  style={{ fontSize: 12, color: "#666", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+                  style={{ fontSize: 12, color: "var(--text-secondary)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
                 >
                   Retry
                 </button>
@@ -1204,11 +1204,11 @@ function DocChaseDetailPanel({
             ) : signedUrl ? (
               <div
                 className="flex items-center justify-between px-4 py-3 rounded-xl"
-                style={{ background: "#111111", border: "1px solid #1C1C1C" }}
+                style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <FileText size={14} style={{ color: "#555", flexShrink: 0 }} />
-                  <span className="truncate" style={{ fontSize: 13, color: "#FAFAFA" }}>
+                  <FileText size={14} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+                  <span className="truncate" style={{ fontSize: 13, color: "var(--text-primary)" }}>
                     {item.received_attachment_filename ?? "Attachment"}
                   </span>
                 </div>
@@ -1217,7 +1217,7 @@ function DocChaseDetailPanel({
                     href={signedUrl}
                     download={item.received_attachment_filename ?? "attachment"}
                     className="flex items-center transition-opacity hover:opacity-70"
-                    style={{ color: "#555" }}
+                    style={{ color: "var(--text-secondary)" }}
                     title="Download"
                   >
                     <Download size={13} />
@@ -1228,10 +1228,10 @@ function DocChaseDetailPanel({
                       height: 30,
                       padding: "0 12px",
                       borderRadius: 7,
-                      border: "1px solid #252525",
+                      border: "1px solid var(--border)",
                       background: "transparent",
                       fontSize: 12,
-                      color: "#AAAAAA",
+                      color: "var(--text-secondary)",
                       cursor: "pointer",
                     }}
                   >
@@ -1245,10 +1245,10 @@ function DocChaseDetailPanel({
                         height: 30,
                         padding: "0 12px",
                         borderRadius: 7,
-                        border: "1px solid #252525",
+                        border: "1px solid var(--border)",
                         background: "transparent",
                         fontSize: 12,
-                        color: validating ? "#555" : "#AAAAAA",
+                        color: validating ? "var(--text-secondary)" : "var(--text-secondary)",
                         cursor: validating ? "default" : "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -1270,19 +1270,19 @@ function DocChaseDetailPanel({
         {hasAttachment && signedUrl && (
           <div style={{ marginBottom: 28 }}>
             <SL>Preview</SL>
-            <div className="overflow-hidden rounded-xl" style={{ border: "1px solid #1C1C1C" }}>
+            <div className="overflow-hidden rounded-xl" style={{ border: "1px solid var(--border)" }}>
               {/* Preview header bar */}
               <div
                 className="flex items-center justify-between px-4 py-2"
-                style={{ background: "#111", borderBottom: "1px solid #1C1C1C" }}
+                style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
               >
-                <span style={{ fontSize: 11, color: "#555" }}>
+                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
                   {item.received_attachment_filename ?? "Attachment"}
                 </span>
                 <button
                   onClick={() => setFullscreen(true)}
                   className="flex items-center gap-1 transition-opacity hover:opacity-70"
-                  style={{ color: "#444", background: "none", border: "none", cursor: "pointer" }}
+                  style={{ color: "var(--text-tertiary)", background: "none", border: "none", cursor: "pointer" }}
                   title="Full view"
                 >
                   <Maximize2 size={11} />
@@ -1343,25 +1343,25 @@ function DocChaseDetailPanel({
             </div>
             <div className="space-y-2">
               <div>
-                <label className="block text-[10px] mb-1" style={{ color: "#444" }}>Subject</label>
+                <label className="block text-[10px] mb-1" style={{ color: "var(--text-tertiary)" }}>Subject</label>
                 <input
                   type="text"
                   value={draftSubject}
                   onChange={(e) => setDraftSubject(e.target.value)}
                   disabled={replySent}
                   className="w-full rounded-lg px-3 py-2 text-[12px] focus:outline-none"
-                  style={{ background: "#111", border: "1px solid #1C1C1C", color: "#FAFAFA" }}
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                 />
               </div>
               <div>
-                <label className="block text-[10px] mb-1" style={{ color: "#444" }}>Body</label>
+                <label className="block text-[10px] mb-1" style={{ color: "var(--text-tertiary)" }}>Body</label>
                 <textarea
                   value={draftBody}
                   onChange={(e) => setDraftBody(e.target.value)}
                   disabled={replySent}
                   rows={8}
                   className="w-full rounded-lg px-3 py-2 text-[12px] leading-relaxed focus:outline-none resize-none"
-                  style={{ background: "#111", border: "1px solid #1C1C1C", color: replySent ? "#444" : "#FAFAFA", fontFamily: "inherit" }}
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: replySent ? "var(--text-tertiary)" : "var(--text-primary)", fontFamily: "inherit" }}
                 />
               </div>
               {!replySent && (
@@ -1385,7 +1385,7 @@ function DocChaseDetailPanel({
         className="shrink-0 flex items-center gap-3"
         style={{
           padding: "16px 32px",
-          borderTop: "1px solid #1C1C1C",
+          borderTop: "1px solid var(--border)",
           background: isReceived ? "rgba(184,244,0,0.04)" : undefined,
         }}
       >
@@ -1399,7 +1399,7 @@ function DocChaseDetailPanel({
             onClick={handleMarkReceived}
             disabled={marking}
             className="h-9 flex items-center gap-2 px-5 rounded-lg text-[13px] font-semibold transition-opacity disabled:opacity-40 hover:opacity-80"
-            style={{ background: "#FAFAFA", color: "#0C0C0C", border: "none", cursor: "pointer" }}
+            style={{ background: "var(--accent)", color: "var(--text-inverse)", border: "none", cursor: "pointer" }}
           >
             {marking ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
             Mark Received

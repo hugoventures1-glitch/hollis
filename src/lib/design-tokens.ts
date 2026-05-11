@@ -3,18 +3,18 @@
 // Prefer Tailwind CSS variables for everything else.
 
 export const tokens = {
-  bg:            "#0C0C0C",
-  surface:       "#111111",
-  surfaceRaised: "#161616",
-  border:        "#1C1C1C",
-  borderSubtle:  "#161616",
-  textPrimary:   "#FAFAFA",
-  textSecondary: "#555555",
-  textTertiary:  "#333333",
-  textInverse:   "#0C0C0C",
-  accent:        "#FAFAFA",
-  danger:        "#FF4444",
-  warningText:   "#888888",
+  bg:            "var(--background)",
+  surface:       "var(--surface)",
+  surfaceRaised: "var(--surface-raised)",
+  border:        "var(--border)",
+  borderSubtle:  "var(--border-subtle)",
+  textPrimary:   "var(--text-primary)",
+  textSecondary: "var(--text-secondary)",
+  textTertiary:  "var(--text-tertiary)",
+  textInverse:   "var(--text-inverse)",
+  accent:        "var(--accent)",
+  danger:        "var(--danger)",
+  warningText:   "var(--warning-text)",
 } as const;
 
 export type TokenKey = keyof typeof tokens;

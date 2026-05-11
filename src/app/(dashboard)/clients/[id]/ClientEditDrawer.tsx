@@ -56,14 +56,14 @@ const INDUSTRY_OPTIONS = [
 ];
 
 const inputClass =
-  "w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-2.5 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] outline-none focus:border-[#555555] transition-colors disabled:opacity-50";
+  "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-text-secondary transition-colors disabled:opacity-50";
 
 const labelClass =
   "block text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-2";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider pt-2 pb-1 border-b border-[#1C1C1C] mb-4">
+    <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider pt-2 pb-1 border-b border-border mb-4">
       {children}
     </div>
   );
@@ -186,7 +186,7 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#f5f5f7] hover:border-[#333333] transition-colors"
+        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-text-tertiary transition-colors"
         title="Edit client"
       >
         <Pencil size={12} />
@@ -206,11 +206,11 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
 
             {/* Header */}
             <div className="h-14 shrink-0 border-b border-[#1e1e2a] flex items-center justify-between px-6">
-              <span className="text-[14px] font-semibold text-[#f5f5f7]">Edit Client</span>
+              <span className="text-[14px] font-semibold text-text-primary">Edit Client</span>
               <button
                 onClick={() => setIsOpen(false)}
                 disabled={saving}
-                className="w-7 h-7 rounded-md flex items-center justify-center text-[#505057] hover:text-[#f5f5f7] hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+                className="w-7 h-7 rounded-md flex items-center justify-center text-[#505057] hover:text-text-primary hover:bg-hover-overlay transition-colors disabled:opacity-50"
               >
                 <X size={15} />
               </button>
@@ -341,16 +341,16 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#0C0C0C] border border-[#1C1C1C]">
-                <span className="text-[14px] text-[#f5f5f7]">Owns Vehicles</span>
+              <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-background border border-border">
+                <span className="text-[14px] text-text-primary">Owns Vehicles</span>
                 <button
                   type="button"
                   onClick={() => setOwnsVehicles(!ownsVehicles)}
                   disabled={saving}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${ownsVehicles ? "bg-[#FAFAFA]" : "bg-[#2a2a2a]"} disabled:opacity-50`}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${ownsVehicles ? "bg-text-primary" : "bg-[#2a2a2a]"} disabled:opacity-50`}
                 >
                   <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[#0C0C0C] shadow transition-transform ${ownsVehicles ? "translate-x-5" : "translate-x-0"}`}
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow transition-transform ${ownsVehicles ? "translate-x-5" : "translate-x-0"}`}
                   />
                 </button>
               </div>
@@ -380,7 +380,7 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
               <button
                 onClick={handleSave}
                 disabled={saving || !name.trim()}
-                className="h-9 flex items-center gap-2 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 flex items-center gap-2 px-5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -390,7 +390,7 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
               <button
                 onClick={() => setIsOpen(false)}
                 disabled={saving}
-                className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors disabled:opacity-50"
+                className="h-9 px-5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

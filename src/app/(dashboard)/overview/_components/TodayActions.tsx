@@ -33,15 +33,15 @@ export async function TodayActions() {
 
   if (callCount === 0 && silentCount === 0 && approvalCount === 0) {
     return (
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/50">
+      <div className="rounded-lg border border-border bg-surface p-4 text-sm text-text-secondary">
         No actions needed today
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-2">
-      <h3 className="text-sm font-medium text-white/70 mb-3">Today&apos;s Actions</h3>
+    <div className="rounded-lg border border-border bg-surface p-4 space-y-2">
+      <h3 className="text-sm font-medium text-text-secondary mb-3">Today&apos;s Actions</h3>
       {callCount > 0 && (
         <Link href="/renewals?stage=script_14_ready" className="flex items-center justify-between rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/20 transition-colors">
           <span>{callCount} call{callCount !== 1 ? "s" : ""} needed today</span>

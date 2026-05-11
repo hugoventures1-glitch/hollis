@@ -36,10 +36,10 @@ export function CommsHistoryPanel({ entries }: CommsHistoryPanelProps) {
   );
 
   return (
-    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-6 flex flex-col gap-4 flex-1">
+    <div className="rounded-xl bg-surface border border-border p-6 flex flex-col gap-4 flex-1">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
-        <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+        <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
           Comms History
         </div>
         <div className="flex gap-4">
@@ -48,7 +48,7 @@ export function CommsHistoryPanel({ entries }: CommsHistoryPanelProps) {
               key={key}
               onClick={() => setTab(key)}
               className="text-[12px] transition-colors"
-              style={{ color: tab === key ? "#FAFAFA" : "#444" }}
+              style={{ color: tab === key ? "var(--text-primary)" : "var(--text-tertiary)" }}
             >
               {label}
             </button>
@@ -60,9 +60,9 @@ export function CommsHistoryPanel({ entries }: CommsHistoryPanelProps) {
       <div className="flex-1 overflow-y-auto">
         {visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-8 gap-1.5">
-            <span className="text-[13px]" style={{ color: "#333" }}>No communications logged yet.</span>
+            <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No communications logged yet.</span>
             {tab === "email" && (
-              <span className="text-[12px]" style={{ color: "#252525" }}>Inbound email processing pending.</span>
+              <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>Inbound email processing pending.</span>
             )}
           </div>
         ) : (
@@ -70,18 +70,18 @@ export function CommsHistoryPanel({ entries }: CommsHistoryPanelProps) {
             {visible.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-3 py-2.5 border-b border-[#191919]"
+                className="flex items-center gap-3 py-2.5 border-b border-border-subtle"
               >
-                <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "#444" }}>
+                <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "var(--text-tertiary)" }}>
                   {fmtTs(entry.ts)}
                 </span>
-                <span className="text-[13px] flex-1 truncate" style={{ color: "#AAAAAA" }}>
+                <span className="text-[13px] flex-1 truncate" style={{ color: "var(--text-secondary)" }}>
                   {entry.label}
                 </span>
                 {entry.status && (
                   <span
                     className="text-[11px] shrink-0"
-                    style={{ color: entry.status === "sent" ? "#333" : "#FF4444" }}
+                    style={{ color: entry.status === "sent" ? "var(--text-tertiary)" : "var(--danger)" }}
                   >
                     {entry.status}
                   </span>

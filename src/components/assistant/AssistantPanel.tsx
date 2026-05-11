@@ -163,12 +163,12 @@ const TYPE_CONFIG: Record<
   import("@/lib/search-types").SearchResultType,
   { label: string; icon: React.ElementType; color: string; href: (id: string) => string }
 > = {
-  policy:       { label: "Policies",      icon: FileText,    color: "#555555", href: (id) => `/renewals/${id}` },
-  certificate:  { label: "Certificates",  icon: Shield,      color: "#555555", href: (id) => `/certificates/${id}` },
-  client:       { label: "Clients",       icon: Users,       color: "#555555", href: (id) => `/clients/${id}` },
-  coi_request:  { label: "COI Requests",  icon: ShieldCheck, color: "#555555", href: ()   => `/certificates?tab=requests` },
-  doc_chase:    { label: "Doc Requests",  icon: FolderOpen,  color: "#555555", href: ()   => `/documents` },
-  outbox_draft: { label: "Drafts",        icon: Inbox,       color: "#555555", href: ()   => `/outbox` },
+  policy:       { label: "Policies",      icon: FileText,    color: "var(--text-secondary)", href: (id) => `/renewals/${id}` },
+  certificate:  { label: "Certificates",  icon: Shield,      color: "var(--text-secondary)", href: (id) => `/certificates/${id}` },
+  client:       { label: "Clients",       icon: Users,       color: "var(--text-secondary)", href: (id) => `/clients/${id}` },
+  coi_request:  { label: "COI Requests",  icon: ShieldCheck, color: "var(--text-secondary)", href: ()   => `/certificates?tab=requests` },
+  doc_chase:    { label: "Doc Requests",  icon: FolderOpen,  color: "var(--text-secondary)", href: ()   => `/documents` },
+  outbox_draft: { label: "Drafts",        icon: Inbox,       color: "var(--text-secondary)", href: ()   => `/outbox` },
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -286,8 +286,12 @@ function LoadingDots() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-zinc-500/60"
-          style={{ animation: `hollis-pulse 1.4s ease-in-out ${i * 0.2}s infinite` }}
+          className="w-1.5 h-1.5 rounded-full"
+          style={{
+            background: "var(--text-tertiary)",
+            opacity: 0.6,
+            animation: `hollis-pulse 1.4s ease-in-out ${i * 0.2}s infinite`,
+          }}
         />
       ))}
     </div>
@@ -321,9 +325,11 @@ function FormattedResponse({ content, compact, prominent }: { content: string; c
   const paragraphs = content.split(/\n\n+/).filter(Boolean);
   const sizeClass = compact ? "text-[13px]" : prominent ? "text-[15px]" : "text-[15px]";
   const lineClass = compact ? "leading-relaxed" : "leading-[1.65]";
-  const colorClass = prominent ? "text-[#FAFAFA]" : "text-zinc-300";
   return (
-    <div className={`${sizeClass} ${lineClass} ${colorClass} space-y-3`}>
+    <div
+      className={`${sizeClass} ${lineClass} space-y-3`}
+      style={{ color: prominent ? "var(--text-primary)" : "var(--text-secondary)" }}
+    >
       {paragraphs.map((p, i) => (
         <p key={i} className="m-0">
           {p.split("\n").map((line, j) => (
@@ -359,13 +365,20 @@ function MessageBubble({
     return (
       <div className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
         <div className={`flex items-center gap-2 ${isUser ? "flex-row-reverse" : ""}`}>
-          <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+          <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
             {isUser ? "You" : "Hollis"}
           </span>
-          <span className="text-[11px] text-[#6b6b6b]">{formatTime(msg.timestamp)}</span>
+          <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{formatTime(msg.timestamp)}</span>
         </div>
         {isUser ? (
-          <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-[#FAFAFA] max-w-[85%] leading-relaxed">
+          <div
+            className="rounded-lg px-4 py-2.5 text-[14px] max-w-[85%] leading-relaxed"
+            style={{
+              background: "var(--hover-overlay)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+            }}
+          >
             {msg.content}
           </div>
         ) : (
@@ -381,7 +394,14 @@ function MessageBubble({
                       key={i}
                       href={action.href}
                       onClick={onLinkClick}
-                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors"
+                      style={{
+                        background: "var(--surface-raised)",
+                        border: "1px solid var(--border)",
+                        color: "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
                     >
                       <ArrowRight size={14} />
                       {action.label}
@@ -390,7 +410,14 @@ function MessageBubble({
                     <button
                       key={i}
                       onClick={() => onAction(action)}
-                      className="inline-flex items-center gap-2 bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-lg px-3 py-2 text-[13px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors"
+                      style={{
+                        background: "var(--surface-raised)",
+                        border: "1px solid var(--border)",
+                        color: "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
                     >
                       <Check size={14} />
                       {action.label}
@@ -408,7 +435,14 @@ function MessageBubble({
   return (
     <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
       {isUser ? (
-        <div className="bg-white/5 border border-white/10 rounded-lg px-3.5 py-2 text-[13px] text-zinc-100 max-w-[92%] leading-relaxed">
+        <div
+          className="rounded-lg px-3.5 py-2 text-[13px] max-w-[92%] leading-relaxed"
+          style={{
+            background: "var(--hover-overlay)",
+            border: "1px solid var(--border)",
+            color: "var(--text-primary)",
+          }}
+        >
           {msg.content}
         </div>
       ) : (
@@ -424,7 +458,14 @@ function MessageBubble({
                 key={i}
                 href={action.href}
                 onClick={onLinkClick}
-                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                className="rounded-md px-2.5 py-1.5 text-[12px] transition-colors"
+                style={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
               >
                 {action.label}
               </Link>
@@ -432,7 +473,14 @@ function MessageBubble({
               <button
                 key={i}
                 onClick={() => onAction(action)}
-                className="bg-[#161616] border border-[#1C1C1C] hover:bg-[#1C1C1C] rounded-md px-2.5 py-1.5 text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] transition-colors"
+                className="rounded-md px-2.5 py-1.5 text-[12px] transition-colors"
+                style={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
               >
                 {action.label}
               </button>
@@ -477,9 +525,6 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
       setTimeout(() => unifiedInputRef.current?.focus(), 180);
     });
   }, [registerOpenHandler, registerOpenWithQueryHandler]);
-
-  // Don't restore panel from localStorage on mount — always start closed so it
-  // doesn't auto-appear when signing in or refreshing
 
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -529,7 +574,6 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     [page, data]
   );
 
-  // Minimize keeps conversation; exit (close) starts fresh next time
   const condenseToSide = () => setViewMode("sideChat");
   const closeAndClear = useCallback(() => {
     setMessages([]);
@@ -540,7 +584,6 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     setViewMode("closed");
   }, []);
 
-  // ⌘K and ⌘J both open the unified panel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -668,7 +711,6 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
     el.style.height = Math.min(el.scrollHeight, 64) + "px";
   };
 
-  // Search results state
   const grouped = searchResponse?.results.reduce<
     Partial<Record<import("@/lib/search-types").SearchResultType, SearchResult[]>>
   >(
@@ -704,9 +746,9 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
             onClick={(e) => e.stopPropagation()}
             style={{
               animation: "hollis-float-in 0.4s ease-out forwards",
-              background: "rgba(17, 17, 17, 0.97)",
-              border: "1px solid #1C1C1C",
-              boxShadow: "0 24px 48px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+              background: "var(--surface-overlay)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow)",
             }}
           >
             {!inChatMode ? (
@@ -714,8 +756,8 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 {/* Header */}
                 <div className="flex items-center gap-2 px-5 pt-4 pb-2">
                   <span
-                    className="text-[14px] text-[#FAFAFA]"
-                    style={{ fontFamily: "var(--font-playfair)", fontWeight: 900 }}
+                    className="text-[14px]"
+                    style={{ fontFamily: "var(--font-playfair)", fontWeight: 900, color: "var(--text-primary)" }}
                   >
                     hollis
                   </span>
@@ -724,9 +766,9 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 <form onSubmit={handleUnifiedSubmit} className="flex items-center gap-3 px-5 py-4 pb-2">
                   <div className="w-8 h-8 flex items-center justify-center shrink-0">
                     {searchLoading ? (
-                      <Loader2 size={15} className="text-[#8a8a8a] animate-spin" />
+                      <Loader2 size={15} className="animate-spin" style={{ color: "var(--text-secondary)" }} />
                     ) : (
-                      <Search size={15} className="text-[#8a8a8a]" />
+                      <Search size={15} style={{ color: "var(--text-secondary)" }} />
                     )}
                   </div>
                   <input
@@ -735,7 +777,8 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     value={input}
                     onChange={handleUnifiedInputChange}
                     placeholder="Search clients, policies, certificates… or ask anything"
-                    className="flex-1 bg-transparent border-none outline-none text-[15px] text-zinc-100 placeholder-zinc-500 min-w-0"
+                    className="flex-1 bg-transparent border-none outline-none text-[15px] min-w-0"
+                    style={{ color: "var(--text-primary)" }}
                   />
                   {input && (
                     <button
@@ -746,7 +789,10 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                         setSearchResponse(null);
                         setSearchError(null);
                       }}
-                      className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                      className="p-1.5 rounded-md transition-colors"
+                      style={{ color: "var(--text-tertiary)" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
                     >
                       <X size={14} />
                     </button>
@@ -757,21 +803,24 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-opacity ${
                       !input.trim() ? "opacity-30 cursor-default" : "opacity-100 hover:opacity-80"
                     }`}
-                    style={{ background: "#FAFAFA" }}
+                    style={{ background: "var(--text-primary)" }}
                   >
-                    <ArrowUp size={16} className="text-[#0C0C0C]" />
+                    <ArrowUp size={16} style={{ color: "var(--text-inverse)" }} />
                   </button>
                 </form>
 
                 <div className="flex items-center justify-between px-5 pb-3 -mt-1">
-                  <span className="text-[11px] text-zinc-500">
+                  <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                     Search or ask anything
                   </span>
                   <button
                     type="button"
                     onClick={condenseToSide}
                     title="Minimize (Esc)"
-                    className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                    className="p-2 rounded-md transition-colors"
+                    style={{ color: "var(--text-tertiary)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
                   >
                     <Minus size={13} />
                   </button>
@@ -787,7 +836,10 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                   )}
 
                   {searchResponse?.summary && !searchError && (
-                    <div className="py-2.5 text-[13px] text-zinc-400 leading-relaxed border-b border-white/5 mb-3">
+                    <div
+                      className="py-2.5 text-[13px] leading-relaxed mb-3"
+                      style={{ color: "var(--text-secondary)", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
                       {searchResponse.summary}
                     </div>
                   )}
@@ -815,23 +867,26 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                               return (
                                 <div
                                   key={result.id}
-                                  className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
+                                  className="w-full flex items-center justify-between px-2 py-2 rounded-lg transition-colors group"
+                                  style={{ background: "transparent" }}
+                                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--hover-overlay)"; }}
+                                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                                 >
                                   <Link
                                     href={rowHref}
                                     onClick={inChatMode ? condenseToSide : closeAndClear}
                                     className="min-w-0 flex-1 text-left"
                                   >
-                                    <div className="text-[14px] font-medium text-zinc-300 truncate group-hover:text-[#0C0C0C] transition-colors">
+                                    <div className="text-[14px] font-medium truncate" style={{ color: "var(--text-secondary)" }}>
                                       {getSearchTitle(result)}
                                     </div>
                                     {subtitle && (
-                                      <div className="text-[12px] text-zinc-500 truncate mt-0.5">
+                                      <div className="text-[12px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
                                         {subtitle}
                                       </div>
                                     )}
                                     {meta && meta !== subtitle && (
-                                      <div className="text-[11px] text-[#6b6b6b] truncate mt-0.5">
+                                      <div className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
                                         {meta}
                                       </div>
                                     )}
@@ -849,16 +904,16 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                     </div>
                   ) : showNoSearchResults ? (
                     <div className="pt-4">
-                      <div className="text-[14px] text-zinc-400 mb-0.5">
+                      <div className="text-[14px] mb-0.5" style={{ color: "var(--text-secondary)" }}>
                         No results for &ldquo;{searchQuery.trim()}&rdquo;
                       </div>
-                      <div className="text-[12px] text-[#6b6b6b] mb-4">
+                      <div className="text-[12px] mb-4" style={{ color: "var(--text-tertiary)" }}>
                         Try a broader term, or ask Hollis for help.
                       </div>
                     </div>
                   ) : !searchQuery ? (
                     <div className="py-2">
-                      <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest mb-2">
+                      <div className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-tertiary)" }}>
                         Try asking
                       </div>
                       <div className="space-y-0.5">
@@ -866,9 +921,20 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                           <button
                             key={s}
                             onClick={() => handleSuggestionClick(s)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-300 transition-colors text-left"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition-colors text-left"
+                            style={{ color: "var(--text-secondary)" }}
+                            onMouseEnter={(e) => {
+                              const el = e.currentTarget as HTMLElement;
+                              el.style.background = "var(--hover-overlay)";
+                              el.style.color = "var(--text-primary)";
+                            }}
+                            onMouseLeave={(e) => {
+                              const el = e.currentTarget as HTMLElement;
+                              el.style.background = "transparent";
+                              el.style.color = "var(--text-secondary)";
+                            }}
                           >
-                            <Search size={13} className="text-[#6b6b6b] shrink-0" />
+                            <Search size={13} style={{ color: "var(--text-tertiary)" }} className="shrink-0" />
                             {s}
                           </button>
                         ))}
@@ -880,11 +946,11 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
             ) : (
               <>
                 {/* Chat mode header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-[#1C1C1C]">
+                <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-[13px] text-[#FAFAFA]"
-                      style={{ fontFamily: "var(--font-playfair)", fontWeight: 900 }}
+                      className="text-[13px]"
+                      style={{ fontFamily: "var(--font-playfair)", fontWeight: 900, color: "var(--text-primary)" }}
                     >
                       hollis
                     </span>
@@ -894,7 +960,10 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                       type="button"
                       onClick={clearAndClose}
                       title="Clear and close"
-                      className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                      className="p-2 rounded-md transition-colors"
+                      style={{ color: "var(--text-tertiary)" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
                     >
                       <RotateCcw size={14} />
                     </button>
@@ -902,7 +971,10 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                       type="button"
                       onClick={closeAndClear}
                       title="Close (Esc)"
-                      className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                      className="p-2 rounded-md transition-colors"
+                      style={{ color: "var(--text-tertiary)" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
                     >
                       <X size={14} />
                     </button>
@@ -924,14 +996,20 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 </div>
 
                 <div
-                  className="px-5 py-4 border-t border-white/5"
-                  style={{ background: "rgba(17, 17, 17, 0.98)" }}
+                  className="px-5 py-4"
+                  style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--surface-overlay)" }}
                 >
-                  <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+                  <div className="text-[11px] font-medium uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                     Search & Assistant
                   </div>
-                  <div className="flex items-end gap-2 bg-[#161616] border border-[#1C1C1C] rounded-lg px-4 py-3 focus-within:border-[#555555]/40 transition-colors">
-                    <Paperclip size={16} className="text-zinc-500 shrink-0 cursor-pointer hover:text-zinc-400" />
+                  <div
+                    className="flex items-end gap-2 rounded-lg px-4 py-3 transition-colors"
+                    style={{
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <Paperclip size={16} className="shrink-0 cursor-pointer" style={{ color: "var(--text-tertiary)" }} />
                     <textarea
                       ref={inputRef}
                       value={input}
@@ -940,12 +1018,16 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                       onInput={handleInput}
                       placeholder="Message..."
                       rows={1}
-                      className="flex-1 bg-transparent border-none outline-none text-[14px] text-zinc-200 placeholder-zinc-500 resize-none min-h-[24px] max-h-[80px] overflow-y-auto font-[inherit] leading-relaxed"
+                      className="flex-1 bg-transparent border-none outline-none text-[14px] resize-none min-h-[24px] max-h-[80px] overflow-y-auto font-[inherit] leading-relaxed"
+                      style={{ color: "var(--text-primary)" }}
                     />
                     <button
                       onClick={() => sendMessage(input)}
                       disabled={!input.trim() || loading}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium bg-[#FAFAFA] text-[#0C0C0C] hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-default disabled:hover:bg-[#FAFAFA]"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors disabled:opacity-50 disabled:cursor-default"
+                      style={{ background: "var(--text-primary)", color: "var(--text-inverse)" }}
+                      onMouseEnter={(e) => { if (!(!input.trim() || loading)) (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                     >
                       <span>Send</span>
                       <ArrowUp size={12} />
@@ -965,28 +1047,34 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
           style={{
             width: SIDE_CHAT_WIDTH,
             height: SIDE_CHAT_HEIGHT,
-            background: "#111111",
-            border: "1px solid #1C1C1C",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow)",
           }}
         >
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 shrink-0">
+          <div className="flex items-center justify-between px-3 py-2.5 shrink-0" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
             <span
-              className="text-[12px] text-[#FAFAFA]"
-              style={{ fontFamily: "var(--font-playfair)", fontWeight: 900 }}
+              className="text-[12px]"
+              style={{ fontFamily: "var(--font-playfair)", fontWeight: 900, color: "var(--text-primary)" }}
             >hollis</span>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={clearAndClose}
-                className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                className="p-1.5 rounded transition-colors"
                 title="Clear and close"
+                style={{ color: "var(--text-tertiary)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
               >
                 <Trash2 size={12} />
               </button>
               <button
                 onClick={closeAndClear}
-                className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                className="p-1.5 rounded transition-colors"
                 title="Close (Esc)"
+                style={{ color: "var(--text-tertiary)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)"; }}
               >
                 <Minus size={12} />
               </button>
@@ -1007,8 +1095,14 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="shrink-0 p-2.5 border-t border-white/5">
-            <div className="flex items-end gap-2 bg-[#161616] border border-[#1C1C1C] focus-within:border-[#555555]/40 rounded-lg px-3 py-2 transition-colors">
+          <div className="shrink-0 p-2.5" style={{ borderTop: "1px solid var(--border-subtle)" }}>
+            <div
+              className="flex items-end gap-2 rounded-lg px-3 py-2 transition-colors"
+              style={{
+                background: "var(--surface-raised)",
+                border: "1px solid var(--border)",
+              }}
+            >
               <textarea
                 ref={inputRef}
                 value={input}
@@ -1017,16 +1111,18 @@ export default function AssistantPanel({ page, data }: AssistantPanelProps) {
                 onInput={handleInput}
                 placeholder="Ask..."
                 rows={1}
-                className="flex-1 bg-transparent border-none outline-none text-[13px] text-zinc-200 placeholder-zinc-500 resize-none min-h-[20px] max-h-[56px] overflow-y-auto font-[inherit]"
+                className="flex-1 bg-transparent border-none outline-none text-[13px] resize-none min-h-[20px] max-h-[56px] overflow-y-auto font-[inherit]"
+                style={{ color: "var(--text-primary)" }}
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || loading}
                 className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-opacity ${
                   !input.trim() || loading ? "opacity-50 cursor-default" : ""
-                } bg-[#FAFAFA]`}
+                }`}
+                style={{ background: "var(--text-primary)" }}
               >
-                <ArrowUp size={12} className="text-black" />
+                <ArrowUp size={12} style={{ color: "var(--text-inverse)" }} />
               </button>
             </div>
           </div>

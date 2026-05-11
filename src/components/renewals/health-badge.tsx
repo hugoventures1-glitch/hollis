@@ -9,10 +9,10 @@ const LABEL_TEXT: Record<HealthLabel, string> = {
 };
 
 const LABEL_COLOR: Record<HealthLabel, string> = {
-  healthy:  "#333333",
-  at_risk:  "#888888",
-  critical: "#FF4444",
-  stalled:  "#888888",
+  healthy:  "var(--text-tertiary)",
+  at_risk:  "var(--text-secondary)",
+  critical: "var(--danger)",
+  stalled:  "var(--text-secondary)",
 };
 
 export function HealthBadge({
@@ -23,7 +23,7 @@ export function HealthBadge({
   stalledInQueue?: boolean;
 }) {
   if (!label) {
-    return <span style={{ fontSize: 11, color: "#333333" }}>—</span>;
+    return <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>—</span>;
   }
 
   if (stalledInQueue) {

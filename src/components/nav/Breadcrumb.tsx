@@ -24,16 +24,16 @@ export function Breadcrumb({ crumbs, current }: BreadcrumbProps) {
           <Link
             href={crumbHref(crumbs, i)}
             className="transition-colors"
-            style={{ color: "#555" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#FAFAFA"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#555"; }}
+            style={{ color: "var(--text-secondary)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
           >
             {crumb.label}
           </Link>
-          <ChevronRight size={11} style={{ color: "#2A2A2A" }} />
+          <ChevronRight size={11} style={{ color: "var(--border)" }} />
         </span>
       ))}
-      <span style={{ color: "#FAFAFA" }}>{current}</span>
+      <span style={{ color: "var(--text-primary)" }}>{current}</span>
     </div>
   );
 }

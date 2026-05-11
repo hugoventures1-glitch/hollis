@@ -36,10 +36,10 @@ export default function LoginPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
           Welcome back
         </h1>
-        <p className="mt-1 text-sm text-[#9e9e9e]">Sign in to your account</p>
+        <p className="mt-1 text-sm text-text-secondary">Sign in to your account</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -52,7 +52,7 @@ export default function LoginPage() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             Email
           </label>
@@ -62,7 +62,7 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.email && (
             <p className="mt-1.5 text-xs text-red-400">{errors.email.message}</p>
@@ -72,7 +72,7 @@ export default function LoginPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             Password
           </label>
@@ -82,7 +82,7 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             placeholder="••••••••"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.password && (
             <p className="mt-1.5 text-xs text-red-400">
@@ -94,7 +94,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-[#FAFAFA] px-4 py-2.5 text-sm font-semibold text-[#0C0C0C] transition-colors hover:bg-[#E8E8E8] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-text-primary px-4 py-2.5 text-sm font-semibold text-text-inverse transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Signing in…" : "Sign in"}
         </button>
@@ -103,15 +103,15 @@ export default function LoginPage() {
       <div className="mt-6 flex flex-col items-center gap-2">
         <Link
           href="/forgot-password"
-          className="text-sm text-[#666666] hover:text-[#FAFAFA] transition-colors"
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
           Forgot your password?
         </Link>
-        <p className="text-sm text-[#9e9e9e]">
+        <p className="text-sm text-text-secondary">
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"
-            className="font-medium text-[#FAFAFA] hover:text-[#FAFAFA] underline-offset-4 hover:underline"
+            className="font-medium text-text-primary underline-offset-4 hover:underline"
           >
             Sign up
           </Link>

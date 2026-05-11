@@ -89,7 +89,7 @@ function RenewalsContent() {
       {/* ── Stats strip ── */}
       <div
         className="flex items-stretch justify-around shrink-0"
-        style={{ borderBottom: "1px solid #141414" }}
+        style={{ borderBottom: "1px solid var(--surface-raised)" }}
       >
         <div className="py-6 flex flex-col gap-1 items-center">
           <div
@@ -98,12 +98,12 @@ function RenewalsContent() {
               fontSize:   32,
               fontWeight: 700,
               lineHeight: 1,
-              color:      "#FAFAFA",
+              color:      "var(--text-primary)",
             }}
           >
             {activePolicies.length}
           </div>
-          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Active
           </div>
         </div>
@@ -114,12 +114,12 @@ function RenewalsContent() {
               fontSize:   32,
               fontWeight: 700,
               lineHeight: 1,
-              color:      urgent > 0 ? "#FF4444" : "#FAFAFA",
+              color:      urgent > 0 ? "var(--danger)" : "var(--text-primary)",
             }}
           >
             {urgent}
           </div>
-          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Expiring ≤30d
           </div>
         </div>
@@ -130,12 +130,12 @@ function RenewalsContent() {
               fontSize:   32,
               fontWeight: 700,
               lineHeight: 1,
-              color:      actionCount > 0 ? "#888" : "#FAFAFA",
+              color:      actionCount > 0 ? "var(--text-secondary)" : "var(--text-primary)",
             }}
           >
             {actionCount}
           </div>
-          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Need Action
           </div>
         </div>
@@ -146,12 +146,12 @@ function RenewalsContent() {
               fontSize:   32,
               fontWeight: 700,
               lineHeight: 1,
-              color:      "#555",
+              color:      "var(--text-secondary)",
             }}
           >
             {progressCount}
           </div>
-          <div style={{ fontSize: 11, color: "#333", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             In Progress
           </div>
         </div>
@@ -160,7 +160,7 @@ function RenewalsContent() {
       {/* ── Search + Tabs Bar ── */}
       <div
         className="shrink-0 px-14 py-3 flex items-center gap-6"
-        style={{ borderBottom: "1px solid #1A1A1A", height: 60 }}
+        style={{ borderBottom: "1px solid var(--border)", height: 60 }}
       >
         {/* Search box - left side */}
         <div
@@ -168,12 +168,12 @@ function RenewalsContent() {
           style={{
             width: 280,
             height: 44,
-            background: "#0E0E0E",
-            border: "1px solid #2A2A2A",
+            background: "var(--background)",
+            border: "1px solid var(--border)",
           }}
           onClick={() => inputRef.current?.focus()}
         >
-          <Search size={16} style={{ color: "#555", flexShrink: 0 }} />
+          <Search size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -187,14 +187,14 @@ function RenewalsContent() {
             style={{
               fontFamily: "var(--font-sans)",
               fontSize:   13,
-              color:      "#AAAAAA",
+              color:      "var(--text-secondary)",
             }}
           />
           {hollisQuery && (
             <button
               onClick={(e) => { e.stopPropagation(); setHollisQuery(""); }}
-              style={{ color: "#555", lineHeight: 1 }}
-              className="text-[11px] shrink-0 hover:text-[#888] transition-colors"
+              style={{ color: "var(--text-secondary)", lineHeight: 1 }}
+              className="text-[11px] shrink-0 hover:text-text-secondary transition-colors"
             >
               ×
             </button>
@@ -207,7 +207,7 @@ function RenewalsContent() {
         {/* Tabs - right side */}
         <div
           className="flex items-center gap-2 px-2 rounded-lg flex-shrink-0"
-          style={{ background: "#1A1A1A", height: 40 }}
+          style={{ background: "var(--surface-raised)", height: 40 }}
         >
           {tabs.map((tab) => {
             const active = view === tab.id;
@@ -217,9 +217,9 @@ function RenewalsContent() {
                 href={`/renewals?view=${tab.id}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all rounded-md"
                 style={{
-                  color: active ? "#FAFAFA" : "#555",
-                  background: active ? "#0E0E0E" : "transparent",
-                  border: active ? "1px solid #252525" : "none",
+                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                  background: active ? "var(--background)" : "transparent",
+                  border: active ? "1px solid var(--border)" : "none",
                 }}
               >
                 {tab.label}
@@ -229,7 +229,7 @@ function RenewalsContent() {
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize:   10,
-                      color:      active ? "#666" : "#333",
+                      color:      active ? "var(--text-secondary)" : "var(--text-tertiary)",
                     }}
                   >
                     {tab.count}
@@ -245,7 +245,7 @@ function RenewalsContent() {
       <div className="flex-1 overflow-y-auto relative">
         {isLoading ? (
           <div className="flex items-center justify-center py-24">
-            <Loader2 size={20} className="animate-spin" style={{ color: "#252525" }} />
+            <Loader2 size={20} className="animate-spin" style={{ color: "var(--border)" }} />
           </div>
         ) : rows.length === 0 ? (
           <EmptyState view={view} />
@@ -265,7 +265,7 @@ export default function RenewalsPage() {
       fallback={
         <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
           <div className="flex items-center justify-center flex-1">
-            <Loader2 size={20} className="animate-spin" style={{ color: "#252525" }} />
+            <Loader2 size={20} className="animate-spin" style={{ color: "var(--border)" }} />
           </div>
         </div>
       }
@@ -298,21 +298,21 @@ function EmptyState({ view }: { view: ViewTab }) {
     <div className="flex flex-col items-center justify-center h-full py-24 text-center">
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center mb-5"
-        style={{ background: "#111" }}
+        style={{ background: "var(--surface)" }}
       >
-        <Plus size={20} style={{ color: "#2E2E2E" }} />
+        <Plus size={20} style={{ color: "var(--border)" }} />
       </div>
-      <div style={{ fontSize: 15, fontWeight: 600, color: "#FAFAFA", fontFamily: "var(--font-display)" }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
         {heading}
       </div>
-      <div style={{ fontSize: 13, color: "#333", marginTop: 6, maxWidth: 300, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginTop: 6, maxWidth: 300, lineHeight: 1.6 }}>
         {sub}
       </div>
       {view === "action" && (
         <Link
           href="/settings?tab=import"
           className="mt-6 h-9 px-5 flex items-center gap-2 rounded-md text-[13px] font-medium transition-colors"
-          style={{ background: "#1A1A1A", color: "#888", border: "1px solid #2A2A2A" }}
+          style={{ background: "var(--surface-raised)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
         >
           Import your book →
         </Link>

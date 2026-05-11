@@ -15,7 +15,7 @@ export const TEMPLATE_VARIABLES = [
 export function VariableBodyPreview({ text, className }: { text: string; className?: string }) {
   const parts = text.split(/({{[^}]+}})/g);
   return (
-    <pre className={className ?? "text-[12px] text-[#8a8a8a] whitespace-pre-wrap font-sans leading-relaxed max-h-48 overflow-y-auto"}>
+    <pre className={className ?? "text-[12px] text-text-secondary whitespace-pre-wrap font-sans leading-relaxed max-h-48 overflow-y-auto"}>
       {parts.map((part, i) => {
         const match = part.match(/^{{(.+)}}$/);
         if (match) {
@@ -146,7 +146,7 @@ export function VariableTextarea({ value, onChange, rows = 10, placeholder, clas
         placeholder={placeholder}
         className={
           className ??
-          "w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-3 py-2.5 text-[13px] text-[#FAFAFA] outline-none focus:border-[#555555] placeholder-[#6b6b6b] resize-y font-mono leading-relaxed"
+          "w-full bg-background border border-border rounded-lg px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-[#555555] placeholder-text-tertiary resize-y font-mono leading-relaxed"
         }
       />
       <p className="mt-1 text-[11px] text-zinc-600">
@@ -172,7 +172,7 @@ export function VariableTextarea({ value, onChange, rows = 10, placeholder, clas
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
                     i === selectedIndex
-                      ? "bg-[#1e1e2a] text-[#FAFAFA]"
+                      ? "bg-[#1e1e2a] text-text-primary"
                       : "text-zinc-400 hover:bg-[#1e1e2a] hover:text-zinc-200"
                   }`}
                 >

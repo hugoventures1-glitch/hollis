@@ -235,13 +235,13 @@ export function TimelineEditor({
             type="button"
             onClick={addTouchpoint}
             disabled={draft.touchpoints.length >= TIMELINE_MAX_TOUCHPOINTS}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#2A2A2A] text-[13px] text-zinc-400 hover:text-[#FAFAFA] hover:border-[#3A3A3A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary hover:border-text-tertiary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={14} />
             Add touchpoint
           </button>
           {draft.touchpoints.length >= TIMELINE_MAX_TOUCHPOINTS && (
-            <span className="text-[12px] text-zinc-600">Maximum {TIMELINE_MAX_TOUCHPOINTS} touchpoints</span>
+            <span className="text-[12px] text-text-tertiary">Maximum {TIMELINE_MAX_TOUCHPOINTS} touchpoints</span>
           )}
         </div>
       )}
@@ -259,11 +259,11 @@ export function TimelineEditor({
           >
             <div
               className="absolute -top-5 -translate-x-1/2 text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap"
-              style={{ background: "#1C1C1C", color: "#FAFAFA", border: "1px solid #2A2A2A" }}
+              style={{ background: "var(--border)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
             >
               {todayLabel}
             </div>
-            <div className="w-px h-full" style={{ background: "#FAFAFA", opacity: 0.15 }} />
+            <div className="w-px h-full" style={{ background: "var(--text-primary)", opacity: 0.15 }} />
           </div>
         )}
 
@@ -287,7 +287,7 @@ export function TimelineEditor({
                 style={{ width: COLUMN_WIDTH }}
               >
                 {/* Day label above column */}
-                <div className="text-[11px] font-medium text-zinc-600 mb-2 pl-1 tracking-wide">
+                <div className="text-[11px] font-medium text-text-tertiary mb-2 pl-1 tracking-wide">
                   {tp.days_before_expiry} {tp.days_before_expiry === 1 ? "day" : "days"}
                 </div>
 
@@ -297,8 +297,8 @@ export function TimelineEditor({
                   style={{
                     marginTop: index * STAIRCASE_STEP,
                     minHeight: 220,
-                    background: "#0D0D0D",
-                    border: `1px solid ${isDropTarget ? "#3A3A3A" : "#181818"}`,
+                    background: "var(--background)",
+                    border: `1px solid ${isDropTarget ? "var(--border)" : "var(--border-subtle)"}`,
                     transition: "border-color 0.15s",
                   }}
                   onDragOver={(e) => !isReadOnly && handleDragOver(e, tp.id)}
@@ -311,11 +311,11 @@ export function TimelineEditor({
                     onDragEnd={handleDragEnd}
                     className={`rounded-t-xl transition-all ${
                       isExpanded
-                        ? "border-b border-[#1C1C1C]"
+                        ? "border-b border-border"
                         : ""
                     } ${isDragging ? "opacity-40" : ""}`}
                     style={{
-                      background: isExpanded ? "#141414" : "#111111",
+                      background: isExpanded ? "var(--surface-raised)" : "var(--surface)",
                       cursor: isReadOnly ? "default" : isExpanded ? "default" : "pointer",
                     }}
                     onClick={() => {
@@ -328,17 +328,17 @@ export function TimelineEditor({
                       {!isReadOnly && (
                         <GripVertical
                           size={13}
-                          className="text-zinc-700 shrink-0 cursor-grab active:cursor-grabbing"
+                          className="text-text-tertiary shrink-0 cursor-grab active:cursor-grabbing"
                           onClick={(e) => e.stopPropagation()}
                         />
                       )}
                       <div className="flex gap-1">
                         {tp.channels.map((ch) => {
                           const Icon = CHANNEL_ICONS[ch];
-                          return <Icon key={ch} size={12} className="text-zinc-400" />;
+                          return <Icon key={ch} size={12} className="text-text-secondary" />;
                         })}
                       </div>
-                      <span className="text-[13px] font-medium text-[#FAFAFA] flex-1 truncate">
+                      <span className="text-[13px] font-medium text-text-primary flex-1 truncate">
                         {tp.channels.map((c) => CHANNEL_LABELS[c]).join(" + ")}
                       </span>
                     </div>
@@ -351,7 +351,7 @@ export function TimelineEditor({
                       >
                         {/* Days before expiry */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">
+                          <label className="text-[10px] font-semibold text-text-tertiary uppercase tracking-widest">
                             Days before expiry
                           </label>
                           <input
@@ -362,8 +362,8 @@ export function TimelineEditor({
                             onChange={(e) => handleDaysChange(tp.id, e.target.value)}
                             onBlur={(e) => handleDaysBlur(tp.id, e.target.value)}
                             placeholder="e.g. 45"
-                            className={`w-full bg-[#0C0C0C] border rounded-md px-2.5 py-1.5 text-[13px] text-[#FAFAFA] outline-none focus:border-zinc-500 placeholder-zinc-700 ${
-                              dayDuplicate ? "border-red-700/60" : "border-[#2A2A2A]"
+                            className={`w-full bg-background border rounded-md px-2.5 py-1.5 text-[13px] text-text-primary outline-none focus:border-text-secondary placeholder-text-tertiary ${
+                              dayDuplicate ? "border-red-700/60" : "border-border"
                             }`}
                           />
                           {dayDuplicate && (
@@ -373,7 +373,7 @@ export function TimelineEditor({
 
                         {/* Channel toggles */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">
+                          <label className="text-[10px] font-semibold text-text-tertiary uppercase tracking-widest">
                             Channel
                           </label>
                           <div className="flex gap-1.5 flex-wrap">
@@ -390,8 +390,8 @@ export function TimelineEditor({
                                   onClick={() => toggleChannel(tp.id, ch, tp.channels)}
                                   className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] border transition-colors ${
                                     active
-                                      ? "bg-[#1C1C1C] border-[#3A3A3A] text-[#FAFAFA]"
-                                      : "bg-transparent border-[#1C1C1C] text-zinc-600 hover:border-[#2A2A2A] hover:text-zinc-400"
+                                      ? "bg-surface-raised border-border text-text-primary"
+                                      : "bg-transparent border-border-subtle text-text-tertiary hover:border-border hover:text-text-secondary"
                                   } disabled:opacity-40 disabled:cursor-not-allowed`}
                                 >
                                   <Icon size={11} />
@@ -405,7 +405,7 @@ export function TimelineEditor({
                         {/* Subject line (email only) */}
                         {tp.channels.includes("email") && (
                           <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">
+                            <label className="text-[10px] font-semibold text-text-tertiary uppercase tracking-widest">
                               Subject
                             </label>
                             <input
@@ -415,14 +415,14 @@ export function TimelineEditor({
                               onChange={(e) =>
                                 updateTouchpoint(tp.id, { subject_line: e.target.value || null })
                               }
-                              className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-md px-2.5 py-1.5 text-[13px] text-[#FAFAFA] placeholder-zinc-700 outline-none focus:border-zinc-500"
+                              className="w-full bg-background border border-border rounded-md px-2.5 py-1.5 text-[13px] text-text-primary placeholder-text-tertiary outline-none focus:border-text-secondary"
                             />
                           </div>
                         )}
 
                         {/* Send time */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">
+                          <label className="text-[10px] font-semibold text-text-tertiary uppercase tracking-widest">
                             Send time
                           </label>
                           <input
@@ -431,7 +431,7 @@ export function TimelineEditor({
                             onChange={(e) =>
                               updateTouchpoint(tp.id, { send_time: e.target.value })
                             }
-                            className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-md px-2.5 py-1.5 text-[13px] text-[#FAFAFA] outline-none focus:border-zinc-500"
+                            className="bg-background border border-border rounded-md px-2.5 py-1.5 text-[13px] text-text-primary outline-none focus:border-text-secondary"
                           />
                         </div>
 
@@ -440,7 +440,7 @@ export function TimelineEditor({
                           <button
                             type="button"
                             onClick={() => removeTouchpoint(tp.id)}
-                            className="flex items-center gap-1.5 text-[12px] text-zinc-700 hover:text-zinc-400 transition-colors pt-1"
+                            className="flex items-center gap-1.5 text-[12px] text-text-tertiary hover:text-text-secondary transition-colors pt-1"
                           >
                             <Trash2 size={11} />
                             Remove
@@ -471,12 +471,12 @@ export function TimelineEditor({
                     >
                       <defs>
                         <marker id={`arr-${index}`} markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
-                          <path d="M0,0 L5,2.5 L0,5 Z" fill="#2A2A2A" />
+                          <path d="M0,0 L5,2.5 L0,5 Z" fill="var(--border)" />
                         </marker>
                       </defs>
                       <path
                         d={`M0,4 C${COLUMN_GAP * 0.4},4 ${COLUMN_GAP * 0.6},${STAIRCASE_STEP} ${COLUMN_GAP},${STAIRCASE_STEP}`}
-                        stroke="#2A2A2A"
+                        stroke="var(--border)"
                         strokeWidth="1.5"
                         strokeDasharray="3 3"
                         markerEnd={`url(#arr-${index})`}
@@ -497,13 +497,13 @@ export function TimelineEditor({
 
       {/* Bottom bar */}
       {!isReadOnly && (
-        <div className="flex items-center justify-between pt-4 border-t border-[#1C1C1C]">
+        <div className="flex items-center justify-between pt-4 border-t border-border">
           {onReset ? (
             <button
               type="button"
               onClick={handleReset}
               disabled={resetting}
-              className="text-[13px] text-zinc-600 hover:text-zinc-400 transition-colors disabled:opacity-50"
+              className="text-[13px] text-text-tertiary hover:text-text-secondary transition-colors disabled:opacity-50"
             >
               {resetting ? "Resetting…" : "Reset to default"}
             </button>

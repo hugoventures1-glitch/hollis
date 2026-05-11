@@ -94,11 +94,11 @@ function UploadModal({
     >
       <div
         className="w-full rounded-2xl overflow-hidden flex flex-col"
-        style={{ maxWidth: 440, background: "#0E0E0E", border: "1px solid #1C1C1C" }}
+        style={{ maxWidth: 440, background: "var(--background)", border: "1px solid var(--border)" }}
       >
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #1A1A1A" }}>
-          <span className="text-[13px] font-semibold text-[#FAFAFA]">Add Reference Doc</span>
-          <button onClick={onClose} className="transition-colors hover:text-[#FAFAFA]" style={{ color: "#444" }}>
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--surface-raised)" }}>
+          <span className="text-[13px] font-semibold text-text-primary">Add Reference Doc</span>
+          <button onClick={onClose} className="transition-colors hover:text-text-primary" style={{ color: "var(--text-tertiary)" }}>
             <X size={14} />
           </button>
         </div>
@@ -106,7 +106,7 @@ function UploadModal({
         <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
           {/* File picker */}
           <div>
-            <label className="block text-[12px] font-medium mb-1.5" style={{ color: "#8a8a8a" }}>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
               File <span className="text-red-500">*</span>
             </label>
             <input
@@ -120,16 +120,16 @@ function UploadModal({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="w-full h-9 px-3 rounded-md border text-[13px] text-left flex items-center gap-2 transition-colors"
-              style={{ background: "#111111", border: "1px solid #1C1C1C", color: file ? "#FAFAFA" : "#555" }}
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: file ? "var(--text-primary)" : "var(--text-secondary)" }}
             >
-              <Upload size={13} style={{ color: "#555", flexShrink: 0 }} />
+              <Upload size={13} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
               <span className="truncate">{file ? file.name : "Choose PDF or image…"}</span>
             </button>
           </div>
 
           {/* Label */}
           <div>
-            <label className="block text-[12px] font-medium mb-1.5" style={{ color: "#8a8a8a" }}>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
               Label <span className="text-red-500">*</span>
             </label>
             <input
@@ -137,8 +137,8 @@ function UploadModal({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Current Declarations Page"
-              className="w-full h-9 px-3 rounded-md border text-[13px] text-[#FAFAFA] placeholder-zinc-600 outline-none transition-colors"
-              style={{ background: "#111111", border: "1px solid #1C1C1C" }}
+              className="w-full h-9 px-3 rounded-md border text-[13px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
             />
           </div>
 
@@ -149,7 +149,7 @@ function UploadModal({
               type="button"
               onClick={onClose}
               className="h-9 px-4 rounded-md border text-[13px] transition-colors"
-              style={{ border: "1px solid #1C1C1C", color: "#8a8a8a" }}
+              style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
             >
               Cancel
             </button>
@@ -157,7 +157,7 @@ function UploadModal({
               type="submit"
               disabled={uploading || !file || !label.trim()}
               className="h-9 px-5 rounded-md text-[13px] font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              style={{ background: "#FAFAFA", color: "#0C0C0C" }}
+              style={{ background: "var(--text-primary)", color: "var(--background)" }}
             >
               {uploading ? <><Loader2 size={13} className="animate-spin" /> Uploading…</> : "Upload"}
             </button>
@@ -207,20 +207,20 @@ export function ReferenceDocsPanel({ clientId }: { clientId: string }) {
     <>
       <div
         className="rounded-xl p-5 flex flex-col gap-4"
-        style={{ background: "#111111", border: "1px solid #1C1C1C" }}
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles size={12} style={{ color: "#555" }} />
-            <span className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+            <Sparkles size={12} style={{ color: "var(--text-secondary)" }} />
+            <span className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
               AI Reference Docs
             </span>
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="text-[11px] px-2.5 py-1 rounded-md transition-colors hover:text-[#FAFAFA]"
-            style={{ background: "#1A1A1A", border: "1px solid #252525", color: "#666" }}
+            className="text-[11px] px-2.5 py-1 rounded-md transition-colors hover:text-text-primary"
+            style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
           >
             + Add
           </button>
@@ -229,12 +229,12 @@ export function ReferenceDocsPanel({ clientId }: { clientId: string }) {
         {/* Body */}
         {loading ? (
           <div className="flex items-center justify-center py-4">
-            <Loader2 size={14} className="animate-spin" style={{ color: "#333" }} />
+            <Loader2 size={14} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />
           </div>
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-4 gap-2 text-center">
-            <FileText size={16} style={{ color: "#252525" }} />
-            <p className="text-[12px] leading-snug" style={{ color: "#333" }}>
+            <FileText size={16} style={{ color: "var(--border)" }} />
+            <p className="text-[12px] leading-snug" style={{ color: "var(--text-tertiary)" }}>
               No reference docs yet.
               <br />
               <span style={{ color: "#3A3A3A" }}>Add key docs to improve Hollis replies.</span>
@@ -244,10 +244,10 @@ export function ReferenceDocsPanel({ clientId }: { clientId: string }) {
           <div className="flex flex-col divide-y" style={{ borderColor: "#191919" }}>
             {docs.map((doc) => (
               <div key={doc.id} className="flex items-center gap-3 py-2">
-                <FileText size={12} style={{ color: "#555", flexShrink: 0 }} />
+                <FileText size={12} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] truncate" style={{ color: "#AAAAAA" }}>{doc.label}</div>
-                  <div className="text-[11px] truncate" style={{ color: "#444" }}>
+                  <div className="text-[12px] truncate" style={{ color: "var(--text-secondary)" }}>{doc.label}</div>
+                  <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>
                     {doc.original_filename}
                     {doc.file_size_bytes ? ` · ${fmtSize(doc.file_size_bytes)}` : ""}
                   </div>
@@ -258,12 +258,12 @@ export function ReferenceDocsPanel({ clientId }: { clientId: string }) {
                       AI
                     </span>
                   )}
-                  <span className="text-[10px]" style={{ color: "#333" }}>{timeAgo(doc.created_at)}</span>
+                  <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{timeAgo(doc.created_at)}</span>
                   <button
                     onClick={() => handleRemove(doc.id)}
                     disabled={removing === doc.id}
                     className="transition-colors hover:text-red-400 disabled:opacity-50"
-                    style={{ color: "#333" }}
+                    style={{ color: "var(--text-tertiary)" }}
                     title="Remove"
                   >
                     {removing === doc.id ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}

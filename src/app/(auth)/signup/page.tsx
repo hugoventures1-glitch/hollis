@@ -45,9 +45,9 @@ export default function SignupPage() {
   if (confirmedEmail) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C]">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-raised border border-border">
           <svg
-            className="h-6 w-6 text-[#FAFAFA]"
+            className="h-6 w-6 text-text-primary"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -60,17 +60,17 @@ export default function SignupPage() {
             />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-[#FAFAFA]">Check your email</h2>
-        <p className="mt-2 text-sm text-[#9e9e9e]">
+        <h2 className="text-xl font-semibold text-text-primary">Check your email</h2>
+        <p className="mt-2 text-sm text-text-secondary">
           We sent a confirmation link to{" "}
-          <span className="font-medium text-[#FAFAFA]">{confirmedEmail}</span>.
+          <span className="font-medium text-text-primary">{confirmedEmail}</span>.
           Click it to activate your account and sign in.
         </p>
-        <p className="mt-6 text-sm text-[#6b6b6b]">
+        <p className="mt-6 text-sm text-text-tertiary">
           Already confirmed?{" "}
           <Link
             href="/login"
-            className="font-medium text-[#FAFAFA] hover:text-[#FAFAFA] underline-offset-4 hover:underline"
+            className="font-medium text-text-primary underline-offset-4 hover:underline"
           >
             Sign in
           </Link>
@@ -82,10 +82,10 @@ export default function SignupPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
           Create your account
         </h1>
-        <p className="mt-1 text-sm text-[#9e9e9e]">
+        <p className="mt-1 text-sm text-text-secondary">
           Get started with Hollis today
         </p>
       </div>
@@ -100,7 +100,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             Full name
           </label>
@@ -110,7 +110,7 @@ export default function SignupPage() {
             type="text"
             autoComplete="name"
             placeholder="Jane Smith"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.name && (
             <p className="mt-1.5 text-xs text-red-400">{errors.name.message}</p>
@@ -120,7 +120,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             Email
           </label>
@@ -130,7 +130,7 @@ export default function SignupPage() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.email && (
             <p className="mt-1.5 text-xs text-red-400">
@@ -142,7 +142,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-[#c5c5cb] mb-1.5"
+            className="block text-sm font-medium text-text-secondary mb-1.5"
           >
             Password
           </label>
@@ -152,14 +152,14 @@ export default function SignupPage() {
             type="password"
             autoComplete="new-password"
             placeholder="••••••••"
-            className="block w-full rounded-lg border border-[#1C1C1C] bg-[#111111] px-3.5 py-2.5 text-sm text-[#FAFAFA] placeholder-[#6b6b6b] transition-colors focus:border-[#555555] focus:outline-none focus:ring-1 focus:ring-0"
+            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none focus:ring-1 focus:ring-0"
           />
           {errors.password ? (
             <p className="mt-1.5 text-xs text-red-400">
               {errors.password.message}
             </p>
           ) : (
-            <p className="mt-1.5 text-xs text-[#6b6b6b]">
+            <p className="mt-1.5 text-xs text-text-tertiary">
               At least 8 characters, one uppercase letter, and one number
             </p>
           )}
@@ -168,17 +168,17 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-[#FAFAFA] px-4 py-2.5 text-sm font-semibold text-[#0C0C0C] transition-colors hover:bg-[#E8E8E8] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-text-primary px-4 py-2.5 text-sm font-semibold text-text-inverse transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#9e9e9e]">
+      <p className="mt-6 text-center text-sm text-text-secondary">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-medium text-[#FAFAFA] hover:text-[#FAFAFA] underline-offset-4 hover:underline"
+          className="font-medium text-text-primary underline-offset-4 hover:underline"
         >
           Sign in
         </Link>

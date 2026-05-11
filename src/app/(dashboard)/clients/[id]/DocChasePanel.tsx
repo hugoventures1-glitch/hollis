@@ -104,29 +104,29 @@ function ExpandedModal({
         style={{
           maxWidth: 680,
           maxHeight: "82vh",
-          background: "#0E0E0E",
-          border: "1px solid #1C1C1C",
+          background: "var(--background)",
+          border: "1px solid var(--border)",
           animation: "dcExpand 0.2s ease-out",
         }}
       >
         {/* Header */}
         <div
           className="shrink-0 flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: "1px solid #1A1A1A" }}
+          style={{ borderBottom: "1px solid var(--surface-raised)" }}
         >
           <div className="flex flex-col gap-0.5">
-            <span className="text-[13px] font-semibold text-[#FAFAFA]">Doc Chase</span>
-            <span className="text-[12px]" style={{ color: "#444" }}>{clientName}</span>
+            <span className="text-[13px] font-semibold text-text-primary">Doc Chase</span>
+            <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{clientName}</span>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href={startChaseHref}
               className="text-[12px] px-3 py-1.5 rounded-md transition-colors"
-              style={{ background: "#1A1A1A", border: "1px solid #252525", color: "#AAAAAA" }}
+              style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
             >
               + New chase
             </Link>
-            <button onClick={onClose} className="transition-colors hover:text-[#FAFAFA]" style={{ color: "#444" }}>
+            <button onClick={onClose} className="transition-colors hover:text-text-primary" style={{ color: "var(--text-tertiary)" }}>
               <X size={14} />
             </button>
           </div>
@@ -136,16 +136,16 @@ function ExpandedModal({
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 size={16} className="animate-spin" style={{ color: "#333" }} />
+              <Loader2 size={16} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />
             </div>
           ) : chases.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <FileText size={22} style={{ color: "#252525" }} />
-              <p className="text-[13px]" style={{ color: "#333" }}>No doc chases for this client</p>
+              <FileText size={22} style={{ color: "var(--border)" }} />
+              <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No doc chases for this client</p>
               <Link
                 href={startChaseHref}
                 className="text-[12px] transition-colors"
-                style={{ color: "#444" }}
+                style={{ color: "var(--text-tertiary)" }}
               >
                 + Start a chase →
               </Link>
@@ -156,7 +156,7 @@ function ExpandedModal({
               {active.length > 0 && (
                 <div>
                   <div className="px-6 pt-5 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#333" }}>
+                    <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
                       Active · {active.length}
                     </span>
                   </div>
@@ -170,7 +170,7 @@ function ExpandedModal({
               {resolved.length > 0 && (
                 <div>
                   <div className="px-6 pt-5 pb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#333" }}>
+                    <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
                       Resolved · {resolved.length}
                     </span>
                   </div>
@@ -187,15 +187,15 @@ function ExpandedModal({
         {/* Footer */}
         <div
           className="shrink-0 flex items-center justify-between px-6 py-3"
-          style={{ borderTop: "1px solid #1A1A1A" }}
+          style={{ borderTop: "1px solid var(--surface-raised)" }}
         >
-          <span className="text-[12px]" style={{ color: "#333" }}>
+          <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
             {chases.length} {chases.length === 1 ? "request" : "requests"} total
           </span>
           <Link
             href="/documents"
             className="text-[12px] transition-colors"
-            style={{ color: "#444" }}
+            style={{ color: "var(--text-tertiary)" }}
           >
             View all documents →
           </Link>
@@ -230,8 +230,8 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
         onClick={openModal}
         className="w-full text-left rounded-xl p-6 flex flex-col gap-5 transition-colors group"
         style={{
-          background: "#111111",
-          border: "1px solid #1C1C1C",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           cursor: "pointer",
         }}
       >
@@ -239,7 +239,7 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
         <div className="flex items-center justify-between">
           <div
             className="text-[12px] font-semibold uppercase tracking-widest transition-colors"
-            style={{ color: "#444" }}
+            style={{ color: "var(--text-tertiary)" }}
           >
             Doc Chase
           </div>
@@ -261,12 +261,12 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
                   fontSize: 48,
                   fontWeight: 700,
                   lineHeight: 1,
-                  color: active.length > 0 ? "#FAFAFA" : "#333",
+                  color: active.length > 0 ? "var(--text-primary)" : "var(--text-tertiary)",
                 }}
               >
                 {active.length}
               </span>
-              <span className="text-[13px] pb-1.5" style={{ color: "#444" }}>
+              <span className="text-[13px] pb-1.5" style={{ color: "var(--text-tertiary)" }}>
                 {active.length === 1 ? "active" : "active"}
               </span>
             </div>
@@ -278,7 +278,7 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
                   <EscalationIcon level={chase.escalation_level} size={11} />
                   <span
                     className="text-[12px] truncate flex-1"
-                    style={{ color: "#AAAAAA" }}
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     {chase.document_type}
                   </span>
@@ -288,7 +288,7 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
                 </div>
               ))}
               {active.length > 3 && (
-                <div className="text-[11px]" style={{ color: "#333" }}>
+                <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                   +{active.length - 3} more
                 </div>
               )}
@@ -296,12 +296,12 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
 
             {/* Footer */}
             <div className="flex items-center justify-between mt-auto">
-              <span className="text-[13px]" style={{ color: "#333" }}>
+              <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>
                 {chases.length} {chases.length === 1 ? "request" : "requests"} total
               </span>
               <span
-                className="text-[13px] transition-colors group-hover:text-[#FAFAFA]"
-                style={{ color: "#555" }}
+                className="text-[13px] transition-colors group-hover:text-text-primary"
+                style={{ color: "var(--text-secondary)" }}
               >
                 Expand →
               </span>
@@ -310,12 +310,12 @@ export function DocChasePanel({ clientName, clientEmail, chases, startChaseHref 
         ) : (
           /* Empty state */
           <div className="flex flex-col items-center justify-center flex-1 py-4 gap-2">
-            <FileText size={18} style={{ color: "#252525" }} />
-            <span className="text-[13px]" style={{ color: "#333" }}>No active chases</span>
+            <FileText size={18} style={{ color: "var(--border)" }} />
+            <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No active chases</span>
             <Link
               href={startChaseHref}
               onClick={(e) => e.stopPropagation()}
-              className="text-[12px] transition-colors text-[#444] hover:text-[#FAFAFA] mt-1"
+              className="text-[12px] transition-colors text-text-tertiary hover:text-text-primary mt-1"
             >
               + Start a chase
             </Link>

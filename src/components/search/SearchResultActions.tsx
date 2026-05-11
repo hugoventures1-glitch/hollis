@@ -104,9 +104,17 @@ export function SearchResultActions({ result, onActionComplete }: SearchResultAc
         headers: { "Content-Type": "application/json" },
         body: action.body ? JSON.stringify(action.body) : undefined,
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         toast(data?.error ?? "Action failed", "error");
+        return;
+      }
+      if (data.blocked) {
+        toast(`Blocked — ${data.reason ?? "Tier 3 escalation"}`, "error");
+        return;
+      }
+      if (data.flagged) {
+        toast(`Review required — ${data.reason ?? "Broker approval needed"}`, "info");
         return;
       }
       toast("Done");
@@ -159,14 +167,14 @@ export function SearchResultActions({ result, onActionComplete }: SearchResultAc
         type="button"
         onClick={handleAction}
         disabled={loading}
-        className="text-[12px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-[#0C0C0C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-[12px] px-2.5 py-1 rounded-md bg-hover-overlay hover:bg-surface-raised text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "…" : action.label}
       </button>
       <Link
         href={rowHref}
         onClick={(e) => e.stopPropagation()}
-        className="text-[11px] text-zinc-500 hover:text-zinc-400 transition-colors"
+        className="text-[11px] text-text-tertiary hover:text-text-secondary transition-colors"
       >
         Open
       </Link>

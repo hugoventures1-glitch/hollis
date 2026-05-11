@@ -46,8 +46,8 @@ function isStageComplete(currentStage: string | null, targetStage: string): bool
 function InfoBlock({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div>
-      <div className="text-[12px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">{label}</div>
-      <div className="text-[15px] text-[#FAFAFA]">{value ?? "—"}</div>
+      <div className="text-[12px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-[15px] text-text-primary">{value ?? "—"}</div>
     </div>
   );
 }
@@ -60,9 +60,9 @@ function daysUntil(dateStr: string): number {
 }
 
 function urgencyColor(days: number): string {
-  if (days <= 30) return "#FF4444";
-  if (days <= 60) return "#AAAAAA";
-  return "#FAFAFA";
+  if (days <= 30) return "var(--danger)";
+  if (days <= 60) return "var(--text-secondary)";
+  return "var(--text-primary)";
 }
 
 function urgencyGlow(days: number): string {
@@ -74,8 +74,8 @@ function urgencyGlow(days: number): string {
 const HEALTH_COLOR: Record<string, string> = {
   healthy:  "#00D97E",
   at_risk:  "#F59E0B",
-  critical: "#FF4444",
-  stalled:  "#3A3A3A",
+  critical: "var(--danger)",
+  stalled:  "var(--border)",
 };
 
 const STAGE_LABEL: Record<string, string> = {
@@ -262,10 +262,10 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
   }));
 
   return (
-    <div className="h-full bg-[#0C0C0C] text-[#FAFAFA] flex flex-col overflow-y-auto">
+    <div className="h-full bg-background text-text-primary flex flex-col overflow-y-auto">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 h-[56px] border-b border-[#1C1C1C] shrink-0">
+      <div className="flex items-center gap-3 px-6 h-[56px] border-b border-border shrink-0">
         <Breadcrumb crumbs={crumbs} current={client.name} />
       </div>
 
@@ -275,17 +275,17 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
         <div className="flex gap-4 items-stretch">
 
           {/* Identity card */}
-          <div className="flex-1 min-w-0 rounded-xl bg-[#111111] border border-[#1C1C1C] p-6 flex flex-col gap-5">
+          <div className="flex-1 min-w-0 rounded-xl bg-surface border border-border p-6 flex flex-col gap-5">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
-                <span className="text-[20px] font-bold text-[#FAFAFA]">
+              <div className="w-12 h-12 rounded-full bg-hover-overlay border border-border flex items-center justify-center shrink-0">
+                <span className="text-[20px] font-bold text-text-primary">
                   {client.name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-[20px] font-bold text-[#FAFAFA] leading-tight">{client.name}</h1>
+                <h1 className="text-[20px] font-bold text-text-primary leading-tight">{client.name}</h1>
                 {activePolicies.length > 0 && (
-                  <p className="text-[13px] text-[#555] mt-0.5">
+                  <p className="text-[13px] text-text-secondary mt-0.5">
                     {activePolicies.length} active {activePolicies.length === 1 ? "policy" : "policies"}
                   </p>
                 )}
@@ -306,15 +306,15 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
 
             {client.notes && (
               <div>
-                <div className="text-[12px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-2">Notes</div>
-                <p className="text-[14px] text-[#8a8a8a] leading-relaxed">{client.notes}</p>
+                <div className="text-[12px] font-semibold text-text-tertiary uppercase tracking-wider mb-2">Notes</div>
+                <p className="text-[14px] text-text-secondary leading-relaxed">{client.notes}</p>
               </div>
             )}
           </div>
 
           {/* Renewal Status + Checklist */}
-          <div className="flex-1 min-w-0 rounded-xl bg-[#111111] border border-[#1C1C1C] p-6 flex flex-col gap-5">
-            <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+          <div className="flex-1 min-w-0 rounded-xl bg-surface border border-border p-6 flex flex-col gap-5">
+            <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
               Renewal Status
             </div>
 
@@ -332,7 +332,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                     <span style={{ fontFamily: "var(--font-display)", fontSize: 48, fontWeight: 700, lineHeight: 1, color: dColor, textShadow: dGlow }}>
                       {Math.abs(days)}
                     </span>
-                    <span className="text-[13px] pb-1.5" style={{ color: "#444" }}>
+                    <span className="text-[13px] pb-1.5" style={{ color: "var(--text-tertiary)" }}>
                       {days < 0 ? "days past due" : "days left"}
                     </span>
                   </div>
@@ -341,7 +341,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                   <div className="flex items-center gap-2">
                     <span
                       className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[12px] font-medium"
-                      style={{ background: "#1A1A1A", border: "1px solid #252525", color: "#888" }}
+                      style={{ background: "var(--surface-raised)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
                     >
                       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: hColor }} />
                       {stage} · {nearestPolicy.policy_name}
@@ -349,8 +349,8 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                   </div>
 
                   {/* Checklist */}
-                  <div className="border-t border-[#1A1A1A] pt-4 flex flex-col gap-1">
-                    <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#333" }}>
+                  <div className="border-t border-surface-raised pt-4 flex flex-col gap-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-tertiary)" }}>
                       Checklist
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -363,23 +363,23 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                             <div
                               className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center"
                               style={{
-                                background: done ? (isFinal ? "#00D97E22" : "#FAFAFA11") : "transparent",
+                                background: done ? (isFinal ? "#00D97E22" : "var(--hover-overlay)") : "transparent",
                                 border: done
-                                  ? `1px solid ${isFinal ? "#00D97E" : "#444"}`
+                                  ? `1px solid ${isFinal ? "#00D97E" : "var(--text-tertiary)"}`
                                   : current
                                     ? "1px solid rgba(255,255,255,0.22)"
-                                    : "1px solid #252525",
+                                    : "1px solid var(--border)",
                               }}
                             >
                               {done && (
-                                <div className="w-1.5 h-1.5 rounded-full" style={{ background: isFinal ? "#00D97E" : "#555" }} />
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ background: isFinal ? "#00D97E" : "var(--text-secondary)" }} />
                               )}
                             </div>
                             <span
                               className="text-[12px] leading-tight"
                               style={{
                                 color: done
-                                  ? isFinal ? "#00D97E" : "#888"
+                                  ? isFinal ? "#00D97E" : "var(--text-secondary)"
                                   : current ? "#DDDDDD" : "#383838",
                               }}
                             >
@@ -390,15 +390,15 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
                       })}
                     </div>
                     {isLapsed && (
-                      <div className="mt-1 text-[12px]" style={{ color: "#FF4444" }}>Lapsed</div>
+                      <div className="mt-1 text-[12px]" style={{ color: "var(--danger)" }}>Lapsed</div>
                     )}
                   </div>
                 </>
               );
             })() : (
               <div className="flex flex-col items-center justify-center flex-1 py-8 gap-2">
-                <RefreshCcw size={18} style={{ color: "#252525" }} />
-                <span className="text-[13px]" style={{ color: "#333" }}>No active renewals</span>
+                <RefreshCcw size={18} style={{ color: "var(--border)" }} />
+                <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No active renewals</span>
               </div>
             )}
           </div>
@@ -443,22 +443,22 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
             <ReferenceDocsPanel clientId={client.id} />
 
             {/* Open Items */}
-            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4">
-              <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+            <div className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-4">
+              <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
                 Open Items
               </div>
               {openItems.length === 0 ? (
                 <div className="flex items-center justify-center py-2">
-                  <span className="text-[13px]" style={{ color: "#333" }}>No pending items.</span>
+                  <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No pending items.</span>
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-[#191919]">
                   {openItems.map((item) => (
                     <div key={item.id} className="flex items-center gap-3 py-2">
-                      <span className="text-[12px] flex-1 truncate" style={{ color: "#AAAAAA" }}>
+                      <span className="text-[12px] flex-1 truncate" style={{ color: "var(--text-secondary)" }}>
                         {item.classified_intent.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                       </span>
-                      <span className="text-[11px] shrink-0" style={{ color: "#333" }}>
+                      <span className="text-[11px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
                         {fmtAuditTs(item.created_at)}
                       </span>
                     </div>
@@ -468,33 +468,33 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
               <Link
                 href="/inbox"
                 className="text-[12px] transition-colors"
-                style={{ color: "#444" }}
+                style={{ color: "var(--text-tertiary)" }}
               >
                 View inbox →
               </Link>
             </div>
 
             {/* Audit Log */}
-            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 flex flex-col gap-4">
-              <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "#444" }}>
+            <div className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-4">
+              <div className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-tertiary)" }}>
                 Audit Log
               </div>
 
               {auditRows.length === 0 ? (
                 <div className="flex items-center justify-center py-4">
-                  <span className="text-[13px]" style={{ color: "#333" }}>No actions recorded yet.</span>
+                  <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>No actions recorded yet.</span>
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-[#191919]">
                   {auditRows.map((row) => (
                     <div key={row.id} className="flex items-center gap-3 py-2">
-                      <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "#444" }}>
+                      <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "var(--text-tertiary)" }}>
                         {fmtAuditTs(row.created_at)}
                       </span>
-                      <span className="text-[12px] flex-1 truncate" style={{ color: "#AAAAAA" }}>
+                      <span className="text-[12px] flex-1 truncate" style={{ color: "var(--text-secondary)" }}>
                         {row.trigger_reason}
                       </span>
-                      <span className="text-[11px] shrink-0" style={{ color: "#333" }}>
+                      <span className="text-[11px] shrink-0" style={{ color: "var(--text-tertiary)" }}>
                         {actionActor(row.action_type, row.tier)}
                       </span>
                     </div>
@@ -505,7 +505,7 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
               <Link
                 href={`/activity?trail=${buildTrailParam(crumbs, client.name, selfHref)}`}
                 className="text-[12px] transition-colors"
-                style={{ color: "#444" }}
+                style={{ color: "var(--text-tertiary)" }}
               >
                 View full log →
               </Link>

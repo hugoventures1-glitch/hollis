@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 function VerdictBadge({ verdict }: { verdict: SummaryVerdict | null }) {
   if (!verdict) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-hover-overlay text-text-secondary border border-border-subtle">
         Pending
       </span>
     );
@@ -33,7 +33,7 @@ function VerdictBadge({ verdict }: { verdict: SummaryVerdict | null }) {
 
 function StatusBadge({ status }: { status: PolicyCheckStatus }) {
   const styles: Record<PolicyCheckStatus, string> = {
-    pending:    "bg-[#ffffff08] text-[#8a8a8a] border border-[#ffffff10]",
+    pending:    "bg-hover-overlay text-text-secondary border border-border-subtle",
     processing: "bg-blue-900/20 text-blue-400 border border-blue-800/30",
     complete:   "",  // shown as verdict badge instead
     failed:     "bg-red-900/30 text-red-400 border border-red-700/30",
@@ -72,14 +72,14 @@ export default async function PoliciesPage() {
   ).length;
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C]">
+    <div className="flex flex-col h-full bg-background">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-10 h-[56px] border-b border-[#1C1C1C] shrink-0">
-        <span className="text-[13px]" style={{ color: "#FAFAFA" }}>Policy Audit</span>
+      <div className="flex items-center justify-between px-10 h-[56px] border-b border-border shrink-0">
+        <span className="text-[13px]" style={{ color: "var(--text-primary)" }}>Policy Audit</span>
         <Link
           href="/policies/new"
-          className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+          className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity"
         >
           <Plus size={13} />
           New Check
@@ -91,21 +91,21 @@ export default async function PoliciesPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-              <div className="text-[28px] font-bold text-[#FAFAFA] tabular-nums">{totalChecks}</div>
-              <div className="text-[12px] text-[#6b6b6b] mt-1">Total Checks</div>
+            <div className="rounded-xl bg-surface border border-border p-5">
+              <div className="text-[28px] font-bold text-text-primary tabular-nums">{totalChecks}</div>
+              <div className="text-[12px] text-text-tertiary mt-1">Total Checks</div>
             </div>
-            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-              <div className={`text-[28px] font-bold tabular-nums ${criticalChecks > 0 ? "text-red-400" : "text-[#FAFAFA]"}`}>
+            <div className="rounded-xl bg-surface border border-border p-5">
+              <div className={`text-[28px] font-bold tabular-nums ${criticalChecks > 0 ? "text-red-400" : "text-text-primary"}`}>
                 {criticalChecks}
               </div>
-              <div className="text-[12px] text-[#6b6b6b] mt-1">With Critical Issues</div>
+              <div className="text-[12px] text-text-tertiary mt-1">With Critical Issues</div>
             </div>
-            <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5">
-              <div className={`text-[28px] font-bold tabular-nums ${pendingChecks > 0 ? "text-[#9e9e9e]" : "text-[#FAFAFA]"}`}>
+            <div className="rounded-xl bg-surface border border-border p-5">
+              <div className={`text-[28px] font-bold tabular-nums ${pendingChecks > 0 ? "text-text-secondary" : "text-text-primary"}`}>
                 {pendingChecks}
               </div>
-              <div className="text-[12px] text-[#6b6b6b] mt-1">In Progress</div>
+              <div className="text-[12px] text-text-tertiary mt-1">In Progress</div>
             </div>
           </div>
 
@@ -114,16 +114,16 @@ export default async function PoliciesPage() {
 
             /* Empty state */
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-14 h-14 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center mb-4">
-                <ShieldCheck size={24} className="text-[#FAFAFA]" />
+              <div className="w-14 h-14 rounded-full bg-hover-overlay border border-border flex items-center justify-center mb-4">
+                <ShieldCheck size={24} className="text-text-primary" />
               </div>
-              <div className="text-[16px] font-semibold text-[#FAFAFA] mb-1">No policy checks yet</div>
-              <div className="text-[13px] text-[#8a8a8a] mb-6 max-w-xs">
+              <div className="text-[16px] font-semibold text-text-primary mb-1">No policy checks yet</div>
+              <div className="text-[13px] text-text-secondary mb-6 max-w-xs">
                 Upload a policy PDF to check for coverage gaps, E&amp;O risks, and discrepancies.
               </div>
               <Link
                 href="/policies/new"
-                className="h-9 px-5 flex items-center gap-2 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+                className="h-9 px-5 flex items-center gap-2 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity"
               >
                 <Plus size={13} />
                 Run your first check
@@ -132,14 +132,14 @@ export default async function PoliciesPage() {
 
           ) : (
 
-            <div className="rounded-xl border border-[#1C1C1C] overflow-hidden">
+            <div className="rounded-xl border border-border overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-12 gap-4 px-5 py-2.5 bg-[#0C0C0C] border-b border-[#1C1C1C]">
-                <div className="col-span-3 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Client</div>
-                <div className="col-span-2 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Verdict</div>
-                <div className="col-span-3 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Flags (C / W / A)</div>
-                <div className="col-span-2 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Docs</div>
-                <div className="col-span-2 text-[11px] font-medium text-[#6b6b6b] uppercase tracking-wider">Checked</div>
+              <div className="grid grid-cols-12 gap-4 px-5 py-2.5 bg-background border-b border-border">
+                <div className="col-span-3 text-[11px] font-medium text-text-tertiary uppercase tracking-wider">Client</div>
+                <div className="col-span-2 text-[11px] font-medium text-text-tertiary uppercase tracking-wider">Verdict</div>
+                <div className="col-span-3 text-[11px] font-medium text-text-tertiary uppercase tracking-wider">Flags (C / W / A)</div>
+                <div className="col-span-2 text-[11px] font-medium text-text-tertiary uppercase tracking-wider">Docs</div>
+                <div className="col-span-2 text-[11px] font-medium text-text-tertiary uppercase tracking-wider">Checked</div>
               </div>
 
               {/* Table rows */}
@@ -155,15 +155,15 @@ export default async function PoliciesPage() {
                   <Link
                     key={check.id}
                     href={`/policies/${check.id}`}
-                    className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-[#1C1C1C]/60 last:border-b-0 hover:bg-white/[0.02] transition-colors group"
+                    className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-border/60 last:border-b-0 hover:bg-white/[0.02] transition-colors group"
                   >
                     {/* Client */}
                     <div className="col-span-3 flex flex-col justify-center">
-                      <div className="text-[13px] font-medium text-[#FAFAFA] group-hover:text-[#FAFAFA] transition-colors truncate">
+                      <div className="text-[13px] font-medium text-text-primary group-hover:text-text-primary transition-colors truncate">
                         {clientName}
                       </div>
                       {check.client_industry && (
-                        <div className="text-[11px] text-[#6b6b6b] mt-0.5 truncate">{check.client_industry}</div>
+                        <div className="text-[11px] text-text-tertiary mt-0.5 truncate">{check.client_industry}</div>
                       )}
                     </div>
 
@@ -179,39 +179,39 @@ export default async function PoliciesPage() {
                     <div className="col-span-3 flex items-center gap-2">
                       {check.overall_status === "complete" ? (
                         <>
-                          <span className={`text-[12px] font-medium tabular-nums ${critical > 0 ? SEVERITY_BADGE_STYLES.critical.split(" ").slice(1).join(" ") : "text-[#6b6b6b]"}`}>
+                          <span className={`text-[12px] font-medium tabular-nums ${critical > 0 ? SEVERITY_BADGE_STYLES.critical.split(" ").slice(1).join(" ") : "text-text-tertiary"}`}>
                             {critical}C
                           </span>
-                          <span className="text-[#1C1C1C]">/</span>
-                          <span className={`text-[12px] font-medium tabular-nums ${warning > 0 ? SEVERITY_BADGE_STYLES.warning.split(" ").slice(1).join(" ") : "text-[#6b6b6b]"}`}>
+                          <span className="text-border">/</span>
+                          <span className={`text-[12px] font-medium tabular-nums ${warning > 0 ? SEVERITY_BADGE_STYLES.warning.split(" ").slice(1).join(" ") : "text-text-tertiary"}`}>
                             {warning}W
                           </span>
-                          <span className="text-[#1C1C1C]">/</span>
-                          <span className={`text-[12px] font-medium tabular-nums ${advisory > 0 ? "text-blue-400" : "text-[#6b6b6b]"}`}>
+                          <span className="text-border">/</span>
+                          <span className={`text-[12px] font-medium tabular-nums ${advisory > 0 ? "text-blue-400" : "text-text-tertiary"}`}>
                             {advisory}A
                           </span>
                           {unannotated > 0 && (
-                            <span className="ml-2 flex items-center gap-1 text-[11px] text-[#9e9e9e]">
+                            <span className="ml-2 flex items-center gap-1 text-[11px] text-text-secondary">
                               <Clock size={10} />
                               {unannotated} pending
                             </span>
                           )}
                         </>
                       ) : (
-                        <span className="text-[12px] text-[#6b6b6b]">—</span>
+                        <span className="text-[12px] text-text-tertiary">—</span>
                       )}
                     </div>
 
                     {/* Document count */}
                     <div className="col-span-2 flex items-center">
-                      <span className="text-[13px] text-[#8a8a8a] tabular-nums">
+                      <span className="text-[13px] text-text-secondary tabular-nums">
                         {check.document_count} {check.document_count === 1 ? "doc" : "docs"}
                       </span>
                     </div>
 
                     {/* Date */}
                     <div className="col-span-2 flex items-center">
-                      <span className="text-[12px] text-[#6b6b6b] tabular-nums">
+                      <span className="text-[12px] text-text-tertiary tabular-nums">
                         {new Date(check.created_at).toLocaleDateString("en-AU", {
                           month: "short", day: "numeric", year: "numeric",
                         })}
@@ -226,7 +226,7 @@ export default async function PoliciesPage() {
 
           {/* E&O notice */}
           {rows.length > 0 && (
-            <div className="flex items-center gap-2 mt-6 text-[11px] text-[#6b6b6b]">
+            <div className="flex items-center gap-2 mt-6 text-[11px] text-text-tertiary">
               <AlertTriangle size={11} />
               All flag annotations are logged with timestamp for E&amp;O documentation.
             </div>

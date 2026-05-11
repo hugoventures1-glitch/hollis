@@ -46,11 +46,11 @@ const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
 };
 
 const STATUS_ICON_MAP: Record<TouchpointStatus, React.ReactNode> = {
-  pending:    <Clock size={14} className="text-[#8a8a8a]" />,
-  processing: <Clock size={14} className="text-[#9e9e9e]" />,
-  sent:       <CheckCircle2 size={14} className="text-[#FAFAFA]" />,
-  failed:     <XCircle size={14} className="text-[#FF4444]" />,
-  skipped:    <SkipForward size={14} className="text-[#6b6b6b]" />,
+  pending:    <Clock size={14} className="text-text-secondary" />,
+  processing: <Clock size={14} className="text-text-secondary" />,
+  sent:       <CheckCircle2 size={14} className="text-text-primary" />,
+  failed:     <XCircle size={14} className="text-danger" />,
+  skipped:    <SkipForward size={14} className="text-text-tertiary" />,
 };
 
 const STATUS_LABEL_MAP: Record<TouchpointStatus, string> = {
@@ -133,8 +133,8 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
           <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-[22px] font-bold leading-tight" style={{ color: "#FAFAFA" }}>{p.policy_name}</h1>
-                <p className="text-[14px] mt-1" style={{ color: "#555555" }}>{p.carrier}</p>
+                <h1 className="text-[22px] font-bold leading-tight" style={{ color: "var(--text-primary)" }}>{p.policy_name}</h1>
+                <p className="text-[14px] mt-1" style={{ color: "var(--text-secondary)" }}>{p.carrier}</p>
               </div>
               <DaysBadge days={days} className="text-[13px] px-3 py-1" />
             </div>
@@ -211,12 +211,12 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
 
           {/* Campaign timeline */}
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#555555" }}>
+            <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>
               Campaign Timeline
             </div>
             <div className="space-y-3">
               {touchpoints.length === 0 && (
-                <div className="text-[13px] py-4 text-center" style={{ color: "#333333" }}>
+                <div className="text-[13px] py-4 text-center" style={{ color: "var(--text-tertiary)" }}>
                   No touchpoints yet.
                 </div>
               )}
@@ -226,7 +226,7 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                 const tpBorder = tp.status === "failed" ? "rgba(255,68,68,0.2)" : "var(--border)";
                 const tpOpacity = tp.status === "skipped" ? 0.5 : 1;
                 const iconBg = tp.status === "sent" ? "rgba(250,250,250,0.08)" : tp.status === "failed" ? "rgba(255,68,68,0.08)" : "rgba(255,255,255,0.04)";
-                const iconColor = tp.status === "sent" ? "#FAFAFA" : tp.status === "failed" ? "#FF4444" : "#555555";
+                const iconColor = tp.status === "sent" ? "var(--text-primary)" : tp.status === "failed" ? "var(--danger)" : "var(--text-secondary)";
                 return (
                   <div
                     key={tp.id}
@@ -239,16 +239,16 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                           <Icon size={15} style={{ color: iconColor }} />
                         </div>
                         <div>
-                          <div className="text-[14px] font-medium" style={{ color: "#FAFAFA" }}>
+                          <div className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>
                             {TOUCHPOINT_LABELS[tp.type]}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <div className="flex items-center gap-1 text-[12px]" style={{ color: "#555555" }}>
+                            <div className="flex items-center gap-1 text-[12px]" style={{ color: "var(--text-secondary)" }}>
                               {STATUS_ICON_MAP[tp.status]}
                               <span>{STATUS_LABEL_MAP[tp.status]}</span>
                             </div>
-                            <span style={{ color: "#333333" }}>·</span>
-                            <span className="text-[12px]" style={{ color: "#333333" }}>
+                            <span style={{ color: "var(--text-tertiary)" }}>·</span>
+                            <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
                               Scheduled{" "}
                               {new Date(tp.scheduled_at + "T00:00:00").toLocaleDateString("en-AU", {
                                 month: "short", day: "numeric", year: "numeric",
@@ -256,8 +256,8 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                             </span>
                             {tp.sent_at && (
                               <>
-                                <span style={{ color: "#333333" }}>·</span>
-                                <span className="text-[12px]" style={{ color: "#333333" }}>
+                                <span style={{ color: "var(--text-tertiary)" }}>·</span>
+                                <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
                                   Sent{" "}
                                   {new Date(tp.sent_at).toLocaleDateString("en-AU", {
                                     month: "short", day: "numeric",
@@ -273,11 +273,11 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                     {tp.status === "sent" && tp.content && (
                       <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
                         {tp.subject && (
-                          <div className="text-[12px] font-medium mb-1" style={{ color: "#555555" }}>
-                            Subject: <span style={{ color: "#FAFAFA" }}>{tp.subject}</span>
+                          <div className="text-[12px] font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+                            Subject: <span style={{ color: "var(--text-primary)" }}>{tp.subject}</span>
                           </div>
                         )}
-                        <pre className="text-[12px] whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto" style={{ color: "#555555" }}>
+                        <pre className="text-[12px] whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto" style={{ color: "var(--text-secondary)" }}>
                           {tp.content}
                         </pre>
                       </div>
@@ -291,41 +291,41 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
           {/* Send logs */}
           {sendLogs.length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#555555" }}>
+              <div className="text-[11px] font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-secondary)" }}>
                 Send Log
               </div>
               <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
                 <table className="w-full">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--background)" }}>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Channel</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Recipient</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Status</th>
-                      <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>Sent At</th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Channel</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Recipient</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Status</th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Sent At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sendLogs.map((log: SendLog) => (
                       <tr key={log.id} style={{ borderBottom: "1px solid var(--border)" }} className="last:border-b-0">
                         <td className="px-5 py-3">
-                          <span className="inline-flex items-center gap-1.5 text-[12px] capitalize" style={{ color: "#555555" }}>
+                          <span className="inline-flex items-center gap-1.5 text-[12px] capitalize" style={{ color: "var(--text-secondary)" }}>
                             {log.channel === "email"
                               ? <Mail size={12} />
                               : <MessageSquare size={12} />}
                             {log.channel}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[12px]" style={{ color: "#FAFAFA" }}>{log.recipient}</td>
+                        <td className="px-4 py-3 text-[12px]" style={{ color: "var(--text-primary)" }}>{log.recipient}</td>
                         <td className="px-4 py-3">
                           <span className="text-[12px]" style={{
-                            color: log.status === "sent" ? "#FAFAFA" :
-                                   log.status === "bounced" ? "#888888" :
-                                   "#FF4444"
+                            color: log.status === "sent" ? "var(--text-primary)" :
+                                   log.status === "bounced" ? "var(--text-secondary)" :
+                                   "var(--danger)"
                           }}>
                             {log.status}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-[12px] tabular-nums" style={{ color: "#333333" }}>
+                        <td className="px-5 py-3 text-[12px] tabular-nums" style={{ color: "var(--text-tertiary)" }}>
                           {new Date(log.sent_at).toLocaleString("en-AU", {
                             month: "short", day: "numeric",
                             hour: "numeric", minute: "2-digit",
@@ -359,10 +359,10 @@ function InfoBlock({
 }) {
   return (
     <div>
-      <div className="text-[11px] font-medium uppercase tracking-wider mb-0.5" style={{ color: "#333333" }}>
+      <div className="text-[11px] font-medium uppercase tracking-wider mb-0.5" style={{ color: "var(--text-tertiary)" }}>
         {label}
       </div>
-      <div className={`text-[14px] ${capitalize ? "capitalize" : ""}`} style={{ color: "#FAFAFA" }}>
+      <div className={`text-[14px] ${capitalize ? "capitalize" : ""}`} style={{ color: "var(--text-primary)" }}>
         {value}
       </div>
     </div>

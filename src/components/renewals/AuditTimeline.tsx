@@ -45,25 +45,25 @@ const EVENT_ICONS: Record<AuditEventType, React.ElementType> = {
 
 const EVENT_COLORS: Record<AuditEventType, string> = {
   // Standard events — neutral
-  email_sent:               "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  sms_sent:                 "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  insurer_terms_logged:     "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  submission_sent:          "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  recommendation_sent:      "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  final_notice_sent:        "text-[#9e9e9e] bg-[#FAFAFA]/[0.04]",
-  doc_requested:            "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  note_added:               "text-[#6b6b6b] bg-[#FAFAFA]/[0.02]",
-  signal_received:          "text-[#6b6b6b] bg-[#FAFAFA]/[0.02]",
-  tier_2_drafted:           "text-[#9e9e9e] bg-[#FAFAFA]/[0.04]",
-  flag_set:                 "text-[#8a8a8a] bg-[#FAFAFA]/[0.04]",
-  // Positive events — brighter white
-  client_confirmed:         "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
-  doc_received:             "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
-  tier_1_action:            "text-[#FAFAFA] bg-[#FAFAFA]/[0.06]",
+  email_sent:               "text-text-secondary bg-hover-overlay",
+  sms_sent:                 "text-text-secondary bg-hover-overlay",
+  insurer_terms_logged:     "text-text-secondary bg-hover-overlay",
+  submission_sent:          "text-text-secondary bg-hover-overlay",
+  recommendation_sent:      "text-text-secondary bg-hover-overlay",
+  final_notice_sent:        "text-warning-text bg-hover-overlay",
+  doc_requested:            "text-text-secondary bg-hover-overlay",
+  note_added:               "text-text-tertiary bg-hover-overlay",
+  signal_received:          "text-text-tertiary bg-hover-overlay",
+  tier_2_drafted:           "text-warning-text bg-hover-overlay",
+  flag_set:                 "text-text-secondary bg-hover-overlay",
+  // Positive events — primary
+  client_confirmed:         "text-text-primary bg-hover-overlay",
+  doc_received:             "text-text-primary bg-hover-overlay",
+  tier_1_action:            "text-text-primary bg-hover-overlay",
   // Danger events — red
-  lapse_recorded:           "text-[#FF4444] bg-[#FF4444]/[0.06]",
-  tier_3_escalated:         "text-[#FF4444] bg-[#FF4444]/[0.06]",
-  sequence_halted:          "text-[#FF4444] bg-[#FF4444]/[0.06]",
+  lapse_recorded:           "text-danger bg-danger/[0.06]",
+  tier_3_escalated:         "text-danger bg-danger/[0.06]",
+  sequence_halted:          "text-danger bg-danger/[0.06]",
 };
 
 const EVENT_LABELS: Record<AuditEventType, string> = {
@@ -130,9 +130,9 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
         <button
           onClick={handlePrint}
           className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg transition-colors print:hidden"
-          style={{ background: "rgba(250,250,250,0.04)", color: "var(--text-secondary)" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(250,250,250,0.07)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(250,250,250,0.04)"; }}
+          style={{ background: "var(--hover-overlay)", color: "var(--text-secondary)" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--surface-raised)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--hover-overlay)"; }}
         >
           <Printer size={12} />
           Download Report
@@ -170,7 +170,7 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
                         </span>
                       )}
                       {entry.actor_type === "agent" && (
-                        <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded" style={{ color: "var(--text-secondary)", background: "rgba(250,250,250,0.04)" }}>
+                        <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded" style={{ color: "var(--text-secondary)", background: "var(--hover-overlay)" }}>
                           agent
                         </span>
                       )}

@@ -96,13 +96,13 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0C0C0C] text-[#FAFAFA]">
+    <div className="flex flex-col h-full bg-background text-text-primary">
       {/* Header */}
-      <header className="h-[56px] shrink-0 border-b border-[#1C1C1C] flex items-center justify-between px-6">
+      <header className="h-[56px] shrink-0 border-b border-border flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <span className="text-[#FAFAFA] text-[15px] font-semibold">Agent Review</span>
+          <span className="text-text-primary text-[15px] font-semibold">Agent Review</span>
           {items.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#FAFAFA]/[0.04] border border-[#1C1C1C] text-[11px] font-semibold text-[#9e9e9e]">
+            <span className="px-2 py-0.5 rounded-full bg-hover-overlay border border-border text-[11px] font-semibold text-text-secondary">
               {items.length} pending
             </span>
           )}
@@ -120,11 +120,11 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
       {/* Queue list or empty state */}
       {items.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-          <div className="w-14 h-14 rounded-full bg-[#111111] border border-[#1C1C1C] flex items-center justify-center mb-4">
-            <Inbox size={22} className="text-[#6b6b6b]" />
+          <div className="w-14 h-14 rounded-full bg-surface border border-border flex items-center justify-center mb-4">
+            <Inbox size={22} className="text-text-tertiary" />
           </div>
-          <h2 className="text-[16px] font-semibold text-[#FAFAFA] mb-1">Queue is clear</h2>
-          <p className="text-[13px] text-[#6b6b6b] max-w-xs">
+          <h2 className="text-[16px] font-semibold text-text-primary mb-1">Queue is clear</h2>
+          <p className="text-[13px] text-text-tertiary max-w-xs">
             No pending decisions. The agent will surface items here when it needs
             your input on a Tier 2 signal.
           </p>
@@ -139,8 +139,8 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                 days !== null && days <= 14
                   ? "text-red-400"
                   : days !== null && days <= 30
-                  ? "text-[#9e9e9e]"
-                  : "text-[#FAFAFA]";
+                  ? "text-text-secondary"
+                  : "text-text-primary";
               const confidence = confidenceBadge(item.confidence_score);
               const isEditing = editingId === item.id;
               const isBusy = busy === item.id;
@@ -148,13 +148,13 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
               return (
                 <div
                   key={item.id}
-                  className="bg-[#111111] border border-[#1C1C1C] rounded-xl p-5 hover:border-[#1C1C1C] transition-colors"
+                  className="bg-surface border border-border rounded-xl p-5 hover:border-border transition-colors"
                 >
                   {/* Card header */}
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[14px] font-semibold text-[#FAFAFA] truncate">
+                        <span className="text-[14px] font-semibold text-text-primary truncate">
                           {policy?.client_name ?? "Unknown Client"}
                         </span>
                         {days !== null && (
@@ -164,12 +164,12 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                         )}
                       </div>
                       {policy && (
-                        <div className="flex items-center gap-1.5 text-[12px] text-[#8a8a8a]">
+                        <div className="flex items-center gap-1.5 text-[12px] text-text-secondary">
                           <span className="truncate">{policy.policy_name}</span>
                           {policy.carrier && (
                             <>
-                              <span className="text-[#6b6b6b]">·</span>
-                              <span className="truncate text-[#6b6b6b]">{policy.carrier}</span>
+                              <span className="text-text-tertiary">·</span>
+                              <span className="truncate text-text-tertiary">{policy.carrier}</span>
                             </>
                           )}
                         </div>
@@ -178,7 +178,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                     {policy && (
                       <Link
                         href={`/renewals/${policy.id}`}
-                        className="shrink-0 flex items-center gap-1 text-[11px] text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors"
+                        className="shrink-0 flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-secondary transition-colors"
                       >
                         Open policy
                         <ChevronRight size={11} />
@@ -187,13 +187,13 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                   </div>
 
                   {/* Agent read */}
-                  <div className="bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg p-4 mb-4 space-y-3">
+                  <div className="bg-background border border-border rounded-lg p-4 mb-4 space-y-3">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div>
-                        <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+                        <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                           Agent read
                         </div>
-                        <span className="text-[13px] font-medium text-[#FAFAFA]">
+                        <span className="text-[13px] font-medium text-text-primary">
                           {intentLabel(item.classified_intent)}
                         </span>
                       </div>
@@ -205,19 +205,19 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                     </div>
 
                     <div>
-                      <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+                      <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                         Client said
                       </div>
-                      <p className="text-[12px] text-[#8a8a8a] italic leading-relaxed line-clamp-4">
+                      <p className="text-[12px] text-text-secondary italic leading-relaxed line-clamp-4">
                         &ldquo;{item.raw_signal_snippet}&rdquo;
                       </p>
                     </div>
 
                     <div>
-                      <div className="text-[10px] font-semibold text-[#6b6b6b] uppercase tracking-wider mb-1">
+                      <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                         Proposed action
                       </div>
-                      <p className="text-[12px] text-[#8a8a8a] leading-relaxed">
+                      <p className="text-[12px] text-text-secondary leading-relaxed">
                         {item.proposed_action.description}
                       </p>
                     </div>
@@ -225,12 +225,12 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
 
                   {/* Edit form */}
                   {isEditing && (
-                    <div className="bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg p-4 mb-4 space-y-3">
-                      <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-wider">
+                    <div className="bg-background border border-border rounded-lg p-4 mb-4 space-y-3">
+                      <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
                         Edit intent
                       </div>
                       <div>
-                        <label className="block text-[11px] text-[#6b6b6b] mb-1">
+                        <label className="block text-[11px] text-text-tertiary mb-1">
                           Correct intent label
                         </label>
                         <input
@@ -238,11 +238,11 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                           value={editedIntent}
                           onChange={(e) => setEditedIntent(e.target.value)}
                           placeholder="e.g. confirm_renewal"
-                          className="w-full bg-[#1a1a24] border border-[#1C1C1C] rounded-md px-3 py-2 text-[13px] text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555]"
+                          className="w-full bg-surface border border-border rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-[#6b6b6b] mb-1">
+                        <label className="block text-[11px] text-text-tertiary mb-1">
                           Notes (optional)
                         </label>
                         <textarea
@@ -250,7 +250,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                           onChange={(e) => setEditNotes(e.target.value)}
                           placeholder="Why you changed it…"
                           rows={2}
-                          className="w-full bg-[#1a1a24] border border-[#1C1C1C] rounded-md px-3 py-2 text-[13px] text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] resize-none"
+                          className="w-full bg-surface border border-border rounded-md px-3 py-2 text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary resize-none"
                         />
                       </div>
                       <div className="flex gap-2">
@@ -262,7 +262,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                             })
                           }
                           disabled={isBusy || !editedIntent.trim()}
-                          className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[12px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-text-primary text-text-inverse text-[12px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                           Confirm edit
@@ -270,7 +270,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                         <button
                           onClick={cancelEdit}
                           disabled={isBusy}
-                          className="h-8 flex items-center px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#6b6b6b] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-50"
+                          className="h-8 flex items-center px-3 rounded-md border border-border text-[12px] text-text-tertiary hover:text-text-primary hover:border-[#3e3e4a] transition-colors disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -284,7 +284,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                       <button
                         onClick={() => resolve(item.id, "approved")}
                         disabled={isBusy}
-                        className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[12px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-text-primary text-text-inverse text-[12px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isBusy ? (
                           <Loader2 size={12} className="animate-spin" />
@@ -296,7 +296,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                       <button
                         onClick={() => startEdit(item)}
                         disabled={isBusy}
-                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#8a8a8a] hover:text-[#FAFAFA] hover:border-[#3e3e4a] transition-colors disabled:opacity-50"
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors disabled:opacity-50"
                       >
                         <Pencil size={12} />
                         Edit &amp; Approve
@@ -304,7 +304,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                       <button
                         onClick={() => resolve(item.id, "rejected")}
                         disabled={isBusy}
-                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-[#1C1C1C] text-[12px] text-[#6b6b6b] hover:text-red-400 hover:border-red-800/50 transition-colors disabled:opacity-50"
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-border text-[12px] text-text-tertiary hover:text-red-400 hover:border-red-800/50 transition-colors disabled:opacity-50"
                       >
                         <XCircle size={12} />
                         Reject

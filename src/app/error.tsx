@@ -18,8 +18,8 @@ export default function RootError({
       <body
         style={{
           margin: 0,
-          background: "#0C0C0C",
-          color: "#FAFAFA",
+          background: "var(--background)",
+          color: "var(--text-primary)",
           fontFamily: "system-ui, sans-serif",
           display: "flex",
           alignItems: "center",
@@ -31,7 +31,7 @@ export default function RootError({
           padding: "0 24px",
         }}
       >
-        <p style={{ fontSize: 14, color: "#666666", margin: 0 }}>
+        <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>
           Something went wrong. Please refresh the page.
         </p>
         <button
@@ -40,9 +40,9 @@ export default function RootError({
             height: 36,
             padding: "0 16px",
             borderRadius: 8,
-            background: "#1C1C1C",
-            color: "#FAFAFA",
-            border: "1px solid #2A2A2A",
+            background: "var(--border)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border)",
             fontSize: 13,
             cursor: "pointer",
           }}

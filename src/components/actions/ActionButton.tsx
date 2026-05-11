@@ -17,11 +17,11 @@ interface ActionButtonProps {
 
 const VARIANT_STYLES: Record<ActionVariant, string> = {
   default:
-    "bg-[#1C1C1C] border border-[#2A2A2A] text-[#FAFAFA] hover:bg-[#222222] hover:border-[#333333]",
+    "bg-border border border-[#2A2A2A] text-text-primary hover:bg-border hover:border-[#333333]",
   destructive:
-    "bg-transparent border-transparent text-[#FF4444] hover:text-[#FF6666]",
+    "bg-transparent border-transparent text-danger hover:text-[#FF6666]",
   ghost:
-    "bg-transparent border border-[#1C1C1C] text-[#FAFAFA] hover:border-[#555555]",
+    "bg-transparent border border-border text-text-primary hover:border-[#555555]",
 };
 
 export function ActionButton({

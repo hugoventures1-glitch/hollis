@@ -56,24 +56,24 @@ export function SubmissionPanel({ policyId, hasTerms }: SubmissionPanelProps) {
 
   if (sent) {
     return (
-      <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-3">
-        <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest">
+      <div className="rounded-xl bg-surface border border-border p-5 space-y-3">
+        <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
           Submission Builder
         </div>
-        <div className="rounded-lg bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] px-4 py-4 space-y-2">
-          <div className="flex items-center gap-2 text-[13px] font-semibold text-[#FAFAFA]">
+        <div className="rounded-lg bg-hover-overlay border border-border px-4 py-4 space-y-2">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-text-primary">
             <CheckCircle2 size={15} />
             Submission sent
           </div>
           <ul className="space-y-1">
             {sentAddresses.map((addr) => (
-              <li key={addr} className="text-[12px] text-[#8a8a8a]">→ {addr}</li>
+              <li key={addr} className="text-[12px] text-text-secondary">→ {addr}</li>
             ))}
           </ul>
         </div>
         <button
           onClick={() => { setSent(false); setEmails([""]); setSentAddresses([]); }}
-          className="text-[12px] text-[#8a8a8a] hover:text-[#8a8a8a] transition-colors"
+          className="text-[12px] text-text-secondary hover:text-text-primary transition-colors"
         >
           Send to additional insurers
         </button>
@@ -82,19 +82,19 @@ export function SubmissionPanel({ policyId, hasTerms }: SubmissionPanelProps) {
   }
 
   return (
-    <div className="rounded-xl bg-[#111111] border border-[#1C1C1C] p-5 space-y-4">
-      <div className="text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest">
+    <div className="rounded-xl bg-surface border border-border p-5 space-y-4">
+      <div className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
         Submission Builder
       </div>
 
       {!hasTerms && (
-        <div className="rounded-lg bg-[#1C1C1C] border border-[#1C1C1C] px-4 py-3 text-[12px] text-[#9e9e9e]">
+        <div className="rounded-lg bg-border border border-border px-4 py-3 text-[12px] text-text-secondary">
           Add at least one insurer quote before generating a submission.
         </div>
       )}
 
       <div className="space-y-2">
-        <div className="text-[12px] text-[#8a8a8a]">
+        <div className="text-[12px] text-text-secondary">
           Enter insurer email addresses. Claude Sonnet will build a formal underwriting submission from the client questionnaire, insurer quotes, and policy history.
         </div>
 
@@ -106,13 +106,13 @@ export function SubmissionPanel({ policyId, hasTerms }: SubmissionPanelProps) {
               onChange={e => updateEmail(i, e.target.value)}
               placeholder={`insurer${i + 1}@example.com`}
               disabled={isPending}
-              className="flex-1 text-[13px] bg-[#0C0C0C] border border-[#2a2a35] rounded-lg px-3 py-2 text-[#FAFAFA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#555555] disabled:opacity-50"
+              className="flex-1 text-[13px] bg-background border border-border rounded-lg px-3 py-2 text-text-primary placeholder-text-tertiary focus:outline-none focus:border-border disabled:opacity-50"
             />
             {emails.length > 1 && (
               <button
                 onClick={() => removeEmail(i)}
                 disabled={isPending}
-                className="p-1.5 text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors disabled:opacity-50"
+                className="p-1.5 text-text-tertiary hover:text-text-secondary transition-colors disabled:opacity-50"
               >
                 <X size={13} />
               </button>
@@ -123,7 +123,7 @@ export function SubmissionPanel({ policyId, hasTerms }: SubmissionPanelProps) {
         <button
           onClick={addEmail}
           disabled={isPending}
-          className="flex items-center gap-1.5 text-[12px] text-[#8a8a8a] hover:text-[#8a8a8a] transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 text-[12px] text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
         >
           <Plus size={12} />
           Add another insurer

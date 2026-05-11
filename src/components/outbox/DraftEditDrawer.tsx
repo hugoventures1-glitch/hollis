@@ -81,8 +81,8 @@ export default function DraftEditDrawer({
     days !== null && days <= 14
       ? "text-red-400"
       : days !== null && days <= 30
-      ? "text-[#888888]"
-      : "text-[#FAFAFA]";
+      ? "text-text-secondary"
+      : "text-text-primary";
 
   if (!mounted) return null;
 
@@ -99,10 +99,10 @@ export default function DraftEditDrawer({
 
         {/* Header */}
         <div className="h-14 shrink-0 border-b border-[#1e1e2a] flex items-center justify-between px-6">
-          <span className="text-[14px] font-semibold text-[#f5f5f7]">Review Draft</span>
+          <span className="text-[14px] font-semibold text-text-primary">Review Draft</span>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-[#505057] hover:text-[#f5f5f7] hover:bg-white/[0.06] transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-hover-overlay transition-colors"
           >
             <X size={15} />
           </button>
@@ -110,19 +110,19 @@ export default function DraftEditDrawer({
 
         {/* Client meta */}
         {policy && (
-          <div className="px-6 py-4 border-b border-[#1e1e2a] bg-[#0C0C0C] flex items-center gap-4">
-            <div className="w-9 h-9 rounded-full bg-[#FAFAFA]/[0.06] border border-[#1C1C1C] flex items-center justify-center shrink-0">
-              <span className="text-[13px] font-bold text-[#FAFAFA]">
+          <div className="px-6 py-4 border-b border-[#1e1e2a] bg-background flex items-center gap-4">
+            <div className="w-9 h-9 rounded-full bg-hover-overlay border border-border flex items-center justify-center shrink-0">
+              <span className="text-[13px] font-bold text-text-primary">
                 {policy.client_name.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold text-[#f5f5f7] truncate">
+              <div className="text-[14px] font-semibold text-text-primary truncate">
                 {policy.client_name}
               </div>
               <div className="flex items-center gap-3 mt-0.5">
                 {policy.carrier && (
-                  <span className="flex items-center gap-1 text-[12px] text-[#505057]">
+                  <span className="flex items-center gap-1 text-[12px] text-text-secondary">
                     <Building2 size={11} />
                     {policy.carrier}
                   </span>
@@ -142,28 +142,28 @@ export default function DraftEditDrawer({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Subject */}
           <div>
-            <label className="block text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
               Subject
             </label>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-2.5 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] outline-none focus:border-[#555555] transition-colors"
+              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-[#555555] transition-colors"
             />
           </div>
 
           {/* Body */}
           <div className="flex flex-col flex-1">
-            <label className="block text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
               Email Body
             </label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={14}
-              className="w-full bg-[#0C0C0C] border border-[#1C1C1C] rounded-lg px-4 py-3 text-[14px] text-[#f5f5f7] placeholder-[#6b6b6b] outline-none focus:border-[#555555] transition-colors resize-none leading-relaxed font-mono"
+              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-[#555555] transition-colors resize-none leading-relaxed font-mono"
             />
-            <div className="text-[11px] text-[#6b6b6b] mt-1.5 text-right">
+            <div className="text-[11px] text-text-tertiary mt-1.5 text-right">
               {body.split(/\s+/).filter(Boolean).length} words
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function DraftEditDrawer({
           <button
             onClick={handleSend}
             disabled={sending || !subject.trim() || !body.trim()}
-            className="h-9 flex items-center gap-2 px-5 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 flex items-center gap-2 px-5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sending ? (
               <Loader2 size={14} className="animate-spin" />
@@ -192,11 +192,11 @@ export default function DraftEditDrawer({
           <button
             onClick={onClose}
             disabled={sending}
-            className="h-9 px-5 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] transition-colors"
+            className="h-9 px-5 rounded-md border border-border text-[13px] text-text-secondary hover:text-text-primary transition-colors"
           >
             Cancel
           </button>
-          <span className="ml-auto text-[11px] text-[#6b6b6b]">
+          <span className="ml-auto text-[11px] text-text-tertiary">
             Agent reviews before sending
           </span>
         </div>

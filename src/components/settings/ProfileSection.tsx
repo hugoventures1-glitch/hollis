@@ -58,7 +58,7 @@ export function ProfileSection({ profile, userEmail }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-[18px] font-semibold text-[#f5f5f7]">Profile</h2>
+        <h2 className="text-[18px] font-semibold text-text-primary">Profile</h2>
         <p className="text-[13px] text-zinc-500 mt-1">Your personal information as it appears in Hollis.</p>
       </div>
 

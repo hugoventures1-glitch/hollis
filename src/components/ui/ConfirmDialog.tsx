@@ -23,21 +23,31 @@ export function ConfirmDialog({ title, body, confirmLabel, onConfirm, onCancel }
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="bg-[#111118] border border-[#1C1C1C] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-        <h3 className="text-[16px] font-semibold text-[#f5f5f7] mb-2">{title}</h3>
-        <p className="text-[13px] text-[#8a8b91] leading-relaxed mb-6">{body}</p>
+      <div
+        className="rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <h3 className="text-[16px] font-semibold mb-2" style={{ color: "var(--text-primary)" }}>{title}</h3>
+        <p className="text-[13px] leading-relaxed mb-6" style={{ color: "var(--text-secondary)" }}>{body}</p>
         <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="h-8 px-4 rounded-md border border-[#1C1C1C] text-[13px] text-[#8a8b91] hover:text-[#f5f5f7] hover:border-[#3e3e4a] transition-colors"
+            className="h-8 px-4 rounded-md text-[13px] transition-colors"
+            style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="h-8 px-4 rounded-md bg-[#FAFAFA] text-[#0C0C0C] text-[13px] font-semibold hover:bg-[#E8E8E8] transition-colors"
+            className="h-8 px-4 rounded-md text-[13px] font-semibold transition-colors hover:opacity-80"
+            style={{ background: "var(--text-primary)", color: "var(--text-inverse)" }}
           >
             {confirmLabel}
           </button>

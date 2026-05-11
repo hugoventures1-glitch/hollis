@@ -99,9 +99,9 @@ function HighlightedText({ text }: { text: string }): React.ReactElement {
 function Skeleton() {
   return (
     <div className="space-y-3.5 py-1" aria-hidden="true">
-      <div className="h-[21px] w-[72%] rounded-md bg-[#1C1C1C] animate-pulse" />
-      <div className="h-[21px] w-[85%] rounded-md bg-[#1C1C1C] animate-pulse" />
-      <div className="h-[21px] w-[61%] rounded-md bg-[#1C1C1C] animate-pulse" />
+      <div className="h-[21px] w-[72%] rounded-md bg-border animate-pulse" />
+      <div className="h-[21px] w-[85%] rounded-md bg-border animate-pulse" />
+      <div className="h-[21px] w-[61%] rounded-md bg-border animate-pulse" />
     </div>
   );
 }
@@ -210,10 +210,10 @@ export function DailyBriefing({ userId }: { userId?: string }) {
     return (
       <div className="flex items-start gap-5 px-12 pt-8 pb-6">
         <div
-          className="shrink-0 w-[2px] self-stretch rounded-full bg-[#FAFAFA]/10"
+          className="shrink-0 w-[2px] self-stretch rounded-full bg-text-primary/10"
           aria-hidden="true"
         />
-        <p className="text-[14px] text-[#6b6b6b] leading-[1.7]">
+        <p className="text-[14px] text-text-tertiary leading-[1.7]">
           Book looks clear — no urgent items today.
         </p>
       </div>
@@ -229,7 +229,7 @@ export function DailyBriefing({ userId }: { userId?: string }) {
     <div className="flex items-start gap-5 px-12 pt-8 pb-6">
       {/* Left stripe */}
       <div
-        className="shrink-0 w-[2px] self-stretch rounded-full bg-[#FAFAFA]/10"
+        className="shrink-0 w-[2px] self-stretch rounded-full bg-text-primary/10"
         aria-hidden="true"
       />
 
@@ -239,7 +239,7 @@ export function DailyBriefing({ userId }: { userId?: string }) {
         <div className={`flex items-center justify-between ${collapsed ? "mb-0" : "mb-4"}`}>
           <button
             onClick={toggleCollapsed}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8a8a8a] uppercase tracking-widest hover:text-[#9e9e9e] transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-text-secondary uppercase tracking-widest hover:text-text-secondary transition-colors"
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Expand today's briefing" : "Collapse briefing"}
           >
@@ -255,7 +255,7 @@ export function DailyBriefing({ userId }: { userId?: string }) {
               onClick={handleRefresh}
               disabled={refreshing}
               title="Refresh briefing"
-              className="text-[#6b6b6b] hover:text-[#8a8a8a] transition-colors disabled:opacity-40"
+              className="text-text-tertiary hover:text-text-secondary transition-colors disabled:opacity-40"
               aria-label="Refresh morning briefing"
             >
               <RefreshCw
@@ -277,7 +277,7 @@ export function DailyBriefing({ userId }: { userId?: string }) {
                 key={i}
                 className="group flex items-baseline justify-between gap-6 py-[5px]"
               >
-                <p className="text-[15px] text-[#FAFAFA] leading-[1.7] min-w-0 flex items-baseline gap-2">
+                <p className="text-[15px] text-text-primary leading-[1.7] min-w-0 flex items-baseline gap-2">
                   {item.urgency === "high" && (
                     <span
                       className="shrink-0 inline-block w-[5px] h-[5px] rounded-full bg-red-500 translate-y-[-2px]"
@@ -290,7 +290,7 @@ export function DailyBriefing({ userId }: { userId?: string }) {
                 {/* "View →" fades in on row hover */}
                 <button
                   onClick={() => handleNavigate(item)}
-                  className="shrink-0 text-[13px] text-[#6b6b6b] hover:text-[#FAFAFA] opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap"
+                  className="shrink-0 text-[13px] text-text-tertiary hover:text-text-primary opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap"
                   aria-label={`View details for: ${item.text}`}
                 >
                   View →
