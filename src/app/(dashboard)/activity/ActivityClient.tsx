@@ -231,23 +231,23 @@ function BentoStat({
     >
       <span
         className="text-[10px] font-medium uppercase tracking-[0.09em]"
-        style={{ color: "#444444" }}
+        style={{ color: "var(--text-secondary)" }}
       >
         {label}
       </span>
       <span
         className="text-[38px] leading-none tracking-tight"
         style={{
-          fontFamily: "var(--font-playfair)",
+          fontFamily: "var(--font-display)",
           fontWeight: 700,
-          color: lime ? "#B8F400" : "#FAFAFA",
+          color: lime ? "#B8F400" : "var(--text-primary)",
           textShadow: lime ? "0 0 24px rgba(184,244,0,0.35)" : "none",
         }}
       >
         {value}
       </span>
       {sub && (
-        <span className="text-[10px]" style={{ color: "#3A3A3A" }}>
+        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
           {sub}
         </span>
       )}
@@ -275,7 +275,7 @@ function ClientInitial({ name }: { name: string }) {
       </div>
       <span
         className="text-[11px] truncate"
-        style={{ color: "#555555" }}
+        style={{ color: "var(--text-secondary)" }}
       >
         {name}
       </span>
@@ -329,21 +329,21 @@ function ActivityCard({
       >
         <div
           className="w-6 h-6 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5"
-          style={{ background: "var(--surface)", color: "#555555" }}
+          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}
         >
           {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[12px] font-medium" style={{ color: "#DDDDDD" }}>
+            <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>
               {label}
             </span>
-            <span className="text-[10px] shrink-0 tabular-nums" style={{ color: "#333333" }}>
+            <span className="text-[10px] shrink-0 tabular-nums" style={{ color: "var(--text-secondary)" }}>
               {timeAgo(entry.created_at)}
             </span>
           </div>
           {client && (
-            <span className="text-[11px]" style={{ color: "#555555" }}>
+            <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
               {client}
             </span>
           )}
@@ -381,7 +381,7 @@ function SessionBlock({
       >
         <span
           className="text-[11px] font-medium"
-          style={{ color: "#555555" }}
+          style={{ color: "var(--text-secondary)" }}
         >
           {session.label}
         </span>
@@ -389,7 +389,7 @@ function SessionBlock({
           <span
             className="text-[10px] transition-transform"
             style={{
-              color: "#2A2A2A",
+              color: "var(--text-tertiary)",
               display: "inline-block",
               transform: expanded ? "rotate(180deg)" : "none",
             }}
@@ -427,24 +427,24 @@ function SessionBlock({
                     className="w-5 h-5 rounded flex items-center justify-center text-[9px] shrink-0"
                     style={{
                       background: "rgba(255,255,255,0.025)",
-                      color: "#444444",
+                      color: "var(--text-secondary)",
                     }}
                   >
                     {icon}
                   </span>
                   <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
-                    <span className="text-[12px]" style={{ color: "#CCCCCC" }}>
+                    <span className="text-[12px]" style={{ color: "var(--text-primary)" }}>
                       {label}
                     </span>
                     {client && (
-                      <span className="text-[11px]" style={{ color: "#3A3A3A" }}>
+                      <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                         · {client}
                       </span>
                     )}
                   </div>
                   <span
                     className="text-[9px] shrink-0 tabular-nums font-mono"
-                    style={{ color: "#2A2A2A" }}
+                    style={{ color: "var(--text-tertiary)" }}
                   >
                     {formatTs(entry.created_at)}
                   </span>
@@ -458,7 +458,7 @@ function SessionBlock({
             <button
               onClick={onToggleLog}
               className="w-full px-4 py-2 text-left text-[10px] transition-colors font-mono"
-              style={{ color: "#2A2A2A" }}
+              style={{ color: "var(--text-tertiary)" }}
             >
               {showLog ? "↑ hide system log" : "↓ show system log"}
             </button>
@@ -484,11 +484,11 @@ function SessionBlock({
                   return (
                     <div key={i}>
                       {ts && (
-                        <span style={{ color: "#3A3A3A" }}>{ts}</span>
+                        <span style={{ color: "var(--text-tertiary)" }}>{ts}</span>
                       )}
                       <span
                         style={{
-                          color: isSuccess ? "#B8F400" : "#555555",
+                          color: isSuccess ? "#B8F400" : "var(--text-secondary)",
                           textShadow: isSuccess
                             ? "0 0 8px rgba(184,244,0,0.25)"
                             : "none",
@@ -522,20 +522,20 @@ function IdleState({ count }: { count: number }) {
           className="w-1.5 h-1.5 rounded-full inline-block animate-hollis-pulse"
           style={{ background: "#B8F400", boxShadow: "0 0 8px rgba(184,244,0,0.7)" }}
         />
-        <span className="text-[11px]" style={{ color: "#555555" }}>
+        <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
           Hollis is standing by
         </span>
       </div>
-      <p className="text-[12px] leading-relaxed" style={{ color: "#444444" }}>
+      <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
         Watching{" "}
-        <span style={{ color: "#FAFAFA" }}>
+        <span style={{ color: "var(--text-primary)" }}>
           {count} {count !== 1 ? "policies" : "policy"}
         </span>{" "}
         for document returns, renewal signals, and insurer responses.
       </p>
       <div
         className="mt-4 pt-4 flex flex-col gap-0.5 font-mono text-[10px] leading-6"
-        style={{ borderTop: "1px solid rgba(184,244,0,0.06)", color: "#2A2A2A" }}
+        style={{ borderTop: "1px solid rgba(184,244,0,0.06)", color: "var(--text-tertiary)" }}
       >
         <span>[IDLE]  Listening on inbound queue...</span>
         <span>[SCHED] Next policy audit batch: 3:00 PM</span>
@@ -598,7 +598,7 @@ export default function ActivityClient({
         className="h-[56px] shrink-0 flex items-center justify-between px-6"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
-        <span className="text-[12px]" style={{ color: "#555555" }}>
+        <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
           Activity
         </span>
 
@@ -617,7 +617,7 @@ export default function ActivityClient({
               className="flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-medium transition-all capitalize"
               style={{
                 background: view === v ? "rgba(255,255,255,0.07)" : "transparent",
-                color: view === v ? "#FAFAFA" : "#444444",
+                color: view === v ? "var(--text-primary)" : "var(--text-secondary)",
               }}
             >
               {v === "live" && (
@@ -654,9 +654,9 @@ export default function ActivityClient({
             <h1
               className="text-[32px] leading-none tracking-tight"
               style={{
-                fontFamily: "var(--font-playfair)",
+                fontFamily: "var(--font-display)",
                 fontWeight: 900,
-                color: "#FAFAFA",
+                color: "var(--text-primary)",
               }}
             >
               Hollis is working.
@@ -710,13 +710,13 @@ export default function ActivityClient({
             <div>
               <p
                 className="text-[10px] font-medium uppercase tracking-[0.09em] mb-4"
-                style={{ color: "#333333" }}
+                style={{                color: "var(--text-tertiary)" }}
               >
                 Monitoring
               </p>
               <div className="flex flex-col gap-2.5">
                 {monitoredClients.length === 0 ? (
-                  <p className="text-[11px]" style={{ color: "#2A2A2A" }}>
+                  <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                     —
                   </p>
                 ) : (
@@ -726,7 +726,7 @@ export default function ActivityClient({
                 )}
               </div>
               {stats.monitoringCount > monitoredClients.length && (
-                <p className="text-[10px] mt-4" style={{ color: "#2A2A2A" }}>
+                <p className="text-[10px] mt-4" style={{ color: "var(--text-tertiary)" }}>
                   +{stats.monitoringCount - monitoredClients.length} more
                 </p>
               )}
@@ -738,7 +738,7 @@ export default function ActivityClient({
                 <>
                   <p
                     className="text-[10px] font-medium uppercase tracking-[0.09em] mb-5"
-                    style={{ color: "#333333" }}
+                    style={{                color: "var(--text-tertiary)" }}
                   >
                     Recent activity
                   </p>
@@ -761,7 +761,7 @@ export default function ActivityClient({
                 <>
                   <p
                     className="text-[10px] font-medium uppercase tracking-[0.09em] mb-5"
-                    style={{ color: "#333333" }}
+                    style={{                color: "var(--text-tertiary)" }}
                   >
                     Work sessions
                   </p>
