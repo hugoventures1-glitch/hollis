@@ -42,12 +42,11 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session — reads from cookie, no network call, avoids rate-limiting.
-  // Individual API routes and server components call getUser() for server-side
-  // verification when they actually need it.
+  // Verify session with Supabase server — getUser() refreshes the token if
+  // expired, ensuring downstream route handlers' getUser() calls succeed.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
@@ -56,14 +55,14 @@ export async function middleware(request: NextRequest) {
   );
 
   // No session on any protected route → /login
-  if (!session && !isPublic) {
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // Authenticated user on an auth page → /overview
-  if (session && (pathname === "/login" || pathname === "/signup")) {
+  if (user && (pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
     url.pathname = "/overview";
     return NextResponse.redirect(url);

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { usePostHog } from "posthog-js/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,7 +26,6 @@ interface Props {
 export function AgencySection({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const posthog = usePostHog();
 
   const {
     register,
@@ -54,7 +52,6 @@ export function AgencySection({ profile }: Props) {
     });
     setSaving(false);
     setSaved(true);
-    posthog.capture("settings_saved", { section: "agency" });
     setTimeout(() => setSaved(false), 2000);
   });
 

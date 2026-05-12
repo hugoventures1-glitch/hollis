@@ -29,15 +29,7 @@ export default async function ReviewPage() {
   const { data: items } = await supabase
     .from("approval_queue")
     .select(
-      `
-      id,
-      policy_id,
-      classified_intent,
-      confidence_score,
-      raw_signal_snippet,
-      proposed_action,
-      status,
-      created_at,
+      `id, signal_id, policy_id, classified_intent, confidence_score, raw_signal_snippet, proposed_action, status, created_at,
       policies (
         id,
         client_name,
@@ -56,11 +48,9 @@ export default async function ReviewPage() {
   );
 }
 
-export interface QueueItemWithPolicy {
-  id: string;
-  policy_id: string;
+export interface QueueItemWithPolicy {  id: string; signal_id: string | null; policy_id: string;
   classified_intent: string;
-  confidence_score: number;
+  confidence_score: number | null;
   raw_signal_snippet: string;
   proposed_action: {
     description: string;

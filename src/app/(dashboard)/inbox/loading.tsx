@@ -1,105 +1,93 @@
 export default function InboxLoading() {
+  // Row widths mirror the real ListRow grid:
+  // col-1: client name (bold) + headline text
+  // col-2: type pill
+  // col-3: expiry + time
+  const rows = [
+    { nameW: 120, headlineW: 220, pillW: 64,  expiry: true,  timeW: 24 },
+    { nameW: 96,  headlineW: 180, pillW: 56,  expiry: false, timeW: 20 },
+    { nameW: 140, headlineW: 200, pillW: 72,  expiry: true,  timeW: 28 },
+    { nameW: 108, headlineW: 160, pillW: 64,  expiry: false, timeW: 24 },
+    { nameW: 88,  headlineW: 240, pillW: 56,  expiry: true,  timeW: 20 },
+    { nameW: 132, headlineW: 190, pillW: 72,  expiry: false, timeW: 28 },
+    { nameW: 100, headlineW: 210, pillW: 64,  expiry: true,  timeW: 24 },
+  ];
+
   return (
-    <div className="flex h-full overflow-hidden" style={{ background: "var(--background)" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--background)" }}>
 
-      {/* Left column — fixed width matching real InboxClient */}
-      <div
-        className="flex flex-col shrink-0"
-        style={{ width: 340, borderRight: "1px solid var(--border)" }}
-      >
-        {/* "from hollis" header — 40px */}
-        <div
-          className="flex items-center justify-between px-4 shrink-0"
-          style={{ height: 40, borderBottom: "1px solid var(--border)" }}
-        >
-          <div className="h-2 w-20 rounded bg-border animate-pulse" />
+      {/* Header — mirrors ListView header */}
+      <header style={{ padding: "28px 32px 0", flexShrink: 0 }}>
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 22 }}>
+          <div className="h-6 w-14 rounded bg-border animate-pulse" />
+          <div className="h-3.5 w-48 rounded bg-surface-raised animate-pulse" />
         </div>
 
-        {/* Tab strip — 3 equal tabs */}
-        <div
-          className="flex shrink-0"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          {[1, 2, 3].map((i) => (
+        {/* Tab strip — 4 tabs matching All / Decisions / To-Dos / Doc Chase */}
+        <div style={{ display: "flex", gap: 24, alignItems: "center", borderBottom: "1px solid var(--border-subtle)" }}>
+          {[44, 64, 52, 68].map((w, i) => (
             <div
               key={i}
-              className="flex-1 flex items-center justify-center py-2.5 animate-pulse"
+              className="animate-pulse"
+              style={{ padding: "10px 0", marginBottom: -1 }}
             >
-              <div className="h-2.5 rounded bg-border" style={{ width: i === 1 ? 44 : i === 2 ? 36 : 64 }} />
+              <div className="h-2.5 rounded bg-border" style={{ width: w }} />
             </div>
           ))}
         </div>
+      </header>
 
-        {/* Row list */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="px-4 py-3.5 animate-pulse shrink-0"
-              style={{ borderBottom: "1px solid var(--border)" }}
-            >
-              {/* Policy ref + name line */}
-              <div className="h-3 rounded bg-border mb-2" style={{ width: "70%" }} />
-              {/* Carrier badge + client + time */}
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                <div className="h-3 w-10 rounded bg-surface shrink-0" />
-                <div className="flex-1 h-2.5 rounded bg-surface-raised" />
-                <div className="h-2 w-6 rounded bg-surface-raised shrink-0" />
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Day label */}
+      <div style={{ padding: "20px 32px 6px 28px" }}>
+        <div className="h-2 w-10 rounded bg-surface-raised animate-pulse" />
       </div>
 
-      {/* Right detail pane */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Detail header */}
-        <div
-          className="shrink-0 px-6 py-4"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-14 rounded-full bg-border animate-pulse" />
-                <div className="h-4 w-20 rounded-full bg-border animate-pulse" />
-              </div>
-              <div className="h-4 w-64 rounded bg-border animate-pulse" />
+      {/* List rows */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        {rows.map((r, i) => (
+          <div
+            key={i}
+            className="animate-pulse"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) auto auto",
+              columnGap: 18,
+              alignItems: "center",
+              padding: "14px 32px 14px 28px",
+              borderTop: "1px solid var(--border-subtle)",
+            }}
+          >
+            {/* Col 1: client name + headline */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12, minWidth: 0 }}>
+              <div
+                className="h-3 rounded bg-border shrink-0"
+                style={{ width: r.nameW }}
+              />
+              <div
+                className="h-3 rounded bg-surface-raised"
+                style={{ width: r.headlineW }}
+              />
             </div>
-            <div className="h-8 w-24 rounded-md bg-border animate-pulse" />
-          </div>
-        </div>
 
-        {/* Action buttons row */}
-        <div
-          className="flex items-center gap-3 px-6 py-3 shrink-0 animate-pulse"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <div className="h-8 w-28 rounded-md bg-border" />
-          <div className="h-8 w-20 rounded-md bg-surface-raised" />
-          <div className="h-8 w-20 rounded-md bg-surface-raised" />
-        </div>
+            {/* Col 2: type pill */}
+            <div
+              className="h-5 rounded-full bg-surface-raised"
+              style={{ width: r.pillW }}
+            />
 
-        {/* Body */}
-        <div className="flex-1 px-6 py-5 flex flex-col gap-4 overflow-hidden animate-pulse">
-          <div className="h-3 w-32 rounded bg-surface-raised" />
-          <div className="rounded-xl p-4" style={{ background: "var(--surface-raised)", border: "1px solid var(--surface)" }}>
-            <div className="flex flex-col gap-2.5">
-              <div className="h-3 w-full rounded bg-border" />
-              <div className="h-3 rounded bg-border" style={{ width: "85%" }} />
-              <div className="h-3 rounded bg-border" style={{ width: "70%" }} />
+            {/* Col 3: expiry + time */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {r.expiry && (
+                <div className="h-2.5 w-[78px] rounded bg-surface-raised" />
+              )}
+              <div
+                className="h-2.5 rounded bg-surface-raised"
+                style={{ width: r.timeW }}
+              />
             </div>
           </div>
-          <div className="flex gap-6 mt-2">
-            {[["Carrier", 80], ["Expiry", 64], ["Stage", 90]].map(([label, w], i) => (
-              <div key={i} className="flex flex-col gap-1.5">
-                <div className="h-2 w-12 rounded bg-surface-raised" />
-                <div className="h-3.5 rounded bg-border" style={{ width: w }} />
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

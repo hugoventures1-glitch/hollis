@@ -37,6 +37,11 @@ function standingOrdersBlock(ctx?: GenerateContext): string {
   return parts.length ? `\n${parts.join("\n\n")}\n` : "";
 }
 
+function outboundHistoryBlock(ctx?: GenerateContext): string {
+  if (!ctx?.outboundHistory?.trim()) return "";
+  return `\nWhat Hollis has previously sent to this client (most recent first):\n${ctx.outboundHistory.trim()}\n`;
+}
+
 /**
  * Generate a professional reply to a soft_query signal.
  * rawSignal is the verbatim client email/message text.
@@ -58,17 +63,25 @@ Policy context:
 ${premiumLine(policy)}
 - Agent: ${policy.agent_name ?? ""}
 - Agent email: ${policy.agent_email ?? ""}
-${standingOrdersBlock(ctx)}
+${outboundHistoryBlock(ctx)}${standingOrdersBlock(ctx)}
 The client wrote:
 "${rawSignal}"
 
-Draft a professional, warm reply that:
+Draft a professional, concise reply that:
 - Addresses the client by first name
-- Directly responds to their question using the policy context above
-- Does not invent coverage details not present in the context — if uncertain, invite them to call
-- Is 1–3 short paragraphs, plain text (no HTML)
+- Answers only what the client directly asked — nothing more
+- If the client is asking about something Hollis previously sent or requested, reference that specific email so they understand the context
+- Is 1–2 short paragraphs, plain text (no HTML)
 - Ends with the agent's name and email on separate lines after two line breaks
 - Follows the broker's standing orders if any are provided above
+
+STRICT RULES — you must follow these exactly:
+- ONLY address what the client explicitly asked. Do not volunteer extra information, open-ended offers of help, or unsolicited next steps.
+- NEVER add closings like "let me know if there's anything else", "feel free to reach out", "happy to help with anything further", or any variation that invites more questions.
+- NEVER promise to send any document, summary, report, or detailed coverage information. You do not have access to the policy document and cannot deliver these.
+- NEVER say things like "I'll pull up your details", "I'll send you a summary", "I'll have this to you by X", or any variation of a future commitment to provide information.
+- NEVER invent or guess coverage details, limits, exclusions, or terms that are not explicitly stated in the policy context or outbound history above.
+- If the client's question cannot be answered from the available context: acknowledge it briefly in one sentence and include the agent's direct contact details so the client can reach them. Do not promise the agent will follow up unprompted.
 
 Respond with ONLY valid JSON: {"subject": "...", "body": "..."}
 The body should be plain text with line breaks between paragraphs.`;

@@ -16,7 +16,7 @@ import { buildFlagsFromClassification, writeFlagsToPolicy, getCurrentFlags } fro
 import { routeTier } from "@/lib/agent/tier-router";
 import { writeAuditLog } from "@/lib/audit/log";
 import { logAction, retainStandard, retainLongTerm } from "@/lib/logAction";
-import { notifyBrokerTier3 } from "@/lib/agent/broker-notifier";
+import { notifyBrokerTier3, notifyBrokerSoftQuerySent } from "@/lib/agent/broker-notifier";
 import { getResendClient } from "@/lib/resend/client";
 import type { AuditEventType, Policy } from "@/types/renewals";
 import type { ParserOutcome, ClassificationResult, RenewalFlags, TierDecision } from "@/types/agent";
@@ -48,6 +48,16 @@ export interface ProcessSignalParams {
   source: "manual" | "email" | "sms";
   /** Top 10 broker-approved parser_outcomes — caller fetches these scoped to userId */
   recentOutcomes: ParserOutcome[];
+  /** Resend internal email_id (from webhook payload) */
+  emailId?: string | null;
+  /** SMTP Message-ID header from the inbound email */
+  messageId?: string | null;
+  /** In-Reply-To header from the inbound email */
+  inReplyTo?: string | null;
+  /** References header from the inbound email */
+  referencesHeaders?: string | null;
+  /** Optional attachment from the inbound email — stored to Supabase storage and linked to the approval_queue item */
+  attachment?: { buffer: Buffer; filename: string; content_type: string } | null;
 }
 
 export interface ProcessSignalResult {
@@ -70,6 +80,11 @@ export async function processInboundSignal(
     senderName,
     source,
     recentOutcomes,
+    emailId,
+    messageId,
+    inReplyTo,
+    referencesHeaders,
+    attachment,
   } = params;
 
   // ── 2. Write inbound_signals record ───────────────────────────────────────────
@@ -82,6 +97,10 @@ export async function processInboundSignal(
       sender_email: senderEmail,
       sender_name: senderName,
       source,
+      email_id: emailId ?? null,
+      message_id: messageId ?? null,
+      in_reply_to: inReplyTo ?? null,
+      references_headers: referencesHeaders ?? null,
     })
     .select("id")
     .single();
@@ -111,6 +130,31 @@ export async function processInboundSignal(
     },
     actor_type: "system",
   });
+
+  // ── 2c. Store email attachment (if any) ───────────────────────────────────────
+  // We have the signal.id now — use it to build a unique storage path.
+  let attachmentStoragePath: string | null = null;
+  let attachmentFilename: string | null = null;
+  let attachmentContentType: string | null = null;
+  if (attachment) {
+    try {
+      const uuid = crypto.randomUUID();
+      const safeName = attachment.filename.replace(/[^a-z0-9._-]/gi, "_").slice(0, 100);
+      const storagePath = `signals/${userId}/${signal.id}/${uuid}-${safeName}`;
+      const { error: uploadErr } = await admin.storage
+        .from("doc-chase-attachments")
+        .upload(storagePath, attachment.buffer, { contentType: attachment.content_type, upsert: false });
+      if (!uploadErr) {
+        attachmentStoragePath = storagePath;
+        attachmentFilename = attachment.filename;
+        attachmentContentType = attachment.content_type;
+      } else {
+        console.error("[process-signal] Attachment upload failed:", uploadErr.message);
+      }
+    } catch (attachErr) {
+      console.error("[process-signal] Attachment storage error:", attachErr);
+    }
+  }
 
   // ── 3. Few-shot outcomes passed in by caller ───────────────────────────────────
   // (recentOutcomes already fetched and scoped to userId)
@@ -197,6 +241,50 @@ export async function processInboundSignal(
     .eq("user_id", userId)
     .maybeSingle();
 
+  // ── Fetch recent outbound history ──────────────────────────────────────────────
+  // Gives the responder context about what Hollis previously sent, so it can
+  // answer questions like "where is the vehicle schedule?" without confusion.
+  let outboundHistory: string | null = null;
+  try {
+    const [{ data: sentTouchpoints }, { data: autoReplies }] = await Promise.all([
+      admin
+        .from("campaign_touchpoints")
+        .select("subject, content, sent_at, type")
+        .eq("policy_id", policyId)
+        .eq("status", "sent")
+        .order("sent_at", { ascending: false })
+        .limit(3),
+      admin
+        .from("hollis_actions")
+        .select("payload, created_at")
+        .eq("policy_id", policyId)
+        .eq("action_type", "tier1_reply_sent")
+        .order("created_at", { ascending: false })
+        .limit(2),
+    ]);
+
+    const parts: string[] = [];
+
+    for (const reply of autoReplies ?? []) {
+      const p = reply.payload as { subject?: string; body?: string } | null;
+      if (p?.subject || p?.body) {
+        const date = new Date(reply.created_at as string).toLocaleDateString("en-AU");
+        parts.push(`[Hollis reply — ${date}]\nSubject: ${p.subject ?? ""}\n${(p.body ?? "").slice(0, 600)}`);
+      }
+    }
+
+    for (const tp of sentTouchpoints ?? []) {
+      const date = tp.sent_at
+        ? new Date(tp.sent_at as string).toLocaleDateString("en-AU")
+        : "unknown date";
+      parts.push(`[Campaign email — ${date} (${tp.type})]\nSubject: ${tp.subject ?? ""}\n${(tp.content ?? "").slice(0, 600)}`);
+    }
+
+    if (parts.length > 0) outboundHistory = parts.join("\n\n---\n\n");
+  } catch (histErr) {
+    console.warn("[process-signal] Failed to fetch outbound history:", histErr);
+  }
+
   // Resolve recipient — prefer the inbound sender, fall back to policy client_email
   const recipientEmail = senderEmail ?? (policy.client_email as string | null) ?? null;
 
@@ -258,6 +346,7 @@ export async function processInboundSignal(
               standingOrders:
                 (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
               clientNotes: null,
+              outboundHistory,
             });
           } else {
             const { generateAckEmail } = await import("@/lib/agent/responder");
@@ -272,12 +361,23 @@ export async function processInboundSignal(
             );
           }
 
+          // Build thread headers so the reply appears in the same email thread
+          const threadHeaders: Record<string, string> = {};
+          if (messageId) {
+            threadHeaders["In-Reply-To"] = messageId;
+            const existingRefs = (referencesHeaders ?? "").replace(/[\n\r\t,]+/g, " ").split(/\s+/).filter(Boolean);
+            if (!existingRefs.includes(messageId)) existingRefs.push(messageId);
+            threadHeaders["References"] = existingRefs.join(" ");
+          }
+
+          const replySubject = draft.subject && /^Re:\s*/i.test(draft.subject) ? draft.subject : `Re: ${draft.subject ?? "Your email"}`;
           const { data: sent } = await resend.emails.send({
             from,
             to: recipientEmail,
-            subject: draft.subject,
+            subject: replySubject,
             text: draft.body,
             replyTo: process.env.INBOUND_EMAIL ?? (profile as { email?: string | null } | null)?.email ?? undefined,
+            ...(Object.keys(threadHeaders).length > 0 ? { headers: threadHeaders } : {}),
           });
 
           // Intent-specific side effects
@@ -316,11 +416,32 @@ export async function processInboundSignal(
               body: draft.body,
               recipient: recipientEmail,
               provider_message_id: (sent as { id?: string } | null)?.id ?? null,
+              in_reply_to: messageId ?? null,
+              references: referencesHeaders ?? null,
             },
             metadata: { signal_id: signal.id, intent, confidence: classification.confidence },
             outcome: "sent",
             retain_until: retainStandard(),
           });
+
+          // FYI the broker whenever Hollis sends an autonomous soft_query reply so
+          // they know what was sent and can follow up if the reply deferred to them.
+          if (intent === "soft_query") {
+            notifyBrokerSoftQuerySent(
+              admin,
+              userId,
+              policyId,
+              policy.client_name as string,
+              policy.policy_name as string,
+              recipientEmail,
+              draft
+            ).catch((err) =>
+              console.error(
+                "[process-signal] Broker soft_query FYI failed:",
+                err instanceof Error ? err.message : err
+              )
+            );
+          }
         } catch (execErr) {
           console.error(
             `[process-signal] Tier 1 "${intent}" execution failed:`,
@@ -359,7 +480,7 @@ export async function processInboundSignal(
     // Pre-generate a reply draft for soft_query signals so the broker sees
     // a ready-to-approve response in the inbox.
     if (
-      classification.intent === "soft_query" &&
+      (classification.intent === "soft_query" || classification.intent === "schedule_meeting") &&
       tierDecision.proposed_action.action_type === "draft_and_send_response" &&
       recipientEmail
     ) {
@@ -369,6 +490,7 @@ export async function processInboundSignal(
           standingOrders:
             (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
           clientNotes: null,
+          outboundHistory,
         });
         tierDecision.proposed_action.payload = {
           ...tierDecision.proposed_action.payload,
@@ -384,6 +506,16 @@ export async function processInboundSignal(
       }
     }
 
+    // Merge attachment info into proposed_action payload if we stored one
+    if (attachmentStoragePath && tierDecision.proposed_action) {
+      tierDecision.proposed_action.payload = {
+        ...tierDecision.proposed_action.payload,
+        attachment_path: attachmentStoragePath,
+        attachment_filename: attachmentFilename,
+        attachment_content_type: attachmentContentType,
+      };
+    }
+
     const { data: queueItem, error: queueError } = await admin
       .from("approval_queue")
       .insert({
@@ -396,6 +528,8 @@ export async function processInboundSignal(
         proposed_action: tierDecision.proposed_action,
         status: "pending",
         doc_chase_request_id: docChaseRequestId,
+        in_reply_to: messageId ?? null,
+        email_references: referencesHeaders ?? null,
       })
       .select("id")
       .single();

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePostHog } from "posthog-js/react";
 import { Pause, Play } from "lucide-react";
 import { SaveButton } from "./SaveButton";
 
@@ -28,7 +27,6 @@ export function HollisSection({
   const [error,  setError]      = useState<string | null>(null);
   const [paused, setPaused]     = useState(initialPaused);
   const [toggling, setToggling] = useState(false);
-  const posthog = usePostHog();
 
   // Keep local state in sync if parent re-renders
   useEffect(() => {
@@ -50,7 +48,6 @@ export function HollisSection({
         throw new Error(d.error ?? "Update failed");
       }
       setPaused(next);
-      posthog.capture("automation_paused_toggled", { paused: next });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
     } finally {
@@ -74,7 +71,6 @@ export function HollisSection({
         throw new Error(d.error ?? "Save failed");
       }
       setSaved(true);
-      posthog.capture("settings_saved", { section: "hollis_instructions", char_count: value.length });
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");

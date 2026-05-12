@@ -22,7 +22,6 @@ import type {
   TouchpointStatus,
 } from "@/types/renewals";
 import { RenewalOverrideControls } from "@/components/renewals/RenewalOverrideControls";
-import { RenewalViewTracker } from "@/components/analytics/RenewalViewTracker";
 // import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
 import { AuditTimeline } from "@/components/renewals/AuditTimeline";
 import { PolicyTimelinePanel } from "@/components/renewals/PolicyTimelinePanel";
@@ -117,7 +116,6 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--background)" }}>
-      <RenewalViewTracker policyId={p.id} policyName={p.policy_name} />
       {/* Header */}
       <div className="flex items-center gap-3 px-10 h-[56px] shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
         <Breadcrumb crumbs={crumbs} current={p.policy_name} />

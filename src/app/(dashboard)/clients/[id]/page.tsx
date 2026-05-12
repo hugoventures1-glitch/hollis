@@ -4,7 +4,7 @@ import Link from "next/link";
 import { RefreshCcw } from "lucide-react";
 import { ClientEditDrawer } from "./ClientEditDrawer";
 import { DocChasePanel } from "./DocChasePanel";
-import { ReferenceDocsPanel } from "./ReferenceDocsPanel";
+import { ClientKnowledgeBasePanel } from "./ClientKnowledgeBasePanel";
 import { QuickActions } from "./QuickActions";
 import { CommsHistoryPanel } from "./CommsHistoryPanel";
 import type { CommsLogEntry } from "./CommsHistoryPanel";
@@ -439,8 +439,11 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
               startChaseHref={`/documents?trail=${buildTrailParam(crumbs, client.name, selfHref)}`}
             />
 
-            {/* AI Reference Docs */}
-            <ReferenceDocsPanel clientId={client.id} />
+            {/* Knowledge Base (notes + stored files) */}
+            <ClientKnowledgeBasePanel
+              clientId={client.id}
+              initialValue={(client as unknown as { knowledge_base?: string | null }).knowledge_base ?? ""}
+            />
 
             {/* Open Items */}
             <div className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-4">

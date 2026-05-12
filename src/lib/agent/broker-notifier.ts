@@ -123,6 +123,87 @@ export async function sendBrokerAlert(params: BrokerNotifierParams): Promise<voi
 }
 
 /**
+ * Sends a lightweight FYI email to the broker when Hollis sends an autonomous
+ * soft_query reply. The broker is not required to act, but they need to know
+ * what was sent so they can follow up if the reply deferred to them.
+ */
+export async function notifyBrokerSoftQuerySent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  policyId: string,
+  clientName: string,
+  policyName: string,
+  recipientEmail: string,
+  draft: { subject: string; body: string }
+): Promise<void> {
+  const [profileRes, userRes] = await Promise.all([
+    supabase
+      .from("agent_profiles")
+      .select("first_name, last_name, email_from_name")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase.auth.admin.getUserById(userId),
+  ]);
+
+  const profile = profileRes.data;
+  const brokerName = profile
+    ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "there"
+    : "there";
+  const senderName = profile?.email_from_name ?? undefined;
+  const brokerEmail = userRes?.data?.user?.email;
+
+  if (!brokerEmail) {
+    console.warn("[broker-notifier] Could not resolve broker email for soft_query FYI, user", userId);
+    return;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.hollis.ai";
+  const policyUrl = `${appUrl}/renewals/${policyId}`;
+
+  const text = `Hi ${brokerName},
+
+FYI — Hollis sent an autonomous reply to ${clientName} regarding their ${policyName} policy.
+
+──────────────────────────────────────
+CLIENT:   ${clientName}
+POLICY:   ${policyName}
+SENT TO:  ${recipientEmail}
+──────────────────────────────────────
+
+REPLY SUBJECT:
+${draft.subject}
+
+REPLY SENT:
+${draft.body}
+
+──────────────────────────────────────
+
+No action is required unless the reply indicated that you would follow up directly — in which case, please contact the client.
+
+View this policy in Hollis:
+${policyUrl}
+
+─
+Hollis Renewal Intelligence`;
+
+  const resend = getResendClient();
+  const baseFrom = process.env.FROM_EMAIL ?? "hugo@hollisai.com.au";
+  const from = senderName ? `${senderName} <${baseFrom}>` : baseFrom;
+
+  const { error } = await resend.emails.send({
+    from,
+    to: brokerEmail,
+    subject: `FYI: Hollis replied to ${clientName} — ${policyName}`,
+    text,
+  });
+
+  if (error) {
+    console.error("[broker-notifier] Failed to send soft_query FYI to", brokerEmail, error);
+  }
+}
+
+/**
  * Fetches the broker's email and name from agent_profiles, then sends the alert.
  * Accepts the admin supabase client so it can be called from crons and API routes.
  */

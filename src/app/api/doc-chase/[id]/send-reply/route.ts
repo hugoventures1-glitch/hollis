@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   // Verify ownership
   const { data: chase } = await supabase
     .from("doc_chase_requests")
-    .select("id, client_email, client_name, document_type, policy_id")
+    .select("id, client_email, client_name, document_type, policy_id, last_client_message_id")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -61,12 +61,20 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
+    const threadHeaders: Record<string, string> = {};
+    if (chase.last_client_message_id) {
+      threadHeaders["In-Reply-To"] = chase.last_client_message_id;
+      threadHeaders["References"] = chase.last_client_message_id;
+    }
+
+    const replySubject = subject && /^Re:\s*/i.test(subject) ? subject : `Re: ${subject || chase.document_type}`;
     await resend.emails.send({
       from,
       to: chase.client_email,
-      subject: subject || `Re: ${chase.document_type}`,
+      subject: replySubject,
       text: emailBody,
       ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(Object.keys(threadHeaders).length > 0 ? { headers: threadHeaders } : {}),
     });
 
     void logAction({

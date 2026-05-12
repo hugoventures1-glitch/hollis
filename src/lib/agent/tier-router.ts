@@ -112,6 +112,10 @@ function buildProposedAction(intent: string, classification: ClassificationResul
       description: "Agent identified a required document — approve to start a doc chase sequence for this client",
       action_type: "create_doc_chase_request",
     },
+    schedule_meeting: {
+      description: "Client is requesting a meeting or call — draft a reply offering time options for broker to customise and send",
+      action_type: "draft_and_send_response",
+    },
   };
 
   // When an active doc chase exists, override document_received to close_doc_chase

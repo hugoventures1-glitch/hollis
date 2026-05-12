@@ -43,6 +43,7 @@ interface ResendInboundPayload {
     from: string;
     to: string[];
     subject: string;
+    headers?: Record<string, string>;
   };
 }
 
@@ -50,7 +51,10 @@ interface ResendInboundAttachment {
   filename: string;
   content_type: string;
   size: number;
-  url: string;
+  // Resend may deliver attachment bytes as base64 `content` OR as a `url` to fetch.
+  // Handle both — prefer `content` to avoid an extra round-trip.
+  content?: string | null;  // base64-encoded bytes
+  url?: string | null;       // signed download URL
 }
 
 interface ResendReceivedEmail {
@@ -61,6 +65,7 @@ interface ResendReceivedEmail {
   text?: string | null;
   html?: string | null;
   attachments?: ResendInboundAttachment[] | null;
+  headers?: Record<string, string>;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -139,8 +144,9 @@ async function processDocChaseForSender(opts: {
   emailContent: ResendReceivedEmail;
   resendApiKey: string;
   email_id: string;
+  messageId?: string | null;
 }): Promise<void> {
-  const { admin, senderEmail, rawSignal, emailContent, resendApiKey, email_id } = opts;
+  const { admin, senderEmail, rawSignal, emailContent, resendApiKey, email_id, messageId } = opts;
 
   const { data: activeChases } = await admin
     .from("doc_chase_requests")
@@ -153,9 +159,15 @@ async function processDocChaseForSender(opts: {
   const replyAt = new Date().toISOString();
   const ids = activeChases.map((r: { id: string }) => r.id);
 
+  const dcUpdate: Record<string, unknown> = {
+    last_client_reply: rawSignal.slice(0, 2000) || null,
+    last_client_reply_at: replyAt,
+  };
+  if (messageId) dcUpdate.last_client_message_id = messageId;
+
   await admin
     .from("doc_chase_requests")
-    .update({ last_client_reply: rawSignal.slice(0, 2000) || null, last_client_reply_at: replyAt })
+    .update(dcUpdate)
     .in("id", ids);
 
   await logWebhookEvent({
@@ -180,22 +192,39 @@ async function processDocChaseForSender(opts: {
   if (firstAttachment) {
     // ── Attachment path: store only — broker validates manually via inbox ──
     try {
-      const attachRes = await fetch(firstAttachment.url, {
-        headers: { Authorization: `Bearer ${resendApiKey}` },
-      });
+      let attachBuffer: Buffer;
 
-      if (!attachRes.ok) {
+      if (firstAttachment.content) {
+        // Resend delivers base64-encoded content directly — decode it
+        attachBuffer = Buffer.from(firstAttachment.content, "base64");
+      } else if (firstAttachment.url) {
+        // Resend provides a signed URL to fetch
+        const attachRes = await fetch(firstAttachment.url, {
+          headers: { Authorization: `Bearer ${resendApiKey}` },
+        });
+        if (!attachRes.ok) {
+          await logWebhookEvent({
+            endpoint: ENDPOINT,
+            gate: "pipeline_error",
+            email_id,
+            sender_email: senderEmail,
+            detail: { error: "attachment_fetch_failed", status: attachRes.status },
+          });
+          // Don't return — still process the text reply
+          return;
+        }
+        attachBuffer = Buffer.from(await attachRes.arrayBuffer());
+      } else {
+        // No content or url — log and skip attachment
         await logWebhookEvent({
           endpoint: ENDPOINT,
           gate: "pipeline_error",
           email_id,
           sender_email: senderEmail,
-          detail: { error: "attachment_fetch_failed", status: attachRes.status },
+          detail: { error: "attachment_no_content_or_url", filename: firstAttachment.filename },
         });
         return;
       }
-
-      const attachBuffer = Buffer.from(await attachRes.arrayBuffer());
 
       for (const chase of activeChases) {
         const uuid = crypto.randomUUID();
@@ -535,6 +564,8 @@ export async function POST(request: NextRequest) {
     detail: {
       has_text: Boolean(emailContent.text?.trim()),
       has_html: Boolean(emailContent.html?.trim()),
+      attachment_count: emailContent.attachments?.length ?? 0,
+      attachment_types: emailContent.attachments?.map((a) => a.content_type) ?? [],
     },
   });
 
@@ -547,6 +578,37 @@ export async function POST(request: NextRequest) {
   } else {
     rawSignal = "";
   }
+
+  // ── Extract email thread headers ───────────────────────────────────────────
+  // Resend may send headers as either a flat Record<string, string> or as an
+  // array of { name: string; value: string } objects. Normalise both shapes
+  // and lowercase all keys so lookups are case-insensitive.
+  function normalizeHeaders(raw: unknown): Record<string, string> {
+    if (!raw) return {};
+    if (typeof raw === "object" && !Array.isArray(raw)) {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        out[k.toLowerCase()] = typeof v === "string" ? v : String(v);
+      }
+      return out;
+    }
+    if (Array.isArray(raw)) {
+      const out: Record<string, string> = {};
+      for (const item of raw) {
+        if (item && typeof item === "object" && "name" in item && "value" in item) {
+          const name = String(item.name).toLowerCase();
+          out[name] = String(item.value);
+        }
+      }
+      return out;
+    }
+    return {};
+  }
+
+  const inboundHeaders = normalizeHeaders(payload.data.headers ?? emailContent.headers);
+  const messageId = inboundHeaders["message-id"] ?? null;
+  const inReplyTo = inboundHeaders["in-reply-to"] ?? null;
+  const referencesHdr = inboundHeaders["references"] ?? null;
 
   // ── Parse sender ───────────────────────────────────────────────────────────
   const { email: senderEmail, name: senderName } = parseFromHeader(from);
@@ -576,6 +638,7 @@ export async function POST(request: NextRequest) {
       emailContent,
       resendApiKey,
       email_id,
+      messageId,
     });
     return NextResponse.json({ ok: true });
   }
@@ -600,15 +663,16 @@ export async function POST(request: NextRequest) {
         sender_email: senderEmail,
         detail: { note: "Active doc chase found — skipping signal pipeline" },
       });
-      await processDocChaseForSender({
-        admin,
-        senderEmail,
-        rawSignal,
-        emailContent,
-        resendApiKey,
-        email_id,
-      });
-      return NextResponse.json({ ok: true });
+    await processDocChaseForSender({
+      admin,
+      senderEmail,
+      rawSignal,
+      emailContent,
+      resendApiKey,
+      email_id,
+      messageId,
+    });
+    return NextResponse.json({ ok: true });
     }
   }
 
@@ -676,6 +740,7 @@ export async function POST(request: NextRequest) {
       emailContent,
       resendApiKey,
       email_id,
+      messageId,
     });
 
     return NextResponse.json({ ok: true });
@@ -725,6 +790,40 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  // ── Fetch signal attachment (if present) ──────────────────────────────────────
+  // Stored to Supabase storage inside processInboundSignal (needs signal.id first).
+  // We fetch the bytes here so the webhook doesn't need to re-fetch them later.
+  const signalAttachmentMimeTypes = new Set([
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ]);
+  let signalAttachment: { buffer: Buffer; filename: string; content_type: string } | null = null;
+  const signalFirstAttach = (emailContent.attachments ?? []).find((a) =>
+    signalAttachmentMimeTypes.has(a.content_type)
+  );
+  if (signalFirstAttach) {
+    try {
+      let buf: Buffer;
+      if (signalFirstAttach.content) {
+        buf = Buffer.from(signalFirstAttach.content, "base64");
+      } else if (signalFirstAttach.url) {
+        const r = await fetch(signalFirstAttach.url, { headers: { Authorization: `Bearer ${resendApiKey}` } });
+        if (r.ok) buf = Buffer.from(await r.arrayBuffer());
+        else buf = Buffer.alloc(0);
+      } else {
+        buf = Buffer.alloc(0);
+      }
+      if (buf.length > 0) {
+        signalAttachment = { buffer: buf, filename: signalFirstAttach.filename, content_type: signalFirstAttach.content_type };
+      }
+    } catch (attachFetchErr) {
+      console.error("[webhook/resend/inbound] Signal attachment fetch failed:", attachFetchErr);
+    }
+  }
+
   try {
     await processInboundSignal({
       admin,
@@ -736,6 +835,11 @@ export async function POST(request: NextRequest) {
       senderName,
       source: "email",
       recentOutcomes: (recentOutcomes as ParserOutcome[]) ?? [],
+      emailId: email_id,
+      messageId,
+      inReplyTo,
+      referencesHeaders: referencesHdr,
+      attachment: signalAttachment,
     });
 
     await logWebhookEvent({
@@ -756,6 +860,7 @@ export async function POST(request: NextRequest) {
       emailContent,
       resendApiKey,
       email_id,
+      messageId,
     });
   } catch (pipelineErr) {
     await logWebhookEvent({

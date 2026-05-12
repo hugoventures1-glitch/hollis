@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   // Auth: verify client belongs to this user
   const { data: client, error: clientErr } = await supabase
     .from("clients")
-    .select("id, name, email, phone, business_type, industry, primary_state, notes")
+    .select("id, name, email, phone, business_type, industry, primary_state, notes, knowledge_base")
     .eq("id", clientId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -193,12 +193,16 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const knowledgeBase = ((client as any).knowledge_base as string | null) ?? null;
+
   const systemPrompt = `You are Hollis, an AI assistant inside an insurance broker's book-of-business software. You are answering questions about a specific client: ${client.name}.
 
 Today: ${today}
 
 Client context:
 ${JSON.stringify(contextSummary, null, 2)}
+${knowledgeBase ? `\nBroker knowledge base (freeform notes, imported documents, and key info the broker has recorded about this client):\n${knowledgeBase.slice(0, 8000)}` : ""}
 
 Your job is to answer the broker's question about this client and return a structured response.
 

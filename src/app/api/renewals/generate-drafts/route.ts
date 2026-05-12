@@ -66,23 +66,13 @@ export async function POST() {
     const premiumLine = policy.premium
       ? `$${Number(policy.premium).toLocaleString()} annual premium`
       : "premium not on file";
-    const stageNote =
-      policy.campaign_stage === "email_90_sent"
-        ? "A 90-day notice was already sent."
-        : policy.campaign_stage === "email_60_sent"
-        ? "A 60-day notice was already sent."
-        : policy.campaign_stage === "sms_30_sent"
-        ? "An SMS reminder was already sent."
-        : "This is the first outreach for this renewal.";
-
     const userMessage =
       `Write a renewal outreach email for:\n` +
       `- Client: ${policy.client_name}\n` +
       `- Carrier: ${policy.carrier ?? "the current carrier"}\n` +
       `- Policy: ${policy.policy_name ?? "insurance policy"}\n` +
       `- Expiration: ${policy.expiration_date} (${days} days from today)\n` +
-      `- Premium: ${premiumLine}\n` +
-      `- Context: ${stageNote}`;
+      `- Premium: ${premiumLine}`;
 
     try {
       const msg = await anthropic.messages.create({

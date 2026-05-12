@@ -124,9 +124,9 @@ function isEscalated(a: HollisAction): boolean {
 }
 
 function circleStyle(a: HollisAction): { fill: string; border: string } {
-  if (isEscalated(a) || a.outcome === "failed") return { fill: "#7f1d1d", border: "#ef4444" };
-  if (a.outcome === "queued")  return { fill: "#3f3f46", border: "#71717a" };
-  return { fill: "#1a4a2e", border: "#00d4aa" };
+  if (isEscalated(a) || a.outcome === "failed") return { fill: "var(--danger)", border: "var(--danger)" };
+  if (a.outcome === "queued")  return { fill: "var(--text-tertiary)", border: "var(--text-secondary)" };
+  return { fill: "var(--accent)", border: "var(--accent)" };
 }
 
 function formatTime(iso: string): string {
@@ -163,8 +163,8 @@ function Circle({ action }: { action: HollisAction }) {
   if (isLive(action)) {
     return (
       <span className="relative flex items-center justify-center shrink-0" style={{ width: 8, height: 8 }}>
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#00d4aa" }} />
-        <span className="relative inline-flex rounded-full" style={{ width: 8, height: 8, background: "#00d4aa" }} />
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "var(--accent)" }} />
+        <span className="relative inline-flex rounded-full" style={{ width: 8, height: 8, background: "var(--accent)" }} />
       </span>
     );
   }
@@ -180,14 +180,14 @@ function Circle({ action }: { action: HollisAction }) {
 
 function OutcomePill({ outcome }: { outcome: string }) {
   const colors: Record<string, { bg: string; text: string; border: string }> = {
-    sent:      { bg: "#0d2b1e", text: "#00d4aa", border: "#00d4aa33" },
-    queued:    { bg: "#1c1c1c", text: "#71717a", border: "#3f3f46"   },
-    escalated: { bg: "#2d0e0e", text: "#ef4444", border: "#ef444433" },
-    failed:    { bg: "#2d0e0e", text: "#ef4444", border: "#ef444433" },
-    halted:    { bg: "#1c1c1c", text: "#71717a", border: "#3f3f46"   },
-    classified:{ bg: "#1c1c1c", text: "#a1a1aa", border: "#3f3f46"   },
+    sent:      { bg: "var(--accent)",      text: "var(--accent)",      border: "rgba(0,212,170,0.25)" },
+    queued:    { bg: "var(--hover-overlay)", text: "var(--text-secondary)", border: "var(--border)" },
+    escalated: { bg: "rgba(239,68,68,0.08)", text: "var(--danger)",     border: "rgba(239,68,68,0.25)" },
+    failed:    { bg: "rgba(239,68,68,0.08)", text: "var(--danger)",     border: "rgba(239,68,68,0.25)" },
+    halted:    { bg: "var(--hover-overlay)", text: "var(--text-secondary)", border: "var(--border)" },
+    classified:{ bg: "var(--hover-overlay)", text: "var(--text-tertiary)", border: "var(--border)" },
   };
-  const c = colors[outcome] ?? { bg: "#1c1c1c", text: "#a1a1aa", border: "#3f3f46" };
+  const c = colors[outcome] ?? { bg: "var(--hover-overlay)", text: "var(--text-tertiary)", border: "var(--border)" };
   return (
     <span
       className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded"
@@ -201,11 +201,11 @@ function OutcomePill({ outcome }: { outcome: string }) {
 // ── Tier badge ─────────────────────────────────────────────────────────────────
 
 function TierBadge({ tier }: { tier: string | null }) {
-  if (!tier) return <span style={{ color: "#52525b" }}>—</span>;
+  if (!tier) return <span style={{ color: "var(--text-tertiary)" }}>—</span>;
   const c =
-    tier === "3" ? { bg: "#2d0e0e", text: "#ef4444", border: "#ef444433" } :
-    tier === "2" ? { bg: "#1c1c1c", text: "#a1a1aa", border: "#3f3f46"   } :
-                   { bg: "#0d2b1e", text: "#00d4aa", border: "#00d4aa33" };
+    tier === "3" ? { bg: "rgba(239,68,68,0.08)", text: "var(--danger)", border: "rgba(239,68,68,0.25)" } :
+    tier === "2" ? { bg: "var(--hover-overlay)", text: "var(--text-secondary)", border: "var(--border)" } :
+                   { bg: "var(--accent)",        text: "var(--accent)",        border: "rgba(0,212,170,0.25)" };
   return (
     <span
       className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded"
@@ -224,26 +224,26 @@ function SystemLog({ action }: { action: HollisAction }) {
     { time: isoToHMS(action.created_at, 0), label: "INIT",    value: action.action_type.toUpperCase() },
     { time: isoToHMS(action.created_at, 1), label: "CLIENT",  value: clientName },
     { time: isoToHMS(action.created_at, 2), label: "TIER",    value: `${action.tier ?? "—"} · ${action.outcome.toUpperCase()}`,
-      colour: isEscalated(action) ? "#ef4444" : undefined },
+      colour: isEscalated(action) ? "var(--danger)" : undefined },
     { time: isoToHMS(action.created_at, 3), label: "TRIGGER", value: action.trigger_reason.slice(0, 80) },
     {
       time: isoToHMS(action.created_at, 4),
       label: action.outcome === "sent" ? "SUCCESS" : action.outcome === "failed" ? "FAILURE" : "STATUS",
       value: action.outcome.toUpperCase(),
-      colour: action.outcome === "sent" ? "#00d4aa" : action.outcome === "failed" ? "#ef4444" : undefined,
+      colour: action.outcome === "sent" ? "var(--accent)" : action.outcome === "failed" ? "var(--danger)" : undefined,
     },
   ];
 
   return (
     <div
       className="font-mono text-[12px] leading-[1.8]"
-      style={{ background: "#000", border: "1px solid #27272a", borderRadius: 4, padding: "12px 16px" }}
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, padding: "12px 16px" }}
     >
       {lines.map((l, i) => (
         <div key={i} className="flex gap-3">
-          <span style={{ color: "#3f3f46", flexShrink: 0 }}>{l.time}</span>
-          <span style={{ color: l.colour ?? "#71717a" }}>
-            <span style={{ color: l.colour ?? "#52525b" }}>{l.label}:</span>{" "}
+          <span style={{ color: "var(--text-tertiary)", flexShrink: 0 }}>{l.time}</span>
+          <span style={{ color: l.colour ?? "var(--text-secondary)" }}>
+            <span style={{ color: l.colour ?? "var(--text-tertiary)" }}>{l.label}:</span>{" "}
             {l.value}
           </span>
         </div>
@@ -266,7 +266,7 @@ function Inspector({
   if (!action) {
     return (
       <div className="flex items-center justify-center h-full">
-        <span style={{ color: "#52525b", fontSize: 13 }}>Select an action to inspect.</span>
+        <span style={{ color: "var(--text-tertiary)", fontSize: 13 }}>Select an action to inspect.</span>
       </div>
     );
   }
@@ -298,89 +298,88 @@ function Inspector({
   return (
     <div className="relative flex flex-col h-full overflow-y-auto">
       {/* Top-right buttons */}
-      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-        {action.archived ? (
-          <span className="text-[12px]" style={{ color: "#52525b" }}>Archived</span>
-        ) : (
-          <button
-            onClick={() => onArchive(action.id)}
-            className="h-7 px-3 text-[12px] transition-colors rounded"
-            style={{ border: "1px solid #3f3f46", color: "#a1a1aa", background: "transparent" }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#71717a")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#3f3f46")}
-          >
-            Archive
-          </button>
-        )}
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">          {action.archived ? (
+            <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>Archived</span>
+          ) : (
+            <button
+              onClick={() => onArchive(action.id)}
+              className="h-7 px-3 text-[12px] transition-colors rounded"
+              style={{ border: "1px solid var(--border)", color: "var(--text-secondary)", background: "transparent" }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--text-secondary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            >
+              Archive
+            </button>
+          )}
       </div>
 
       {/* Section A — Reasoning */}
-      <div className="px-6 pt-4 pb-5" style={{ borderBottom: "1px solid #27272a" }}>
+      <div className="px-6 pt-4 pb-5" style={{ borderBottom: "1px solid var(--border)" }}>
         <div
           className="uppercase tracking-widest mb-3"
-          style={{ fontSize: 11, color: "#71717a", fontVariant: "small-caps" }}
+          style={{ fontSize: 11, color: "var(--text-secondary)", fontVariant: "small-caps" }}
         >
           Reasoning
         </div>
         <div
           className="font-mono text-[13px] leading-[1.6]"
-          style={{ background: "#09090b", border: "1px solid #27272a", borderRadius: 4, padding: "12px 16px", color: "#d4d4d8" }}
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, padding: "12px 16px", color: "var(--text-secondary)" }}
         >
           {action.trigger_reason}
         </div>
       </div>
 
       {/* Section B — Entity */}
-      <div className="px-6 py-5" style={{ borderBottom: "1px solid #27272a" }}>
+      <div className="px-6 py-5" style={{ borderBottom: "1px solid var(--border)" }}>
         <div
           className="uppercase tracking-widest mb-3"
-          style={{ fontSize: 11, color: "#71717a", fontVariant: "small-caps" }}
+          style={{ fontSize: 11, color: "var(--text-secondary)", fontVariant: "small-caps" }}
         >
           Entity
         </div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-3">
           {entityFields.map(({ label, value }) => (
             <div key={label}>
-              <div style={{ fontSize: 12, color: "#71717a", marginBottom: 2 }}>{label}</div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "#e4e4e7" }}>{value}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{value}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Section C — Payload */}
-      <div className="px-6 py-5" style={{ borderBottom: "1px solid #27272a" }}>
+      <div className="px-6 py-5" style={{ borderBottom: "1px solid var(--border)" }}>
         <div
           className="uppercase tracking-widest mb-3"
-          style={{ fontSize: 11, color: "#71717a", fontVariant: "small-caps" }}
+          style={{ fontSize: 11, color: "var(--text-secondary)", fontVariant: "small-caps" }}
         >
           Payload
         </div>
         {body ? (
           <div
-            style={{ background: "#09090b", border: "1px solid #27272a", borderRadius: 4, overflow: "hidden" }}
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, overflow: "hidden" }}
           >
             {/* Header bar */}
             <div
               className="flex items-start justify-between gap-4 px-4 py-3"
-              style={{ background: "#18181b", borderBottom: "1px solid #27272a" }}
+              style={{ background: "var(--surface-raised)", borderBottom: "1px solid var(--border)" }}
             >
               <div className="min-w-0">
                 {subject && (
                   <div
-                    className="font-display text-[14px] text-white truncate mb-0.5"
-                    style={{ fontFamily: "var(--font-display)" }}
+                    className="font-display text-[14px] truncate mb-0.5"
+                    style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
                   >
                     {subject}
                   </div>
                 )}
-                <div className="text-[12px]" style={{ color: "#71717a" }}>
+                <div className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
                   {recipientName} · {recipientEmail}
                 </div>
               </div>
               <span
                 className="shrink-0 text-[10px] uppercase tracking-wider px-2 py-1 rounded font-mono"
-                style={{ border: "1px solid #3f3f46", color: "#a1a1aa" }}
+                style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
               >
                 {channel}
               </span>
@@ -388,13 +387,13 @@ function Inspector({
             {/* Body */}
             <div
               className="text-[13px] leading-[1.7] whitespace-pre-wrap"
-              style={{ padding: "16px", color: "#d4d4d8" }}
+              style={{ padding: "16px", color: "var(--text-secondary)" }}
             >
               {body}
             </div>
           </div>
         ) : (
-          <span className="text-[13px] italic" style={{ color: "#52525b" }}>
+          <span className="text-[13px] italic" style={{ color: "var(--text-tertiary)" }}>
             No message payload for this action type.
           </span>
         )}
@@ -404,7 +403,7 @@ function Inspector({
       <div className="px-6 py-5">
         <div
           className="uppercase tracking-widest mb-3"
-          style={{ fontSize: 11, color: "#71717a", fontVariant: "small-caps" }}
+          style={{ fontSize: 11, color: "var(--text-secondary)", fontVariant: "small-caps" }}
         >
           System Log
         </div>
@@ -433,11 +432,11 @@ function EventRow({
         height: 56,
         paddingLeft: 16,
         paddingRight: 16,
-        borderLeft: selected ? "2px solid #ffffff" : "2px solid transparent",
-        background: selected ? "#18181b" : "transparent",
+        borderLeft: selected ? "2px solid var(--text-primary)" : "2px solid transparent",
+        background: selected ? "var(--surface-raised)" : "transparent",
       }}
       onMouseEnter={(e) => {
-        if (!selected) (e.currentTarget as HTMLElement).style.background = "rgba(24,24,27,0.5)";
+        if (!selected) (e.currentTarget as HTMLElement).style.background = "var(--hover-overlay)";
       }}
       onMouseLeave={(e) => {
         if (!selected) (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -448,16 +447,16 @@ function EventRow({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium truncate" style={{ color: "#fafafa" }}>
+        <div className="text-[13px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
           {action.policies?.client_name ?? action.clients?.name ?? "Unknown client"}
         </div>
-        <div className="text-[12px] truncate" style={{ color: "#71717a" }}>
+        <div className="text-[12px] truncate" style={{ color: "var(--text-secondary)" }}>
           {actionLabel(action)}
         </div>
       </div>
 
       {/* Timestamp */}
-      <div className="shrink-0 text-[11px]" style={{ color: "#52525b" }}>
+      <div className="shrink-0 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
         {formatTime(action.created_at)}
       </div>
     </div>
@@ -485,13 +484,13 @@ function DateGroup({
       <div className="px-4 pt-5 pb-2">
         <div
           className="font-display text-[16px] font-black leading-tight"
-          style={{ fontFamily: "var(--font-display)", color: "#fafafa" }}
+          style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
         >
           {formatDateHeader(dateKey)}
         </div>
         <div
           className="uppercase tracking-widest mt-0.5"
-          style={{ fontSize: 11, color: "#71717a", fontVariant: "small-caps" }}
+          style={{ fontSize: 11, color: "var(--text-secondary)", fontVariant: "small-caps" }}
         >
           {actions.length} action{actions.length !== 1 ? "s" : ""} taken
           {issues > 0 && ` · ${issues} issue${issues !== 1 ? "s" : ""} flagged`}
@@ -503,7 +502,7 @@ function DateGroup({
         {/* Continuous vertical line */}
         <div
           className="absolute top-0 bottom-0"
-          style={{ left: 20, width: 1, background: "#27272a" }}
+          style={{ left: 20, width: 1, background: "var(--border)" }}
         />
         {actions.map((a) => (
           <EventRow
@@ -630,11 +629,11 @@ export default function HistoryPanel() {
       <div className="flex flex-col items-center justify-center h-full text-center px-8">
         <div
           className="font-display italic text-[20px] mb-3"
-          style={{ fontFamily: "var(--font-display)", color: "#71717a" }}
+          style={{ fontFamily: "var(--font-display)", color: "var(--text-secondary)" }}
         >
           Hollis hasn&apos;t taken any automated actions yet.
         </div>
-        <div style={{ fontSize: 13, color: "#52525b", lineHeight: 1.6, maxWidth: 380 }}>
+        <div style={{ fontSize: 13, color: "var(--text-tertiary)", lineHeight: 1.6, maxWidth: 380 }}>
           Actions will appear here as your renewals, document chasing, and COI workflows run.
         </div>
       </div>
@@ -642,12 +641,12 @@ export default function HistoryPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "#000", color: "#fafafa" }}>
+    <div className="flex flex-col h-full" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
 
       {/* ── Filter bar ── */}
       <div
         className="shrink-0 flex items-center justify-between px-4"
-        style={{ height: 48, borderBottom: "1px solid #27272a", background: "#000" }}
+        style={{ height: 48, borderBottom: "1px solid var(--border)", background: "var(--background)" }}
       >
         {/* Filter pills */}
         <div className="flex items-center gap-1">
@@ -659,8 +658,8 @@ export default function HistoryPanel() {
                 onClick={() => setFilterGroup(g.id)}
                 className="px-3 py-1 text-[12px] rounded transition-colors"
                 style={{
-                  background: active ? "#27272a" : "transparent",
-                  color:      active ? "#fafafa"  : "#71717a",
+                  background: active ? "var(--border)" : "transparent",
+                  color:      active ? "var(--text-primary)" : "var(--text-secondary)",
                   border:     "none",
                 }}
               >
@@ -678,9 +677,9 @@ export default function HistoryPanel() {
           placeholder="Search clients or policies..."
           className="bg-transparent outline-none text-[13px]"
           style={{
-            color: "#a1a1aa",
+            color: "var(--text-primary)",
             width: 240,
-            borderBottom: "1px solid #3f3f46",
+            borderBottom: "1px solid var(--border)",
             paddingBottom: 2,
           }}
         />
@@ -692,14 +691,14 @@ export default function HistoryPanel() {
         {/* ── Left column ── */}
         <div
           className={`flex flex-col shrink-0 overflow-y-auto ${mobileView === "detail" ? "hidden md:flex" : "flex"}`}
-          style={{ width: "30%", borderRight: "1px solid #27272a" }}
+          style={{ width: "30%", borderRight: "1px solid var(--border)" }}
         >
           {loading ? (
             <div className="flex items-center justify-center flex-1">
               <div className="w-4 h-4 border border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
             </div>
           ) : visibleGrouped.length === 0 ? (
-            <div className="flex items-center justify-center flex-1 text-[13px]" style={{ color: "#52525b" }}>
+            <div className="flex items-center justify-center flex-1 text-[13px]" style={{ color: "var(--text-tertiary)" }}>
               No actions match your filter.
             </div>
           ) : (
@@ -733,7 +732,7 @@ export default function HistoryPanel() {
             <button
               onClick={() => setMobileView("list")}
               className="md:hidden flex items-center gap-2 px-4 py-3 text-[13px]"
-              style={{ color: "#71717a", borderBottom: "1px solid #27272a", width: "100%" }}
+              style={{ color: "var(--text-secondary)", borderBottom: "1px solid var(--border)", width: "100%" }}
             >
               ← Back
             </button>

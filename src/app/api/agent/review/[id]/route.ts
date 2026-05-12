@@ -25,6 +25,16 @@ import { writeAuditLog } from "@/lib/audit/log";
 import { getResendClient } from "@/lib/resend/client";
 import { sendSMS } from "@/lib/twilio/client";
 import { logAction, retainStandard } from "@/lib/logAction";
+import { LEARNING_MODE_THRESHOLD } from "@/lib/agent/tier-constants";
+
+/** Build In-Reply-To / References headers for threading replies */
+function buildReplyHeaders(inReplyTo: string | null, emailReferences: string | null): Record<string, string> | null {
+  if (!inReplyTo) return null;
+  const headers: Record<string, string> = { "In-Reply-To": inReplyTo };
+  const refs = emailReferences ? `${emailReferences} ${inReplyTo}` : inReplyTo;
+  headers["References"] = refs;
+  return headers;
+}
 
 const RequestSchema = z.object({
   action: z.enum(["approved", "rejected", "edited"]),
@@ -73,12 +83,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     // ── Fetch approval queue item (RLS enforces ownership) ───────────────────────
-    const { data: queueItem, error: fetchError } = await supabase
-      .from("approval_queue")
-      .select("id, policy_id, user_id, signal_id, classified_intent, confidence_score, raw_signal_snippet, proposed_action, status, doc_chase_request_id")
-      .eq("id", queueItemId)
-      .eq("user_id", user.id)
-      .single();
+  const { data: queueItem, error: fetchError } = await supabase
+    .from("approval_queue")
+    .select("id, policy_id, user_id, signal_id, classified_intent, confidence_score, raw_signal_snippet, proposed_action, status, doc_chase_request_id, in_reply_to, email_references")
+    .eq("id", queueItemId)
+    .eq("user_id", user.id)
+    .single();
 
     if (fetchError || !queueItem) {
       return NextResponse.json({ error: "Queue item not found" }, { status: 404 });
@@ -234,6 +244,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             status: "sent",
             provider_message_id: (sent as { id?: string } | null)?.id ?? null,
             sent_at: resolvedAt,
+            in_reply_to: queueItem.in_reply_to ?? null,
+            email_references: queueItem.email_references ?? null,
           });
 
           if (touchpointType && STAGE_MAP[touchpointType]) {
@@ -313,12 +325,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             ? `${brokerProfile.email_from_name} <${baseFrom}>`
             : baseFrom;
 
+          const replyHeaders = buildReplyHeaders(queueItem.in_reply_to, queueItem.email_references);
+          const replySubject = subject && /^Re:\s*/i.test(subject) ? subject : `Re: ${subject ?? "Your renewal enquiry"}`;
           const { data: sent } = await resend.emails.send({
             from,
             to: recipientEmail,
-            subject: subject ?? "Re: Your renewal enquiry",
+            subject: replySubject,
             text: finalBody,
             replyTo: process.env.INBOUND_EMAIL ?? (brokerProfile as { email?: string | null } | null)?.email ?? undefined,
+            ...(replyHeaders ? { headers: replyHeaders } : {}),
           });
 
           // Log via logAction — skip send_logs (no touchpoint_id for reply emails)
@@ -334,6 +349,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
               recipient: recipientEmail,
               provider_message_id: (sent as { id?: string } | null)?.id ?? null,
               broker_action: action,
+              in_reply_to: queueItem.in_reply_to ?? null,
+              references: queueItem.email_references ?? null,
             },
             metadata: {
               queue_item_id: queueItemId,
@@ -706,12 +723,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             ? `${brokerProfile.email_from_name} <${baseFrom}>`
             : baseFrom;
 
+          const replyHeaders = buildReplyHeaders(queueItem.in_reply_to, queueItem.email_references);
+          const replySubject = subject && /^Re:\s*/i.test(subject) ? subject : `Re: ${subject ?? "Identity verification required"}`;
           const { data: sent } = await resend.emails.send({
             from,
             to: recipientEmail,
-            subject: subject ?? "Identity verification required",
+            subject: replySubject,
             text: finalBody,
             replyTo: process.env.INBOUND_EMAIL ?? (brokerProfile as { email?: string | null } | null)?.email ?? undefined,
+            ...(replyHeaders ? { headers: replyHeaders } : {}),
           });
 
           void logAction({
@@ -725,6 +745,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
               body: finalBody,
               recipient: recipientEmail,
               provider_message_id: (sent as { id?: string } | null)?.id ?? null,
+              in_reply_to: queueItem.in_reply_to ?? null,
+              references: queueItem.email_references ?? null,
             },
             metadata: { queue_item_id: queueItemId, signal_id: queueItem.signal_id },
             outcome: "sent",

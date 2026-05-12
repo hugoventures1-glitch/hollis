@@ -18,6 +18,8 @@ export interface GenerateContext {
   recentBodyEdits?: Array<{ original: string; edited: string }>;
   /** Custom email signature appended to all outbound emails */
   emailSignature?: string | null;
+  /** Recent outbound emails Hollis has sent to this client — context when responding to replies */
+  outboundHistory?: string | null;
 }
 
 function bodyEditsBlock(edits: Array<{ original: string; edited: string }>): string {

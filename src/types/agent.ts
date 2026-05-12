@@ -50,7 +50,8 @@ export type AutonomousIntent = (typeof KNOWN_AUTONOMOUS_INTENTS)[number];
 // Learning cannot graduate these to Tier 1.
 export const ALWAYS_BROKER_REVIEW_INTENTS: string[] = [
   "renewal_with_changes",
-  "document_required",  // Agent detected a document is needed — broker approves before chase starts
+  "document_required",    // Agent detected a document is needed — broker approves before chase starts
+  "schedule_meeting",     // Client requesting meeting/call and asking broker to send availability
 ];
 
 // Intents that ALWAYS escalate to Tier 3, regardless of confidence score.

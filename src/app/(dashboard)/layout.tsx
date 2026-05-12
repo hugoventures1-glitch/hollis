@@ -6,7 +6,7 @@ import AssistantPanelWrapper from "@/components/assistant/AssistantPanelWrapper"
 import { UnifiedPanelProvider } from "@/contexts/UnifiedPanelContext";
 import { ProfileCompletionBanner } from "@/components/onboarding/ProfileCompletionBanner";
 import FeedbackButton from "@/components/feedback/FeedbackButton";
-import { PostHogIdentify } from "@/components/analytics/PostHogIdentify";
+
 
 export default async function DashboardLayout({
   children,
@@ -33,7 +33,6 @@ export default async function DashboardLayout({
 
   return (
     <ToastProvider>
-      <PostHogIdentify userId={user.id} email={user.email ?? ""} />
       <UnifiedPanelProvider>
         <div className="flex h-screen overflow-hidden">
           <SidebarNav

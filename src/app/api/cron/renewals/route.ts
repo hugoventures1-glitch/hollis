@@ -537,9 +537,9 @@ export async function GET(request: NextRequest) {
           signal_id: null,
           classified_intent: `send_${type}`,
           confidence_score: null,
-          raw_signal_snippet: `${TOUCHPOINT_TYPE_LABELS[type] ?? type} · ${policy.client_name}`,
+          raw_signal_snippet: `${touchpointLabel} for ${policy.client_name}`,
           proposed_action: {
-            description: `Send ${touchpointLabel} to ${policy.client_name} (${draftChannel === "sms" ? (policy.client_phone ?? "no phone") : (policy.client_email ?? "no email")}). Flagged: ${tierReason}.`,
+            description: `${touchpointLabel} for ${policy.client_name}`,
             action_type: "send_renewal_email",
             payload: {
               touchpoint_id: touchpoint.id,
@@ -643,13 +643,13 @@ export async function GET(request: NextRequest) {
 // ── Touchpoint labels (human-readable for queue descriptions) ─────────────────
 
 const TOUCHPOINT_TYPE_LABELS: Record<TouchpointType, string> = {
-  email_90: "90-day renewal email",
-  email_60: "60-day follow-up email",
-  sms_30: "30-day renewal SMS",
-  script_14: "14-day call script",
-  submission_60: "60-day insurer submission",
-  recommendation_30: "30-day recommendation",
-  final_notice_7: "7-day final notice",
+  email_90: "90-day email",
+  email_60: "60-day email",
+  sms_30: "30-day SMS",
+  script_14: "Call script",
+  submission_60: "Submission",
+  recommendation_30: "Recommendation",
+  final_notice_7: "Final notice",
 };
 
 // ── Fire a single touchpoint ──────────────────────────────────────────────────
@@ -951,13 +951,13 @@ async function fireTouchpoint(
   const days = daysUntilExpiry(policy.expiration_date);
   const isSms = type === "sms_30";
   const templateLabels: Record<TouchpointType, string> = {
-    email_90: "90-day renewal email",
-    email_60: "60-day renewal email",
-    sms_30:   "30-day renewal SMS",
-    script_14: "14-day call script",
-    submission_60: "60-day submission",
-    recommendation_30: "30-day recommendation",
-    final_notice_7: "7-day final notice",
+    email_90: "90-day email",
+    email_60: "60-day email",
+    sms_30:   "30-day SMS",
+    script_14: "Call script",
+    submission_60: "Submission",
+    recommendation_30: "Recommendation",
+    final_notice_7: "Final notice",
   };
   void logAction({
     broker_id: policy.user_id,

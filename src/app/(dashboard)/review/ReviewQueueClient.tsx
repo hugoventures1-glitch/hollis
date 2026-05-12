@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePostHog } from "posthog-js/react";
 import {
   CheckCircle2,
   XCircle,
@@ -10,8 +9,8 @@ import {
   Inbox,
   AlertTriangle,
   ChevronRight,
-  Loader2,
 } from "lucide-react";
+import { useToast } from "@/components/actions/MicroToast";
 import type { QueueItemWithPolicy } from "./page";
 
 function daysUntil(dateStr: string): number {
@@ -22,7 +21,8 @@ function daysUntil(dateStr: string): number {
   );
 }
 
-function confidenceBadge(score: number): { label: string; color: string } {
+function confidenceBadge(score: number | null): { label: string; color: string } {
+  if (score == null) return { label: "Scheduled", color: "text-text-tertiary bg-hover-overlay border-border" };
   const pct = Math.round(score * 100);
   if (score >= 0.85) return { label: `${pct}%`, color: "text-[#4ade80] bg-[#16a34a]/10 border-[#16a34a]/20" };
   if (score >= 0.60) return { label: `${pct}%`, color: "text-[#fbbf24] bg-[#f59e0b]/10 border-[#f59e0b]/20" };
@@ -37,48 +37,60 @@ interface ReviewQueueClientProps {
   initialItems: QueueItemWithPolicy[];
 }
 
+const EMAIL_ACTION_TYPES = new Set([
+  "send_renewal_email",
+  "draft_and_send_response",
+  "send_verification_email",
+]);
+
 export default function ReviewQueueClient({ initialItems }: ReviewQueueClientProps) {
   const [items, setItems] = useState<QueueItemWithPolicy[]>(initialItems);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedIntent, setEditedIntent] = useState<string>("");
   const [editNotes, setEditNotes] = useState<string>("");
-  const [busy, setBusy] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const posthog = usePostHog();
+  const { toast } = useToast();
 
-  async function resolve(
+  function resolve(
     id: string,
     action: "approved" | "rejected" | "edited",
     extra?: { edited_intent?: string; notes?: string }
   ) {
-    setBusy(id);
+    // Optimistic: remove item immediately so the UI feels instant
+    const item = items.find((i) => i.id === id);
+    const itemIndex = items.findIndex((i) => i.id === id);
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setEditingId(null);
     setErrorMsg(null);
-    try {
-      const res = await fetch(`/api/agent/review/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...extra }),
+
+    // Fire in the background
+    fetch(`/api/agent/review/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...extra }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error((data as { error?: string }).error ?? "Failed to resolve");
+        }
+        if (action === "approved" || action === "edited") {
+          const actionType = (item?.proposed_action as { action_type?: string } | null)?.action_type;
+          const msg = EMAIL_ACTION_TYPES.has(actionType ?? "") ? "Email sent." : "Done.";
+          toast(msg, "success");
+        }
+      })
+      .catch((err) => {
+        // Restore item to its original position on failure
+        if (item !== undefined) {
+          setItems((prev) => {
+            const next = [...prev];
+            next.splice(itemIndex, 0, item);
+            return next;
+          });
+        }
+        toast(err instanceof Error ? err.message : "Something went wrong — please try again.", "error");
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Failed to resolve");
-      }
-      const item = items.find((i) => i.id === id);
-      posthog.capture("approval_queue_actioned", {
-        queue_item_id: id,
-        action,
-        classified_intent: item?.classified_intent,
-        confidence_score: item?.confidence_score,
-        source: "review_queue",
-      });
-      // Remove resolved item from list
-      setItems((prev) => prev.filter((i) => i.id !== id));
-      setEditingId(null);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusy(null);
-    }
   }
 
   function startEdit(item: QueueItemWithPolicy) {
@@ -143,7 +155,6 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                   : "text-text-primary";
               const confidence = confidenceBadge(item.confidence_score);
               const isEditing = editingId === item.id;
-              const isBusy = busy === item.id;
 
               return (
                 <div
@@ -197,13 +208,15 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                           {intentLabel(item.classified_intent)}
                         </span>
                       </div>
-                      <span
-                        className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${confidence.color}`}
-                      >
-                        {confidence.label} confidence
-                      </span>
+              <span
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${confidence.color}`}
+              >
+                {confidence.label}
+                {item.confidence_score != null && " confidence"}
+              </span>
                     </div>
 
+                    {item.signal_id !== null && (
                     <div>
                       <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
                         Client said
@@ -212,6 +225,7 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                         &ldquo;{item.raw_signal_snippet}&rdquo;
                       </p>
                     </div>
+                    )}
 
                     <div>
                       <div className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
@@ -261,16 +275,15 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                               notes: editNotes || undefined,
                             })
                           }
-                          disabled={isBusy || !editedIntent.trim()}
+                          disabled={!editedIntent.trim()}
                           className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-text-primary text-text-inverse text-[12px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                          <CheckCircle2 size={12} />
                           Confirm edit
                         </button>
                         <button
                           onClick={cancelEdit}
-                          disabled={isBusy}
-                          className="h-8 flex items-center px-3 rounded-md border border-border text-[12px] text-text-tertiary hover:text-text-primary hover:border-[#3e3e4a] transition-colors disabled:opacity-50"
+                          className="h-8 flex items-center px-3 rounded-md border border-border text-[12px] text-text-tertiary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
                         >
                           Cancel
                         </button>
@@ -283,28 +296,21 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         onClick={() => resolve(item.id, "approved")}
-                        disabled={isBusy}
-                        className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-text-primary text-text-inverse text-[12px] font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-8 flex items-center gap-1.5 px-3.5 rounded-md bg-text-primary text-text-inverse text-[12px] font-semibold hover:opacity-80 transition-opacity"
                       >
-                        {isBusy ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : (
-                          <CheckCircle2 size={12} />
-                        )}
+                        <CheckCircle2 size={12} />
                         Approve
                       </button>
                       <button
                         onClick={() => startEdit(item)}
-                        disabled={isBusy}
-                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors disabled:opacity-50"
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
                       >
                         <Pencil size={12} />
                         Edit &amp; Approve
                       </button>
                       <button
                         onClick={() => resolve(item.id, "rejected")}
-                        disabled={isBusy}
-                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-border text-[12px] text-text-tertiary hover:text-red-400 hover:border-red-800/50 transition-colors disabled:opacity-50"
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-md border border-border text-[12px] text-text-tertiary hover:text-red-400 hover:border-red-800/50 transition-colors"
                       >
                         <XCircle size={12} />
                         Reject
