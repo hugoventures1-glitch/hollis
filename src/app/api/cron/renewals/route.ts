@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     .select("*")
     .eq("status", "active")
     .eq("renewal_paused", false)
-    .not("campaign_stage", "in", '("complete","confirmed","lapsed","final_notice_sent")');
+    .not("campaign_stage", "in", '("complete","confirmed","lapsed","final_notice_sent","declined")');
 
   if (policiesError) {
     console.error("[cron/renewals] Failed to fetch policies:", policiesError.message);

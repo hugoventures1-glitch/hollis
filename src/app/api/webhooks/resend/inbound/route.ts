@@ -30,6 +30,10 @@ const ESCALATION_INTENTS = new Set([
   "legal_dispute_mentioned",
   "unverified_third_party",
   "premium_increase_major",
+  // New intents (Fixes 2, 7, 1)
+  "declined_churn",
+  "contact_change",
+  "forwarded_no_intent",
 ]);
 
 const ENDPOINT = "resend_inbound";
@@ -131,6 +135,24 @@ async function fetchInboundEmail(
     await new Promise((r) => setTimeout(r, 2000));
   }
   return { ok: false, status: 0 };
+}
+
+// ── Fix 1: Forward detection ───────────────────────────────────────────────────
+// Detects forwarded emails before any Claude API call is made.
+// A forwarded email is never a direct client reply — we must not auto-respond.
+
+const FORWARD_SUBJECT_PREFIXES = /^(fwd|fw)\s*:/i;
+const FORWARD_BODY_MARKERS = [
+  "---------- forwarded message ----------",
+  "begin forwarded message:",
+  "---original message---",
+  "----original message----",
+];
+
+function isForwardedEmail(rawSignal: string, subject: string): boolean {
+  if (FORWARD_SUBJECT_PREFIXES.test(subject.trim())) return true;
+  const lower = rawSignal.toLowerCase();
+  return FORWARD_BODY_MARKERS.some((marker) => lower.includes(marker));
 }
 
 // ── Doc chase processing helper ────────────────────────────────────────────────
@@ -705,7 +727,7 @@ export async function POST(request: NextRequest) {
       "id, user_id, client_name, policy_name, expiration_date, campaign_stage, last_contact_at, renewal_flags, renewal_paused, client_email, carrier, premium, agent_name, agent_email"
     )
     .eq("client_email", senderEmail)
-    .not("campaign_stage", "in", '("confirmed","lapsed")')
+    .not("campaign_stage", "in", '("confirmed","lapsed","declined")')
     .order("expiration_date", { ascending: false });
 
   if (brokerUserId) {
@@ -822,6 +844,74 @@ export async function POST(request: NextRequest) {
     } catch (attachFetchErr) {
       console.error("[webhook/resend/inbound] Signal attachment fetch failed:", attachFetchErr);
     }
+  }
+
+  // ── Fix 1: Forwarded email detection — must happen BEFORE processInboundSignal ─
+  // Forwards are never direct client replies. We surface them to the broker as
+  // a Tier 3 task and skip the signal pipeline entirely so Hollis never auto-replies.
+  if (isForwardedEmail(rawSignal, subject)) {
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "forward_detected",
+      email_id,
+      sender_email: senderEmail,
+      policy_id: policy.id as string,
+      user_id: policy.user_id as string,
+      detail: { subject },
+    });
+
+    // Write inbound_signals record for audit trail
+    const { data: fwdSignal } = await admin
+      .from("inbound_signals")
+      .insert({
+        policy_id: policy.id as string,
+        user_id: policy.user_id as string,
+        raw_signal: rawSignal,
+        sender_email: senderEmail,
+        sender_name: senderName,
+        source: "email",
+        email_id,
+        message_id: messageId ?? null,
+        in_reply_to: inReplyTo ?? null,
+        references_headers: referencesHdr ?? null,
+        processed: true,
+        processed_at: new Date().toISOString(),
+        classification_result: {
+          intent: "forwarded_no_intent",
+          confidence: 1.0,
+          flags_detected: [],
+          premium_increase_pct: null,
+          reasoning: "Email detected as a forward — subject prefix or forwarded message header present. No auto-reply sent.",
+        },
+      })
+      .select("id")
+      .single();
+
+    // Surface as Tier 3 in the approval_queue inbox
+    await admin.from("approval_queue").insert({
+      policy_id: policy.id as string,
+      user_id: policy.user_id as string,
+      signal_id: fwdSignal?.id ?? null,
+      classified_intent: "forwarded_no_intent",
+      confidence_score: 1.0,
+      raw_signal_snippet: rawSignal.slice(0, 500),
+      proposed_action: {
+        description: `Forwarded email received for ${policy.client_name as string} — Hollis did not reply. Review to determine if action is needed.`,
+        action_type: "escalation_review",
+        payload: {
+          intent: "forwarded_no_intent",
+          subject,
+          sender_email: senderEmail,
+          raw_signal_snippet: rawSignal.slice(0, 300),
+        },
+      },
+      status: "pending",
+      tier: 3,
+      in_reply_to: messageId ?? null,
+      email_references: referencesHdr ?? null,
+    });
+
+    return NextResponse.json({ ok: true });
   }
 
   try {

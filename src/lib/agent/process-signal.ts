@@ -21,6 +21,20 @@ import { getResendClient } from "@/lib/resend/client";
 import type { AuditEventType, Policy } from "@/types/renewals";
 import type { ParserOutcome, ClassificationResult, RenewalFlags, TierDecision } from "@/types/agent";
 
+const ESCALATION_LABELS: Record<string, string> = {
+  active_claim_mentioned: "Active Claim Mentioned",
+  cancel_policy:          "Cancellation Requested",
+  legal_dispute:          "Legal Dispute Flagged",
+  business_restructure:   "Business Change Flagged",
+  coverage_gap_detected:  "Coverage Gap Detected",
+  premium_spike:          "Premium Spike",
+  non_renewal:            "Non-Renewal Indicated",
+};
+
+function escalationLabel(intent: string): string {
+  return ESCALATION_LABELS[intent] ?? "Manual Review Required";
+}
+
 export interface ProcessSignalParams {
   /** Service-role admin client — bypasses RLS. Caller must verify ownership before calling. */
   admin: SupabaseClient;
@@ -306,27 +320,89 @@ export async function processInboundSignal(
     const intent = classification.intent;
 
     if (intent === "out_of_office") {
-      const resumeDate = new Date();
-      resumeDate.setDate(resumeDate.getDate() + 7);
-      await admin
-        .from("policies")
-        .update({
-          renewal_paused: true,
-          renewal_paused_until: resumeDate.toISOString().slice(0, 10),
-        })
-        .eq("id", policyId);
+      // Use Claude-extracted return date if available; fall back to +7 days
+      let resumeDateStr: string;
+      const extractedReturnDate = classification.ooo_return_date ?? null;
+      if (extractedReturnDate) {
+        resumeDateStr = extractedReturnDate;
+      } else {
+        const fallback = new Date();
+        fallback.setDate(fallback.getDate() + 7);
+        resumeDateStr = fallback.toISOString().slice(0, 10);
+      }
 
-      void logAction({
-        broker_id: userId,
-        policy_id: policyId,
-        action_type: "out_of_office_logged",
-        tier: "1",
-        trigger_reason: `Auto-reply detected from ${senderName ?? senderEmail ?? "client"} — sequence paused for 7 days.`,
-        payload: { raw_signal_snippet: rawSignal.slice(0, 500) },
-        metadata: { signal_id: signal.id, intent, confidence: classification.confidence },
-        outcome: "classified",
-        retain_until: retainStandard(),
-      });
+      // Lapse risk: if the client won't be back before the policy expires,
+      // escalate to Tier 3 instead of silently pausing the sequence.
+      const expiryDate = policy.expiration_date as string | null;
+      const lapseRisk = !!expiryDate && resumeDateStr >= expiryDate;
+
+      if (lapseRisk) {
+        // Override to Tier 3 — policy will expire while client is unreachable
+        notifyBrokerTier3(admin, userId, policyId, tierDecision).catch((err) =>
+          console.error(
+            "[process-signal] OOO lapse-risk broker notification failed:",
+            err instanceof Error ? err.message : err
+          )
+        );
+
+        await admin
+          .from("approval_queue")
+          .insert({
+            policy_id: policyId,
+            user_id: userId,
+            signal_id: signal.id,
+            classified_intent: "out_of_office",
+            confidence_score: classification.confidence,
+            raw_signal_snippet: rawSignal.slice(0, 500),
+            proposed_action: {
+              description: `OOO lapse risk — client returns ${resumeDateStr}, policy expires ${expiryDate}. Manual intervention required before expiry.`,
+              action_type: "escalation_review",
+              payload: {
+                ooo_return_date: resumeDateStr,
+                expiry_date: expiryDate,
+                lapse_risk: true,
+                intent: "out_of_office",
+              },
+            },
+            status: "pending",
+            tier: 3,
+            in_reply_to: messageId ?? null,
+            email_references: referencesHeaders ?? null,
+          });
+
+        void logAction({
+          broker_id: userId,
+          policy_id: policyId,
+          action_type: "escalation",
+          tier: "3",
+          trigger_reason: `OOO lapse risk — client returns ${resumeDateStr}, policy expires ${expiryDate}. Escalated to Tier 3.`,
+          payload: { raw_signal_snippet: rawSignal.slice(0, 500), ooo_return_date: resumeDateStr, expiry_date: expiryDate },
+          metadata: { signal_id: signal.id, intent, confidence: classification.confidence },
+          outcome: "escalated",
+          retain_until: retainStandard(),
+        });
+      } else {
+        // Safe to pause — client returns before policy expires
+        await admin
+          .from("policies")
+          .update({
+            renewal_paused: true,
+            renewal_paused_until: resumeDateStr,
+          })
+          .eq("id", policyId);
+
+        void logAction({
+          broker_id: userId,
+          policy_id: policyId,
+          action_type: "out_of_office_logged",
+          tier: "1",
+          trigger_reason: `Auto-reply detected from ${senderName ?? senderEmail ?? "client"} — sequence paused until ${resumeDateStr}${extractedReturnDate ? " (extracted from OOO message)" : " (fallback: +7 days)"}.`,
+          payload: { raw_signal_snippet: rawSignal.slice(0, 500), ooo_return_date: resumeDateStr },
+          metadata: { signal_id: signal.id, intent, confidence: classification.confidence },
+          outcome: "classified",
+          retain_until: retainStandard(),
+        });
+      }
     } else if (
       ["soft_query", "confirm_renewal", "request_callback", "document_received"].includes(intent)
     ) {
@@ -410,6 +486,28 @@ export async function processInboundSignal(
               .update({ status: "rejected" })
               .eq("policy_id", policyId)
               .eq("status", "pending");
+
+            // Fix 6: cross-sell opportunity — create a broker task without blocking the confirm flow
+            if (classification.secondary_flags?.includes("cross_sell_signal")) {
+              await admin.from("approval_queue").insert({
+                policy_id: policyId,
+                user_id: userId,
+                signal_id: signal.id,
+                classified_intent: "cross_sell_opportunity",
+                confidence_score: classification.confidence,
+                raw_signal_snippet: rawSignal.slice(0, 500),
+                proposed_action: {
+                  description: `${policy.client_name} mentioned needing another insurance product — review and follow up with a cross-sell conversation.`,
+                  action_type: "cross_sell_opportunity",
+                  payload: {
+                    intent: "cross_sell_signal",
+                    reasoning: classification.reasoning,
+                    raw_signal_snippet: rawSignal.slice(0, 300),
+                  },
+                },
+                status: "pending",
+              });
+            }
           } else if (intent === "request_callback") {
             await admin.from("policies").update({ renewal_paused: true }).eq("id", policyId);
           }
@@ -580,12 +678,42 @@ export async function processInboundSignal(
 
   // ── 11. Tier 3: send broker alert email + surface in Hollis inbox ───────────
   if (tierDecision.tier === 3) {
+    // Fix 2: declined_churn — suppress all future touchpoints and mark stage as declined
+    if (classification.intent === "declined_churn") {
+      await admin
+        .from("policies")
+        .update({ campaign_stage: "declined" })
+        .eq("id", policyId);
+
+      // Cancel all pending touchpoints so no further emails/SMS fire
+      await admin
+        .from("campaign_touchpoints")
+        .update({ status: "cancelled" })
+        .eq("policy_id", policyId)
+        .eq("status", "pending");
+
+      void logAction({
+        broker_id: userId,
+        policy_id: policyId,
+        action_type: "policy_declined_churn",
+        tier: "3",
+        trigger_reason: `Client explicitly leaving for another broker — campaign stage set to "declined", all pending touchpoints cancelled.`,
+        payload: { raw_signal_snippet: rawSignal.slice(0, 500) },
+        metadata: { signal_id: signal.id, intent: classification.intent, confidence: classification.confidence },
+        outcome: "escalated",
+        retain_until: retainLongTerm(),
+      });
+    }
+
     notifyBrokerTier3(admin, userId, policyId, tierDecision).catch((err) =>
       console.error(
         "[process-signal] Broker notification failed:",
         err instanceof Error ? err.message : err
       )
     );
+
+    // Escalation label for declined_churn is RETENTION so it surfaces clearly in inbox
+    const isChurn = classification.intent === "declined_churn";
 
     // Write to approval_queue so the escalation appears in the Hollis inbox
     const { data: escalationQueueItem, error: escalationQueueError } = await admin
@@ -598,8 +726,10 @@ export async function processInboundSignal(
         confidence_score: classification.confidence,
         raw_signal_snippet: rawSignal.slice(0, 500),
         proposed_action: {
-          description: tierDecision.reason,
-          action_type: "escalation_review",
+          description: isChurn
+            ? `RETENTION — ${policy.client_name} is leaving for another broker. All touchpoints suppressed. Review urgently to attempt retention.`
+            : escalationLabel(classification.intent),
+          action_type: isChurn ? "retention_escalation" : "escalation_review",
           payload: {
             ...(tierDecision.broker_notification ?? {}),
             escalation_reason: tierDecision.reason,

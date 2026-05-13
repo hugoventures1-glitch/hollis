@@ -116,6 +116,18 @@ function buildProposedAction(intent: string, classification: ClassificationResul
       description: "Client is requesting a meeting or call — draft a reply offering time options for broker to customise and send",
       action_type: "draft_and_send_response",
     },
+    ambiguous_acknowledgement: {
+      description: "Signal is a vague acknowledgement ('Thanks', 'Got it', 'OK') — broker must confirm whether this is a soft renewal confirmation or just a social reply",
+      action_type: "clarification_required",
+    },
+    declined_churn: {
+      description: "Client is explicitly leaving for another broker — renewal sequence suppressed, retention task created for broker",
+      action_type: "retention_escalation",
+    },
+    contact_change: {
+      description: "Client has requested a contact update — broker must update records before sequence continues",
+      action_type: "contact_update_required",
+    },
   };
 
   // When an active doc chase exists, override document_received to close_doc_chase

@@ -50,8 +50,9 @@ export type AutonomousIntent = (typeof KNOWN_AUTONOMOUS_INTENTS)[number];
 // Learning cannot graduate these to Tier 1.
 export const ALWAYS_BROKER_REVIEW_INTENTS: string[] = [
   "renewal_with_changes",
-  "document_required",    // Agent detected a document is needed — broker approves before chase starts
-  "schedule_meeting",     // Client requesting meeting/call and asking broker to send availability
+  "document_required",             // Agent detected a document is needed — broker approves before chase starts
+  "schedule_meeting",              // Client requesting meeting/call and asking broker to send availability
+  "ambiguous_acknowledgement",     // "Thanks", "Got it", "OK" — intent unclear, broker to review before any action
 ];
 
 // Intents that ALWAYS escalate to Tier 3, regardless of confidence score.
@@ -64,6 +65,10 @@ export const ALWAYS_ESCALATE_INTENTS: string[] = [
   "cancel_policy",
   "legal_dispute_mentioned",
   "unverified_third_party",
+  // New intents (Fixes 2, 7)
+  "declined_churn",       // Client explicitly leaving for another broker — retention escalation
+  "contact_change",       // Client requests contact update — must be done before sequence continues
+  "forwarded_no_intent",  // Email was a forward — never reply, surface to broker
 ];
 
 // Full set of known intents (autonomous + broker-review + escalate)
@@ -83,6 +88,8 @@ export interface ClassificationResult {
   reasoning: string;              // brief explanation for audit trail
   changes_requested?: string[];   // populated when intent is renewal_with_changes
   document_type_needed?: string | null; // populated when intent is document_required
+  secondary_flags?: string[];     // compound signals that co-exist with the primary intent (e.g. cross_sell_signal, lapse_risk)
+  ooo_return_date?: string | null; // ISO date extracted from OOO message; populated when intent is out_of_office
 }
 
 // ── Inbound Signals ────────────────────────────────────────────────────────────
