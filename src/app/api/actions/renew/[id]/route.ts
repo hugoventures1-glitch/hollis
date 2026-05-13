@@ -121,6 +121,26 @@ export async function POST(
     );
   }
 
+  // ── Resolve freshest contact info from clients table ──────────────────────
+  // The policies table stores denormalized client_email/client_phone that can
+  // go stale when a broker edits the client record. Look up the authoritative
+  // contact info from the clients table (matched by name), falling back to the
+  // policy fields if no matching client row is found.
+  let freshEmail = policy.client_email;
+  let freshPhone = policy.client_phone;
+  {
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("email, phone")
+      .eq("user_id", user.id)
+      .ilike("name", policy.client_name)
+      .maybeSingle();
+    if (clientRow) {
+      if (clientRow.email) freshEmail = clientRow.email;
+      if (clientRow.phone) freshPhone = clientRow.phone;
+    }
+  }
+
   // ── Tier routing gate ─────────────────────────────────────────────────────
   const daysToExpiry = daysUntilExpiry(policy.expiration_date);
   const tierResult = await resolveTierRouting(supabase, policy, touchpointType, daysToExpiry);
@@ -131,7 +151,96 @@ export async function POST(
       { status: 403 },
     );
   }
+
   if (tierResult.tier === 2 && !override) {
+    // ── Find or create touchpoint so approval_queue can reference it ─────────
+    const today = new Date().toISOString().split("T")[0];
+    let tpId: string;
+    const { data: existingTp } = await supabase
+      .from("campaign_touchpoints")
+      .select("id")
+      .eq("policy_id", policy.id)
+      .eq("type", touchpointType)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (existingTp) {
+      tpId = existingTp.id;
+    } else {
+      const { data: createdTp, error: createTpErr } = await supabase
+        .from("campaign_touchpoints")
+        .insert({
+          policy_id: policy.id,
+          user_id: user.id,
+          type: touchpointType,
+          status: "pending",
+          scheduled_at: today,
+        })
+        .select("id")
+        .single();
+      if (createTpErr || !createdTp) {
+        return NextResponse.json(
+          { error: createTpErr?.message ?? "Failed to create touchpoint" },
+          { status: 500 }
+        );
+      }
+      tpId = createdTp.id;
+    }
+
+    // ── Generate a draft so the inbox has content to display ─────────────────
+    let draftSubject: string | null = null;
+    let draftBody = "";
+    let draftChannel: "email" | "sms" = "email";
+    try {
+      if (touchpointType === "email_90" || touchpointType === "email_60") {
+        const { data: agentProfile } = await supabase
+          .from("agent_profiles")
+          .select("email_from_name, email_signature")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const generated = await generateRenewalEmail(policy, touchpointType, {
+          emailSignature: agentProfile?.email_signature ?? null,
+        });
+        draftSubject = generated.subject;
+        draftBody = generated.body;
+        draftChannel = "email";
+      } else if (touchpointType === "sms_30") {
+        draftBody = await generateSMSMessage(policy);
+        draftChannel = "sms";
+      }
+    } catch {
+      draftBody = "[Draft content could not be generated — please compose manually]";
+    }
+
+    // ── Insert into approval_queue ────────────────────────────────────────────
+    await supabase.from("approval_queue").insert({
+      policy_id: policy.id,
+      user_id: user.id,
+      signal_id: null,
+      classified_intent: `send_${touchpointType}`,
+      confidence_score: null,
+      raw_signal_snippet: `Manual send: ${touchpointType} for ${policy.client_name}`,
+      proposed_action: {
+        description: `Send ${touchpointType} for ${policy.client_name}`,
+        action_type: "send_renewal_email",
+        payload: {
+          touchpoint_id: tpId,
+          touchpoint_type: touchpointType,
+          subject: draftSubject,
+          body: draftBody,
+          recipient_email: freshEmail ?? null,
+          recipient_phone: freshPhone ?? null,
+          recipient_name: policy.client_name,
+          policy_id: policy.id,
+          user_id: user.id,
+          channel: draftChannel,
+          flag_reason: tierResult.reason,
+        },
+      },
+      status: "pending",
+      tier: 2,
+    });
+
     return NextResponse.json(
       { flagged: true, tier: 2, reason: tierResult.reason, mode: tierResult.mode },
       { status: 200 },
@@ -174,26 +283,6 @@ export async function POST(
       );
     }
     touchpointId = created.id;
-  }
-
-  // ── Resolve freshest contact info from clients table ──────────────────────
-  // The policies table stores denormalized client_email/client_phone that can
-  // go stale when a broker edits the client record. Look up the authoritative
-  // contact info from the clients table (matched by name), falling back to the
-  // policy fields if no matching client row is found.
-  let freshEmail = policy.client_email;
-  let freshPhone = policy.client_phone;
-  {
-    const { data: clientRow } = await supabase
-      .from("clients")
-      .select("email, phone")
-      .eq("user_id", user.id)
-      .ilike("name", policy.client_name)
-      .maybeSingle();
-    if (clientRow) {
-      if (clientRow.email) freshEmail = clientRow.email;
-      if (clientRow.phone) freshPhone = clientRow.phone;
-    }
   }
 
   // ── Generate content and send ─────────────────────────────────────────────
