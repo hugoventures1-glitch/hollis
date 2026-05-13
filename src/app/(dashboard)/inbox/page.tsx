@@ -39,6 +39,7 @@ export interface InboxItem {
   classified_intent: string;
   confidence_score: number;
   raw_signal_snippet: string;
+  raw_signal: string | null;
   proposed_action: {
     description: string;
     action_type: string;
@@ -74,6 +75,7 @@ export default async function InboxPage() {
     proposed_action,
     status,
     doc_chase_request_id,
+    tier,
     created_at,
     policies!inner (
       id,
@@ -85,15 +87,30 @@ export default async function InboxPage() {
     )
   `;
 
-  const [{ data: items }, { data: suggestionItems }, { data: docChaseReplies }] = await Promise.all([
-    // Regular tier-2/3 items — filter out finished policies
+  const [
+    { data: regularItems },
+    { data: escalationItems },
+    { data: suggestionItems },
+    { data: docChaseReplies },
+  ] = await Promise.all([
+    // Regular tier-2 items — filter out finished policies
     supabase
       .from("approval_queue")
       .select(queueSelect)
       .eq("user_id", user.id)
       .eq("status", "pending")
+      .eq("tier", 2)
       .neq("classified_intent", "ai_suggestion")
       .not("policies.campaign_stage", "in", '(confirmed,lapsed,final_notice_sent,complete)')
+      .order("created_at", { ascending: false }),
+
+    // Tier-3 escalations — always surface regardless of policy stage
+    supabase
+      .from("approval_queue")
+      .select(queueSelect)
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .eq("tier", 3)
       .order("created_at", { ascending: false }),
 
     // AI suggestions — no campaign stage filter
@@ -116,11 +133,32 @@ export default async function InboxPage() {
       .limit(50),
   ]);
 
-  // Normalise — all approval_queue items are Tier 2 for now
-  const normalised: InboxItem[] = [...(items ?? []), ...(suggestionItems ?? [])].map((item) => ({
-    ...(item as unknown as InboxItem),
-    tier: 2,
-  }));
+  // Collect signal IDs to fetch full raw signals for complete email viewing
+  const allQueueItems = [...(regularItems ?? []), ...(escalationItems ?? []), ...(suggestionItems ?? [])];
+  const signalIds = allQueueItems
+    .map((i) => (i as unknown as { signal_id?: string | null }).signal_id)
+    .filter((id): id is string => Boolean(id));
+
+  let signalMap: Record<string, string> = {};
+  if (signalIds.length > 0) {
+    const { data: signals } = await supabase
+      .from("inbound_signals")
+      .select("id, raw_signal")
+      .in("id", signalIds);
+    signalMap = Object.fromEntries(
+      (signals ?? []).map((s) => [s.id as string, s.raw_signal as string])
+    );
+  }
+
+  // Preserve actual tier from DB and attach full raw_signal
+  const normalised: InboxItem[] = allQueueItems.map((item) => {
+    const signalId = (item as unknown as { signal_id?: string | null }).signal_id;
+    return {
+      ...(item as unknown as InboxItem),
+      tier: ((item as unknown as { tier?: number }).tier ?? 2) as 2 | 3,
+      raw_signal: signalId ? (signalMap[signalId] ?? null) : null,
+    };
+  });
 
   return (
     <InboxClient

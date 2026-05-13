@@ -26,7 +26,7 @@ interface WriteAuditLogParams {
   recipient?: string | null;
   content_snapshot?: string | null;
   metadata?: Record<string, unknown>;
-  actor_type?: "system" | "agent";
+  actor_type?: "system" | "agent" | "broker";
 }
 
 export async function writeAuditLog(params: WriteAuditLogParams): Promise<void> {

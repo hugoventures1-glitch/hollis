@@ -244,7 +244,9 @@ export type AuditEventType =
   | "tier_2_drafted"
   | "tier_3_escalated"
   | "sequence_halted"
-  | "flag_set";
+  | "flag_set"
+  // Escalation resolution (migration 039)
+  | "escalation_resolved";
 
 export interface AuditLogEntry {
   id: string;
@@ -255,7 +257,7 @@ export interface AuditLogEntry {
   recipient: string | null;
   content_snapshot: string | null;
   metadata: Record<string, unknown>;
-  actor_type: "system" | "agent";
+  actor_type: "system" | "agent" | "broker";
   created_at: string;
 }
 

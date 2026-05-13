@@ -266,7 +266,7 @@ export function ChaseRow({ chase, onForceSent, onStatusChange, showHistory = fal
   return (
     <div
       className="px-6 py-4 flex items-start gap-4 transition-colors hover:bg-white/[0.02]"
-      style={{ borderBottom: "1px solid var(--surface)" }}
+      style={{ borderBottom: "1px solid var(--surface)", opacity: isResolved ? 0.5 : 1 }}
     >
       {/* Icon */}
       <div

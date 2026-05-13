@@ -463,6 +463,25 @@ function EventRow({
   );
 }
 
+// ── Step connector ─────────────────────────────────────────────────────────────
+
+function StepConnector({ text }: { text: string }) {
+  const truncated = text.length > 70 ? text.slice(0, 67) + "…" : text;
+  return (
+    <div
+      className="flex items-center gap-2 pr-4 py-0.5"
+      style={{ paddingLeft: 36, opacity: 0.45 }}
+    >
+      <span
+        className="text-[11px] italic leading-relaxed"
+        style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono, monospace)" }}
+      >
+        ↳ {truncated}
+      </span>
+    </div>
+  );
+}
+
 // ── Date group ─────────────────────────────────────────────────────────────────
 
 function DateGroup({
@@ -477,6 +496,11 @@ function DateGroup({
   onSelect: (a: HollisAction) => void;
 }) {
   const issues = actions.filter(isEscalated).length;
+
+  // Sort oldest → newest within each day so the story reads chronologically
+  const chronological = [...actions].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   return (
     <div>
@@ -504,14 +528,26 @@ function DateGroup({
           className="absolute top-0 bottom-0"
           style={{ left: 20, width: 1, background: "var(--border)" }}
         />
-        {actions.map((a) => (
-          <EventRow
-            key={a.id}
-            action={a}
-            selected={selectedId === a.id}
-            onClick={() => onSelect(a)}
-          />
-        ))}
+        {chronological.map((a, i) => {
+          const next = chronological[i + 1];
+          const showConnector =
+            next &&
+            next.trigger_reason &&
+            (
+              (a.policy_id && a.policy_id === next.policy_id) ||
+              (a.client_id && a.client_id === next.client_id)
+            );
+          return (
+            <div key={a.id}>
+              <EventRow
+                action={a}
+                selected={selectedId === a.id}
+                onClick={() => onSelect(a)}
+              />
+              {showConnector && <StepConnector text={next.trigger_reason} />}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -234,12 +234,25 @@ export async function processInboundSignal(
     actor_type: "system",
   });
 
-  // ── Fetch agent profile ────────────────────────────────────────────────────────
-  const { data: profile } = await admin
-    .from("agent_profiles")
-    .select("email_from_name, email, standing_orders")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // ── Fetch agent profile + client knowledge base ───────────────────────────────
+  const [{ data: profile }, { data: clientRecord }] = await Promise.all([
+    admin
+      .from("agent_profiles")
+      .select("email_from_name, email, standing_orders")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    admin
+      .from("clients")
+      .select("knowledge_base")
+      .eq("user_id", userId)
+      .ilike("name", policy.client_name as string)
+      .maybeSingle(),
+  ]);
+
+  // Cap at 3000 chars in the signal pipeline — the prompt already carries
+  // outbound history + standing orders + the raw signal.
+  const clientKnowledgeBase =
+    ((clientRecord as { knowledge_base?: string | null } | null)?.knowledge_base ?? "").slice(0, 3000) || null;
 
   // ── Fetch recent outbound history ──────────────────────────────────────────────
   // Gives the responder context about what Hollis previously sent, so it can
@@ -345,7 +358,7 @@ export async function processInboundSignal(
             draft = await generateQueryResponse(rawSignal, policy as Policy, {
               standingOrders:
                 (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
-              clientNotes: null,
+              clientNotes: clientKnowledgeBase,
               outboundHistory,
             });
           } else {
@@ -356,7 +369,7 @@ export async function processInboundSignal(
               {
                 standingOrders:
                   (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
-                clientNotes: null,
+                clientNotes: clientKnowledgeBase,
               }
             );
           }
@@ -489,7 +502,7 @@ export async function processInboundSignal(
         const draft = await generateQueryResponse(rawSignal, policy as Policy, {
           standingOrders:
             (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
-          clientNotes: null,
+          clientNotes: clientKnowledgeBase,
           outboundHistory,
         });
         tierDecision.proposed_action.payload = {
@@ -565,7 +578,7 @@ export async function processInboundSignal(
   }
 
 
-  // ── 11. Tier 3: send broker alert email ────────────────────────────────────────
+  // ── 11. Tier 3: send broker alert email + surface in Hollis inbox ───────────
   if (tierDecision.tier === 3) {
     notifyBrokerTier3(admin, userId, policyId, tierDecision).catch((err) =>
       console.error(
@@ -573,6 +586,41 @@ export async function processInboundSignal(
         err instanceof Error ? err.message : err
       )
     );
+
+    // Write to approval_queue so the escalation appears in the Hollis inbox
+    const { data: escalationQueueItem, error: escalationQueueError } = await admin
+      .from("approval_queue")
+      .insert({
+        policy_id: policyId,
+        user_id: userId,
+        signal_id: signal.id,
+        classified_intent: classification.intent,
+        confidence_score: classification.confidence,
+        raw_signal_snippet: rawSignal.slice(0, 500),
+        proposed_action: {
+          description: tierDecision.reason,
+          action_type: "escalation_review",
+          payload: {
+            ...(tierDecision.broker_notification ?? {}),
+            escalation_reason: tierDecision.reason,
+            intent: classification.intent,
+            flags: updatedFlags,
+          },
+        },
+        status: "pending",
+        tier: 3,
+        in_reply_to: messageId ?? null,
+        email_references: referencesHeaders ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (escalationQueueError) {
+      console.error(
+        "[process-signal] Failed to write Tier 3 escalation to approval_queue:",
+        escalationQueueError.message
+      );
+    }
 
     void logAction({
       broker_id: userId,
@@ -585,6 +633,7 @@ export async function processInboundSignal(
         confidence_score: classification.confidence,
         channel: "internal",
         escalation_reason: tierDecision.reason,
+        approval_queue_id: escalationQueueItem?.id ?? null,
       },
       metadata: {
         signal_id: signal.id,

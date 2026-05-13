@@ -16,9 +16,36 @@ import {
   Download,
   Maximize2,
   X,
+  AlertTriangle,
+  Play,
+  Square,
 } from "lucide-react";
 import { LEARNING_MODE_THRESHOLD } from "@/lib/agent/tier-constants";
 import type { InboxItem, DocChaseReplyItem } from "./page";
+
+// ── CSS animations (injected once) ───────────────────────────────────────────
+
+function FlashingDotStyle() {
+  return (
+    <style>{`
+      @keyframes escalation-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+        50% { opacity: 0.65; transform: scale(1.15); box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+      }
+      @keyframes escalation-slide-in {
+        from { opacity: 0; transform: translateY(-12px); max-height: 0; }
+        to { opacity: 1; transform: translateY(0); max-height: 500px; }
+      }
+      .escalation-dot {
+        animation: escalation-pulse 1.6s ease-in-out infinite;
+      }
+      .escalation-section {
+        animation: escalation-slide-in 400ms ease-out forwards;
+        overflow: hidden;
+      }
+    `}</style>
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -322,6 +349,120 @@ function ListRow({
   );
 }
 
+// ── Escalation row (compact, urgent) ────────────────────────────────────────
+
+function EscalationRow({
+  row, onOpen, unread,
+}: {
+  row: DisplayRow; onOpen: (r: DisplayRow) => void; unread: boolean;
+}) {
+  const payload = row.inboxItem?.proposed_action?.payload as Record<string, unknown> | undefined;
+  const reason = (payload?.escalation_reason as string | undefined) ?? row.headline;
+  return (
+    <button
+      onClick={() => onOpen(row)}
+      style={{
+        width: "100%", textAlign: "left", border: "none",
+        display: "grid",
+        gridTemplateColumns: "auto minmax(0, 1fr) auto auto",
+        columnGap: 12, alignItems: "center",
+        padding: "14px 32px 14px 25px",
+        background: "rgba(220,38,38,0.05)",
+        borderTop: "1px solid rgba(220,38,38,0.15)",
+        borderLeft: "3px solid var(--danger)",
+        cursor: "pointer", transition: "background 120ms",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.10)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.05)"; }}
+    >
+      {/* Flashing dot */}
+      <div
+        className="escalation-dot"
+        style={{
+          width: 9, height: 9, borderRadius: 999,
+          background: "var(--danger)",
+          marginRight: 4, flexShrink: 0,
+        }}
+      />
+
+      <div style={{ minWidth: 0, display: "flex", alignItems: "baseline", gap: 10 }}>
+        <span
+          style={{
+            fontSize: 13.5, fontWeight: unread ? 700 : 600,
+            color: unread ? "var(--text-primary)" : "var(--text-secondary)",
+            letterSpacing: "-0.005em", whiteSpace: "nowrap", flexShrink: 0,
+            maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis",
+          }}
+        >
+          {row.client}
+        </span>
+        <span
+          style={{
+            fontSize: 13.5, color: unread ? "var(--text-primary)" : "var(--text-secondary)",
+            fontWeight: unread ? 500 : 400,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            letterSpacing: "-0.003em", flex: 1, minWidth: 0,
+          }}
+        >
+          {reason}
+        </span>
+      </div>
+
+      <TypePill type="escalation" />
+
+      <span
+        style={{
+          fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-tertiary)",
+          minWidth: 32, textAlign: "right",
+        }}
+      >
+        {row.timeAgoStr}
+      </span>
+    </button>
+  );
+}
+
+// ── Escalations section header ───────────────────────────────────────────────
+
+function EscalationsHeader({ count }: { count: number }) {
+  return (
+    <div
+      style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "14px 32px 10px 25px",
+        background: "rgba(220,38,38,0.04)",
+        borderBottom: "1px solid rgba(220,38,38,0.12)",
+      }}
+    >
+      <AlertTriangle size={14} style={{ color: "var(--danger)", flexShrink: 0 }} />
+      <span
+        style={{
+          fontSize: 11.5, fontWeight: 600,
+          letterSpacing: "0.08em", textTransform: "uppercase",
+          color: "var(--danger)", whiteSpace: "nowrap",
+        }}
+      >
+        Escalations
+      </span>
+      <span
+        style={{
+          fontSize: 11.5, fontWeight: 600, fontVariantNumeric: "tabular-nums",
+          color: "var(--danger)", background: "rgba(220,38,38,0.10)",
+          padding: "1px 7px", borderRadius: 999,
+        }}
+      >
+        {count}
+      </span>
+      <span style={{ flex: 1 }} />
+      <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
+        Requires your input
+      </span>
+    </div>
+  );
+}
+
+// ── List view ─────────────────────────────────────────────────────────────────
+
 function ListView({
   allItems,
   docChaseReplies,
@@ -337,8 +478,20 @@ function ListView({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
 
+  // Separate Tier 3 escalations — they get their own always-visible section
+  const escalationRows: DisplayRow[] = allItems
+    .filter((i) => i.tier === 3)
+    .map(toDisplayRow)
+    .sort((a, b) => {
+      const aTime = a.inboxItem?.created_at ?? "";
+      const bTime = b.inboxItem?.created_at ?? "";
+      return bTime.localeCompare(aTime);
+    });
+
+  const regularItems = allItems.filter((i) => i.tier !== 3);
+
   const allRows: DisplayRow[] = [
-    ...allItems.map(toDisplayRow),
+    ...regularItems.map(toDisplayRow),
     ...docChaseReplies.map(dcToDisplayRow),
   ]
     .sort((a, b) => {
@@ -349,12 +502,12 @@ function ListView({
 
   const filtered =
     filter === "all"      ? allRows :
-    filter === "decision" ? allRows.filter((r) => r.type === "decision" || r.type === "escalation") :
+    filter === "decision" ? allRows.filter((r) => r.type === "decision") :
                             allRows.filter((r) => r.type === filter);
 
   const counts = {
-    all:      allRows.length,
-    decision: allRows.filter((r) => r.type === "decision" || r.type === "escalation").length,
+    all:      allRows.length + escalationRows.length,
+    decision: allRows.filter((r) => r.type === "decision").length,
     todo:     allRows.filter((r) => r.type === "todo").length,
     docchase: allRows.filter((r) => r.type === "docchase").length,
   };
@@ -363,6 +516,8 @@ function ListView({
     onRead(row.id);
     onOpen(row);
   }
+
+  const hasEscalations = escalationRows.length > 0;
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -385,6 +540,21 @@ function ListView({
       </header>
 
       <div style={{ flex: 1, overflow: "auto" }}>
+        {/* ── Escalations section (appears at top when active) ───────────────── */}
+        {hasEscalations && (
+          <div className="escalation-section">
+            <EscalationsHeader count={escalationRows.length} />
+            {escalationRows.map((row) => (
+              <EscalationRow
+                key={row.id}
+                row={row}
+                onOpen={handleOpen}
+                unread={!readIds.has(row.id)}
+              />
+            ))}
+          </div>
+        )}
+
         {filtered.length === 0 ? (
           <div style={{ padding: "60px 32px", textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>
             Nothing here — Hollis is watching the rest in the background.
@@ -744,22 +914,7 @@ function DecisionDetail({
       learningApproved={row.isLearningMode ? learningApproved : undefined}
       learningThreshold={row.isLearningMode ? learningThreshold : undefined}
     >
-      {item.tier === 3 && (
-        <div style={{
-          display: "flex", alignItems: "flex-start", gap: 10,
-          padding: "12px 14px", borderRadius: 10,
-          background: "rgba(220,38,38,0.07)",
-          border: "1px solid rgba(220,38,38,0.22)",
-        }}>
-          <span style={{ color: "var(--danger)", fontSize: 15, flexShrink: 0, marginTop: 1 }}>⚠</span>
-          <div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--danger)" }}>Tier 3 escalation — manual intervention required.</span>
-            <span style={{ fontSize: 13, color: "rgba(220,38,38,0.75)", marginLeft: 6 }}>
-              Hollis will not act on this automatically. Review and resolve it yourself.
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Tier 3 escalations now render via EscalationDetail, not DecisionDetail */}
       {(item.signal_id !== null && item.raw_signal_snippet) && (
         <>
           <SectionDivider label="Conversation" />
@@ -1472,6 +1627,286 @@ function DocChaseDetail({
   );
 }
 
+// ── Escalation detail view ──────────────────────────────────────────────────
+
+function EscalationDetail({
+  row,
+  item,
+  onBack,
+  busy,
+  resolved,
+  resolutionType,
+  errorMsg,
+  onResolve,
+}: {
+  row: DisplayRow;
+  item: InboxItem;
+  onBack: () => void;
+  busy: boolean;
+  resolved: boolean;
+  resolutionType: "handled" | "resume" | "terminate" | null;
+  errorMsg: string | null;
+  onResolve: (resolution: "handled" | "resume" | "terminate") => void;
+}) {
+  const payload = item.proposed_action?.payload as Record<string, unknown> | undefined;
+  const flagReason = (payload?.flag_reason ?? payload?.escalation_reason ?? item.proposed_action?.description ?? "Escalation requires manual intervention.") as string;
+  const fullSignal = item.raw_signal ?? item.raw_signal_snippet;
+  const expiryDate = (payload?.expiry_date as string | undefined) ?? item.policies?.expiration_date;
+  const lastTouchpoint = (payload?.last_touchpoint_at as string | null | undefined) ?? null;
+  const options = (payload?.options as string[] | undefined) ?? [];
+
+  function formatDate(iso: string | null | undefined): string {
+    if (!iso) return "never";
+    return new Date(iso).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  const actionBar = resolved ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
+      <span
+        style={{
+          width: 18, height: 18, borderRadius: 999,
+          background:
+            resolutionType === "terminate"
+              ? "rgba(220,38,38,0.12)"
+              : "rgba(22,163,74,0.12)",
+          color:
+            resolutionType === "terminate" ? "var(--danger)" : "#4ade80",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <CheckCircle2 size={11} />
+      </span>
+      <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
+        {resolutionType === "handled" && "Marked as handled."}
+        {resolutionType === "resume" && "Escalation resolved — sequence resumed."}
+        {resolutionType === "terminate" && "Escalation resolved — sequence terminated."}
+      </span>
+      <span style={{ fontSize: 12.5, color: "var(--text-tertiary)" }}>
+        {resolutionType === "resume"
+          ? "Hollis will continue the renewal sequence."
+          : resolutionType === "terminate"
+            ? "Renewal sequence stopped for this policy."
+            : "No further action required."}
+      </span>
+    </div>
+  ) : (
+    <>
+      <button
+        onClick={() => onResolve("handled")}
+        disabled={busy}
+        style={{
+          height: 36, display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "0 16px", borderRadius: 8,
+          cursor: busy ? "not-allowed" : "pointer",
+          fontSize: 13, fontWeight: 500,
+          background: "var(--accent)", color: "var(--text-inverse)",
+          border: "1px solid var(--accent)",
+          opacity: busy ? 0.5 : 1,
+        }}
+      >
+        {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+        Mark as handled
+      </button>
+      <button
+        onClick={() => onResolve("resume")}
+        disabled={busy}
+        style={{
+          height: 36, display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "0 12px", borderRadius: 8,
+          cursor: busy ? "not-allowed" : "pointer",
+          fontSize: 13, fontWeight: 500,
+          background: "transparent", color: "var(--text-secondary)",
+          border: "1px solid var(--border)",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+      >
+        <Play size={12} /> Resume sequence
+      </button>
+      <span style={{ flex: 1 }} />
+      <button
+        onClick={() => onResolve("terminate")}
+        disabled={busy}
+        style={{
+          height: 36, display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "0 12px", borderRadius: 8,
+          cursor: busy ? "not-allowed" : "pointer",
+          fontSize: 13, fontWeight: 500,
+          background: "transparent", color: "var(--text-secondary)",
+          border: "1px solid var(--border)",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.color = "var(--danger)";
+          (e.currentTarget as HTMLElement).style.borderColor = "rgba(204,41,41,0.4)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+        }}
+      >
+        <Square size={12} /> Terminate sequence
+      </button>
+    </>
+  );
+
+  return (
+    <DetailShell row={row} onBack={onBack} actionBar={actionBar}>
+      {/* Urgent escalation banner */}
+      <div
+        style={{
+          display: "flex", alignItems: "flex-start", gap: 10,
+          padding: "14px 16px", borderRadius: 10,
+          background: "rgba(220,38,38,0.07)",
+          border: "1px solid rgba(220,38,38,0.22)",
+        }}
+      >
+        <span style={{ color: "var(--danger)", fontSize: 15, flexShrink: 0, marginTop: 1 }}>⚠</span>
+        <div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--danger)" }}>
+            Tier 3 escalation — manual intervention required.
+          </span>
+          <span style={{ fontSize: 13, color: "rgba(220,38,38,0.75)", marginLeft: 6 }}>
+            Hollis will not act on this automatically.
+          </span>
+        </div>
+      </div>
+
+      {/* Escalation context card */}
+      <div
+        style={{
+          background: "var(--surface-raised)",
+          border: "1px solid var(--border)",
+          borderRadius: 14,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "10px 18px",
+            borderBottom: "1px solid var(--border-subtle)",
+            display: "flex", alignItems: "center", gap: 10,
+            background: "var(--surface)",
+            fontSize: 12.5, color: "var(--text-tertiary)",
+          }}
+        >
+          <span
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              color: "var(--danger)", fontWeight: 600,
+            }}
+          >
+            <AlertTriangle size={11} /> Escalation context
+          </span>
+          <span style={{ flex: 1 }} />
+          <span>From Hollis Renewal Intelligence</span>
+        </div>
+        <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Client / Policy / Expiry */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "120px 1fr",
+              rowGap: 6, columnGap: 16,
+              fontSize: 13, lineHeight: 1.5,
+            }}
+          >
+            <span style={{ color: "var(--text-tertiary)", fontWeight: 500 }}>Client</span>
+            <span style={{ color: "var(--text-primary)" }}>{item.policies?.client_name ?? "—"}</span>
+
+            <span style={{ color: "var(--text-tertiary)", fontWeight: 500 }}>Policy</span>
+            <span style={{ color: "var(--text-primary)" }}>{item.policies?.policy_name ?? "—"}</span>
+
+            <span style={{ color: "var(--text-tertiary)", fontWeight: 500 }}>Expires</span>
+            <span style={{ color: "var(--text-primary)" }}>{formatDate(expiryDate)}</span>
+
+            <span style={{ color: "var(--text-tertiary)", fontWeight: 500 }}>Last touchpoint</span>
+            <span style={{ color: "var(--text-primary)" }}>{formatDate(lastTouchpoint)}</span>
+          </div>
+
+          <div style={{ height: 1, background: "var(--border-subtle)" }} />
+
+          {/* Flag reason */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11.5, color: "var(--text-tertiary)", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              Reason
+            </span>
+            <span style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text-primary)", letterSpacing: "-0.003em" }}>
+              {flagReason}
+            </span>
+          </div>
+
+          {/* Full client message */}
+          {fullSignal && (
+            <>
+              <div style={{ height: 1, background: "var(--border-subtle)" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 11.5, color: "var(--text-tertiary)", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Full client message
+                </span>
+                <div
+                  style={{
+                    fontSize: 14, lineHeight: 1.65,
+                    color: "var(--text-primary)",
+                    padding: "12px 16px",
+                    background: "var(--surface)",
+                    borderRadius: 8,
+                    border: "1px solid var(--border-subtle)",
+                    whiteSpace: "pre-wrap",
+                    maxHeight: 400,
+                    overflow: "auto",
+                  }}
+                >
+                  {fullSignal}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Options from escalation */}
+          {options.length > 0 && (
+            <>
+              <div style={{ height: 1, background: "var(--border-subtle)" }} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {options.map((opt) => (
+                  <span
+                    key={opt}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "3px 10px", borderRadius: 999,
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-subtle)",
+                      fontSize: 12, color: "var(--text-secondary)",
+                    }}
+                  >
+                    {opt.replace(/_/g, " ")}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div
+          style={{
+            padding: "10px 14px", borderRadius: 8,
+            background: "rgba(204,41,41,0.06)",
+            border: "1px solid rgba(204,41,41,0.2)",
+            fontSize: 13, color: "var(--danger)",
+          }}
+        >
+          {errorMsg}
+        </div>
+      )}
+    </DetailShell>
+  );
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export default function InboxClient({
@@ -1492,9 +1927,24 @@ export default function InboxClient({
   const [sentId,          setSentId]         = useState<string | null>(null);
   const [sentAction,      setSentAction]     = useState<"approved" | "rejected" | "edited" | null>(null);
   const [checkedMap,      setCheckedMap]     = useState<Record<string, Set<number>>>({});
-  const [readIds,         setReadIds]        = useState<Set<string>>(new Set());
+  const [readIds,         setReadIds]        = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("hollis_inbox_read");
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
   const [learningApproved, setLearningApproved] = useState(0);
   const [learningThreshold, setLearningThreshold] = useState(LEARNING_MODE_THRESHOLD);
+  const [resolvedId,      setResolvedId]     = useState<string | null>(null);
+  const [resolvedType,    setResolvedType]   = useState<"handled" | "resume" | "terminate" | null>(null);
+  const [toasts,          setToasts]         = useState<{ id: string; message: string; type: "success" | "error" }[]>([]);
+
+  function addToast(message: string, type: "success" | "error") {
+    const id = Math.random().toString(36).slice(2);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4500);
+  }
+
   // Fetch live learning count on mount and whenever view returns to list
   async function fetchLearningCount() {
     try {        const res = await fetch("/api/agent/learning-count");
@@ -1508,6 +1958,12 @@ export default function InboxClient({
   useEffect(() => {
     fetchLearningCount();
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("hollis_inbox_read", JSON.stringify([...readIds]));
+    } catch { /* storage quota or SSR — silently ignore */ }
+  }, [readIds]);
 
   function openRow(row: DisplayRow) {
     setSelectedRow(row);
@@ -1530,22 +1986,46 @@ export default function InboxClient({
     action: "approved" | "rejected" | "edited",
     extra?: { edited_body?: string }
   ) {
-    setBusy(true); setErrorMsg(null);
-    try {
-      const res = await fetch(`/api/agent/review/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...extra }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
-      setSentId(id); setSentAction(action);
-      await new Promise((r) => setTimeout(r, 900));
-      setItems((prev) => prev.filter((i) => i.id !== id));
-      goBack();
-      setSentId(null); setSentAction(null); setIsEditing(false);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setBusy(false); }
+    // Rejected: blocking (no optimistic dismiss)
+    if (action === "rejected") {
+      setBusy(true); setErrorMsg(null);
+      try {
+        const res = await fetch(`/api/agent/review/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, ...extra }),
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+        setSentId(id); setSentAction(action);
+        await new Promise((r) => setTimeout(r, 900));
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        goBack();
+        setSentId(null); setSentAction(null); setIsEditing(false);
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+      } finally { setBusy(false); }
+      return;
+    }
+
+    // Approved / edited: optimistic — dismiss immediately, send in background
+    const snapshot = items.find((i) => i.id === id);
+    const clientName = snapshot?.policies?.client_name ?? "client";
+
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setSentId(null); setSentAction(null); setIsEditing(false);
+    goBack();
+
+    fetch(`/api/agent/review/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...extra }),
+    }).then(async (res) => {
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed"); }
+      addToast(`Email sent to ${clientName}`, "success");
+    }).catch(() => {
+      if (snapshot) setItems((prev) => [snapshot, ...prev]);
+      addToast(`Failed to send to ${clientName} — item restored to inbox`, "error");
+    });
   }
 
   function toggleCheck(itemId: string, idx: number) {
@@ -1558,13 +2038,26 @@ export default function InboxClient({
 
   if (view === "list") {
     return (
-      <ListView
-        allItems={items}
-        docChaseReplies={docChaseReplies}
-        onOpen={openRow}
-        readIds={readIds}
-        onRead={(id) => setReadIds((prev) => new Set([...prev, id]))}
-      />
+      <>
+        <FlashingDotStyle />
+        <ListView
+          allItems={items}
+          docChaseReplies={docChaseReplies}
+          onOpen={openRow}
+          readIds={readIds}
+          onRead={(id) => setReadIds((prev) => new Set([...prev, id]))}
+        />
+        {toasts.length > 0 && (
+          <div style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 8, zIndex: 9999 }}>
+            {toasts.map((t) => (
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: t.type === "error" ? "#f87171" : "var(--text-primary)", background: "var(--surface)", border: `1px solid ${t.type === "error" ? "rgba(248,113,113,0.35)" : "var(--border)"}`, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", animation: "escalation-slide-in 200ms ease-out forwards" }}>
+                {t.type === "error" ? <AlertTriangle size={13} /> : <CheckCircle2 size={13} />}
+                {t.message}
+              </div>
+            ))}
+          </div>
+        )}
+      </>
     );
   }
 
@@ -1606,6 +2099,40 @@ export default function InboxClient({
         onComplete={() => resolve(selectedItem.id, "approved")}
         learningApproved={learningApproved}
         learningThreshold={learningThreshold}
+      />
+    );
+  }
+
+  if (itemType === "escalation") {
+    return (
+      <EscalationDetail
+        row={selectedRow}
+        item={selectedItem}
+        onBack={goBack}
+        busy={busy}
+        resolved={resolvedId === selectedItem.id}
+        resolutionType={resolvedType}
+        errorMsg={errorMsg}
+        onResolve={async (resolution) => {
+          setBusy(true); setErrorMsg(null);
+          try {
+            const res = await fetch(`/api/agent/escalation/${selectedItem.id}/resolve`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resolution }),
+            });
+            if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed to resolve escalation"); }
+            setResolvedId(selectedItem.id);
+            setResolvedType(resolution);
+            await new Promise((r) => setTimeout(r, 900));
+            setResolvedId(null);
+            setResolvedType(null);
+            setItems((prev) => prev.filter((i) => i.id !== selectedItem.id));
+            goBack();
+          } catch (err) {
+            setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+          } finally { setBusy(false); }
+        }}
       />
     );
   }

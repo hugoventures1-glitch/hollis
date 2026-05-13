@@ -350,7 +350,7 @@ export function ClientKnowledgeBasePanel({
           </span>
         </div>
 
-        {/* Divider + files section */}
+        {/* STORED FILES — hidden until file content is wired into AI context
         <div className="border-t" style={{ borderColor: "var(--surface-raised)" }} />
 
         <div className="flex items-center justify-between">
@@ -407,8 +407,10 @@ export function ClientKnowledgeBasePanel({
             ))}
           </div>
         )}
+        */}
       </div>
 
+      {/* FILE MODAL — hidden until stored files are wired into AI context
       {fileModalOpen && (
         <AddFileModal
           clientId={clientId}
@@ -416,6 +418,7 @@ export function ClientKnowledgeBasePanel({
           onAdded={(doc) => setDocs((prev) => [doc, ...prev])}
         />
       )}
+      */}
     </>
   );
 }

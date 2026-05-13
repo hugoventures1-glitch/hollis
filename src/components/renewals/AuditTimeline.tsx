@@ -41,6 +41,8 @@ const EVENT_ICONS: Record<AuditEventType, React.ElementType> = {
   tier_3_escalated:         ShieldAlert,
   sequence_halted:          OctagonX,
   flag_set:                 Flag,
+  // Escalation resolution (migration 039)
+  escalation_resolved:      BadgeCheck,
 };
 
 const EVENT_COLORS: Record<AuditEventType, string> = {
@@ -60,6 +62,7 @@ const EVENT_COLORS: Record<AuditEventType, string> = {
   client_confirmed:         "text-text-primary bg-hover-overlay",
   doc_received:             "text-text-primary bg-hover-overlay",
   tier_1_action:            "text-text-primary bg-hover-overlay",
+  escalation_resolved:      "text-text-primary bg-hover-overlay",
   // Danger events — red
   lapse_recorded:           "text-danger bg-danger/[0.06]",
   tier_3_escalated:         "text-danger bg-danger/[0.06]",
@@ -85,6 +88,8 @@ const EVENT_LABELS: Record<AuditEventType, string> = {
   tier_3_escalated:         "Escalated to Broker",
   sequence_halted:          "Sequence Halted",
   flag_set:                 "Flag Updated",
+  // Escalation resolution (migration 039)
+  escalation_resolved:      "Escalation Resolved",
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
