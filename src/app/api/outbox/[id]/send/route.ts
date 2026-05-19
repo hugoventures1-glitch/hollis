@@ -58,12 +58,29 @@ export async function POST(request: NextRequest, { params }: PageParams) {
   const clientEmail = policyData?.client_email?.trim();
   if (clientEmail) {
     const resend = getResendClient();
-    await resend.emails.send({
+    const { data: sent, error: resendError } = await resend.emails.send({
       from,
       to: clientEmail,
       subject: finalSubject,
       text: finalBody,
     });
+    if (resendError) {
+      console.error("[outbox/send] Resend error:", resendError.message ?? resendError);
+      return NextResponse.json({ error: resendError.message ?? "Failed to send email" }, { status: 500 });
+    }
+
+    // Log to send_logs so bounce webhooks can match this send and alert the broker
+    if (sent?.id && draft.renewal_id) {
+      await supabase.from("send_logs").insert({
+        policy_id: draft.renewal_id,
+        user_id: user.id,
+        channel: "email",
+        recipient: clientEmail,
+        status: "sent",
+        provider_message_id: sent.id,
+        sent_at: new Date().toISOString(),
+      });
+    }
   } else {
     console.warn(
       `[outbox/send] Draft ${id} has no client_email — skipping send, marking as sent (agent may follow up manually)`

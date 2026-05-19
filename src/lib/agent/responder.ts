@@ -102,9 +102,10 @@ The body should be plain text with line breaks between paragraphs.`;
 
 const INTENT_TONES: Record<"confirm_renewal" | "request_callback" | "document_received", string> = {
   confirm_renewal:
-    "The client has confirmed they want to proceed with renewal. " +
-    "Thank them warmly, confirm you have noted their decision, and let them know " +
-    "you will be in touch with next steps shortly.",
+    "The client has confirmed renewal. Reply with ONE sentence only — warm but direct. " +
+    "Example: 'Thanks [first name], all confirmed — we'll take it from here.' " +
+    "Do NOT say 'we will be in touch', 'next steps', or promise any follow-up. " +
+    "No more than 1 sentence before the agent sign-off.",
   request_callback:
     "The client has asked to be called back. Acknowledge their request, " +
     "let them know the agent will be in touch shortly, and confirm the " +

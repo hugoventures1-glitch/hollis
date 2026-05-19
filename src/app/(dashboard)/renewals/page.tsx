@@ -89,13 +89,13 @@ function RenewalsContent() {
       {/* ── Stats strip ── */}
       <div
         className="flex items-stretch justify-around shrink-0"
-        style={{ borderBottom: "1px solid var(--surface-raised)" }}
+        style={{ borderBottom: "1px solid var(--surface-raised)", paddingTop: 8, paddingBottom: 8, marginTop: -21 }}
       >
-        <div className="py-6 flex flex-col gap-1 items-center">
+        <div className="flex flex-col gap-1 items-center justify-center">
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize:   32,
+              fontSize:   35,
               fontWeight: 700,
               lineHeight: 1,
               color:      "var(--text-primary)",
@@ -103,15 +103,15 @@ function RenewalsContent() {
           >
             {activePolicies.length}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Active
           </div>
         </div>
-        <div className="py-6 flex flex-col gap-1 items-center">
+        <div className="flex flex-col gap-1 items-center justify-center">
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize:   32,
+              fontSize:   35,
               fontWeight: 700,
               lineHeight: 1,
               color:      urgent > 0 ? "var(--danger)" : "var(--text-primary)",
@@ -119,15 +119,15 @@ function RenewalsContent() {
           >
             {urgent}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Expiring ≤30d
           </div>
         </div>
-        <div className="py-6 flex flex-col gap-1 items-center">
+        <div className="flex flex-col gap-1 items-center justify-center">
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize:   32,
+              fontSize:   35,
               fontWeight: 700,
               lineHeight: 1,
               color:      actionCount > 0 ? "var(--text-secondary)" : "var(--text-primary)",
@@ -135,15 +135,15 @@ function RenewalsContent() {
           >
             {actionCount}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Need Action
           </div>
         </div>
-        <div className="py-6 flex flex-col gap-1 items-center">
+        <div className="flex flex-col gap-1 items-center justify-center">
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize:   32,
+              fontSize:   35,
               fontWeight: 700,
               lineHeight: 1,
               color:      "var(--text-secondary)",
@@ -151,7 +151,7 @@ function RenewalsContent() {
           >
             {progressCount}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             In Progress
           </div>
         </div>
@@ -160,7 +160,7 @@ function RenewalsContent() {
       {/* ── Search + Tabs Bar ── */}
       <div
         className="shrink-0 px-14 py-3 flex items-center gap-6"
-        style={{ borderBottom: "1px solid var(--border)", height: 60 }}
+        style={{ height: 60, marginTop: 21 }}
       >
         {/* Search box - left side */}
         <div

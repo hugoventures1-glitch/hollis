@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import type { AuditEventType } from "@/types/renewals";
 import HistoryPanel from "@/app/(dashboard)/renewals/history/HistoryPanel";
 
@@ -288,14 +289,17 @@ function ActivityCard({
   entry,
   isFirst,
   isLast,
+  isNew,
 }: {
   entry: AuditRow;
   isFirst: boolean;
   isLast: boolean;
+  isNew?: boolean;
 }) {
   const client = getClientName(entry);
   const label = EVENT_LABELS[entry.event_type] ?? entry.event_type.replace(/_/g, " ");
   const icon = EVENT_ICONS[entry.event_type] ?? "·";
+  const isEscalation = entry.event_type === "tier_3_escalated";
 
   // Line above: absent for first (most recent) event
   const lineAbove = isFirst ? "transparent" : "#1E1E1E";
@@ -305,15 +309,31 @@ function ActivityCard({
     : "#1E1E1E";
 
   return (
-    <div className="flex gap-3">
+    <div
+      className="flex gap-3"
+      style={isNew ? { animation: "hollis-activity-row 280ms ease-out both" } : undefined}
+    >
       {/* Timeline column */}
       <div className="flex flex-col items-center w-4 shrink-0">
         {/* Segment above dot */}
-        <div className="w-px" style={{ flex: "1 1 0", minHeight: 14, background: lineAbove }} />
+        <div
+          className="w-px"
+          style={{
+            flex: "1 1 0",
+            minHeight: 14,
+            background: lineAbove,
+            transformOrigin: "top",
+            ...(isNew ? { animation: "hollis-draw-line 220ms ease-out both" } : undefined),
+          }}
+        />
         {/* Dot */}
         <div
           className="w-2 h-2 rounded-full shrink-0"
-          style={{ background: "#1E1E1E", border: "1px solid #3A3A3A" }}
+          style={{
+            background: isEscalation ? "var(--danger)" : "#1E1E1E",
+            border: isEscalation ? "1px solid rgba(220,38,38,0.5)" : "1px solid #3A3A3A",
+            boxShadow: isEscalation ? "0 0 6px rgba(220,38,38,0.5)" : "none",
+          }}
         />
         {/* Segment below dot */}
         <div className="w-px" style={{ flex: "1 1 0", minHeight: 14, background: lineBelow }} />
@@ -323,19 +343,24 @@ function ActivityCard({
       <div
         className="flex-1 min-w-0 mb-2 flex items-start gap-3 px-3 py-2.5 rounded-lg"
         style={{
-          background: "var(--surface-raised)",
-          border: "1px solid var(--border-subtle)",
+          background: isEscalation ? "rgba(220,38,38,0.05)" : "var(--surface-raised)",
+          border: isEscalation ? "1px solid rgba(220,38,38,0.2)" : "1px solid var(--border-subtle)",
+          borderLeft: isEscalation ? "3px solid var(--danger)" : undefined,
+          ...(isNew ? { animation: "hollis-activity-card 300ms ease-out 120ms both" } : undefined),
         }}
       >
         <div
           className="w-6 h-6 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5"
-          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}
+          style={{
+            background: isEscalation ? "rgba(220,38,38,0.1)" : "var(--surface)",
+            color: isEscalation ? "var(--danger)" : "var(--text-secondary)",
+          }}
         >
           {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>
+            <span className="text-[12px] font-medium" style={{ color: isEscalation ? "var(--danger)" : "var(--text-primary)" }}>
               {label}
             </span>
             <span className="text-[10px] shrink-0 tabular-nums" style={{ color: "var(--text-secondary)" }}>
@@ -580,6 +605,30 @@ export default function ActivityClient({
 
   const autonomousActionsTotal = stats.autonomousActionsTotal;
 
+  // ── New-item animation tracking ───────────────────────────────────────────
+  const prevIds = useRef<Set<string>>(new Set(feed.map((e) => e.id)));
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const incoming = new Set(
+      feed.map((e) => e.id).filter((id) => !prevIds.current.has(id))
+    );
+    prevIds.current = new Set(feed.map((e) => e.id));
+    if (incoming.size === 0) return;
+    setNewIds(incoming);
+    const t = setTimeout(() => setNewIds(new Set()), 800);
+    return () => clearTimeout(t);
+  }, [feed]);
+
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    router.refresh();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [router]);
+
   const toggle = (id: string, set: Set<string>, setter: (s: Set<string>) => void) => {
     const next = new Set(set);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -594,50 +643,69 @@ export default function ActivityClient({
       style={{ background: "var(--background)", color: "var(--text-primary)" }}
     >
       {/* Header */}
-      <header
-        className="h-[56px] shrink-0 flex items-center justify-between px-6"
-        style={{ borderBottom: "1px solid var(--border)" }}
-      >
-        <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-          Activity
-        </span>
+      <div className="h-[56px] shrink-0 flex items-center justify-end px-6">
+      </div>
 
-        {/* Live / History toggle */}
+      {/* Tab bar strip — always visible, sits above the History overlay */}
+      <div
+        className="shrink-0 flex items-center px-8"
+        style={{ height: 48, paddingTop: 6, paddingBottom: 6, marginTop: -21 }}
+      >
         <div
-          className="flex items-center gap-0.5 p-0.5 rounded-md"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid var(--border-subtle)",
-          }}
+          className="relative flex items-center rounded-lg flex-shrink-0"
+          style={{ background: "var(--surface-raised)", padding: 3, gap: 2 }}
         >
-          {(["live", "history"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-medium transition-all capitalize"
-              style={{
-                background: view === v ? "rgba(255,255,255,0.07)" : "transparent",
-                color: view === v ? "var(--text-primary)" : "var(--text-secondary)",
-              }}
-            >
-              {v === "live" && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{
-                    background: "#B8F400",
-                    boxShadow: "0 0 6px rgba(184,244,0,0.8)",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
-              )}
-              {v}
-            </button>
-          ))}
+          {/* Sliding background */}
+          <div
+            style={{
+              position: "absolute",
+              background: "var(--background)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              top: 3,
+              bottom: 3,
+              width: 120,
+              left: 3,
+              transition: "transform 200ms ease-in-out",
+              transform: view === "history" ? "translateX(122px)" : "translateX(0)",
+              pointerEvents: "none",
+            }}
+          />
+          <button
+            onClick={() => setView("live")}
+            className="relative z-10 text-[12px] font-medium"
+            style={{
+              width: 120,
+              height: 28,
+              color: view === "live" ? "var(--text-primary)" : "var(--text-secondary)",
+              cursor: "pointer",
+              background: "transparent",
+              border: "none",
+              transition: "color 200ms ease-in-out",
+            }}
+          >
+            Recent Activity
+          </button>
+          <button
+            onClick={() => setView("history")}
+            className="relative z-10 text-[12px] font-medium"
+            style={{
+              width: 120,
+              height: 28,
+              color: view === "history" ? "var(--text-primary)" : "var(--text-secondary)",
+              cursor: "pointer",
+              background: "transparent",
+              border: "none",
+              transition: "color 200ms ease-in-out",
+            }}
+          >
+            History
+          </button>
         </div>
-      </header>
+      </div>
 
       {view === "history" && (
-        <div className="absolute inset-0" style={{ top: 57, zIndex: 10, background: "#000" }}>
+        <div className="absolute inset-0" style={{ top: 80, zIndex: 10, background: "var(--background)" }}>
           <HistoryPanel />
         </div>
       )}
@@ -645,12 +713,12 @@ export default function ActivityClient({
       <div
         className="flex-1 overflow-y-auto"
         aria-hidden={view === "history" || undefined}
-        style={{ visibility: view === "history" ? "hidden" : undefined }}
+        style={{ visibility: view === "history" ? "hidden" : undefined, marginTop: 21 }}
       >
-        <div className="max-w-6xl mx-auto px-8 py-10">
+        <div className="max-w-6xl mx-auto px-8 py-8">
 
           {/* ── Heading ── */}
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center justify-between gap-3 mb-8">
             <h1
               className="text-[32px] leading-none tracking-tight"
               style={{
@@ -661,13 +729,19 @@ export default function ActivityClient({
             >
               Hollis is working.
             </h1>
-            <span
-              className="w-2 h-2 rounded-full shrink-0 animate-hollis-pulse"
+            <button
+              onClick={handleRefresh}
+              className="flex items-center justify-center text-[18px] px-2 py-1 rounded transition-colors"
               style={{
-                background: "#B8F400",
-                boxShadow: "0 0 10px rgba(184,244,0,0.8)",
+                background: "transparent",
+                border: "none",
+                color: refreshing ? "var(--text-tertiary)" : "var(--text-secondary)",
+                opacity: refreshing ? 0.6 : 1,
               }}
-            />
+              disabled={refreshing}
+            >
+              <span style={{ display: "inline-block", transition: "transform 600ms", transform: refreshing ? "rotate(360deg)" : "none" }}>↺</span>
+            </button>
           </div>
 
           {/* ── Bento Grid ── */}
@@ -736,12 +810,6 @@ export default function ActivityClient({
             <div className="min-w-0">
               {view === "live" ? (
                 <>
-                  <p
-                    className="text-[10px] font-medium uppercase tracking-[0.09em] mb-5"
-                    style={{                color: "var(--text-tertiary)" }}
-                  >
-                    Recent activity
-                  </p>
                   {feed.length === 0 ? (
                     <IdleState count={monCount} />
                   ) : (
@@ -752,6 +820,7 @@ export default function ActivityClient({
                           entry={entry}
                           isFirst={i === 0}
                           isLast={i === arr.length - 1}
+                          isNew={newIds.has(entry.id)}
                         />
                       ))}
                     </div>
@@ -759,12 +828,6 @@ export default function ActivityClient({
                 </>
               ) : (
                 <>
-                  <p
-                    className="text-[10px] font-medium uppercase tracking-[0.09em] mb-5"
-                    style={{                color: "var(--text-tertiary)" }}
-                  >
-                    Work sessions
-                  </p>
                   {sessions.length === 0 ? (
                     <IdleState count={monCount} />
                   ) : (

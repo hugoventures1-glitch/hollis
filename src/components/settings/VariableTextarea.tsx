@@ -22,7 +22,7 @@ export function VariableBodyPreview({ text, className }: { text: string; classNa
           return (
             <span
               key={i}
-              className="inline-flex items-center px-1.5 py-px rounded bg-[#1e1e2a] border border-[#2a2a36] text-[11px] text-zinc-300 font-mono mx-0.5 align-baseline"
+              className="inline-flex items-center px-1.5 py-px rounded bg-surface-raised border border-border text-[11px] text-text-secondary font-mono mx-0.5 align-baseline"
             >
               {match[1].replace(/_/g, " ")}
             </span>
@@ -149,17 +149,17 @@ export function VariableTextarea({ value, onChange, rows = 10, placeholder, clas
           "w-full bg-background border border-border rounded-lg px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-[#555555] placeholder-text-tertiary resize-y font-mono leading-relaxed"
         }
       />
-      <p className="mt-1 text-[11px] text-zinc-600">
-        Type <kbd className="px-1 py-px rounded bg-[#1a1a22] border border-[#2a2a36] font-mono text-[10px] text-zinc-500">@</kbd> to insert a variable
+      <p className="mt-1 text-[11px] text-text-tertiary">
+        Type <kbd className="px-1 py-px rounded bg-surface-raised border border-border font-mono text-[10px] text-text-tertiary">@</kbd> to insert a variable
       </p>
 
       {showPicker && filtered.length > 0 && (
         <div
           ref={pickerRef}
-          className="absolute z-50 top-full mt-1 left-0 w-64 rounded-lg border border-[#2a2a36] bg-[#111118] shadow-xl overflow-hidden"
+          className="absolute z-50 top-full mt-1 left-0 w-64 rounded-lg border border-border bg-surface shadow-xl overflow-hidden"
         >
-          <div className="px-3 py-2 border-b border-[#1e1e2a]">
-            <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Insert variable</p>
+          <div className="px-3 py-2 border-b border-border">
+            <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">Insert variable</p>
           </div>
           <ul>
             {filtered.map((v, i) => (
@@ -172,8 +172,8 @@ export function VariableTextarea({ value, onChange, rows = 10, placeholder, clas
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
                     i === selectedIndex
-                      ? "bg-[#1e1e2a] text-text-primary"
-                      : "text-zinc-400 hover:bg-[#1e1e2a] hover:text-zinc-200"
+                      ? "bg-surface-raised text-text-primary"
+                      : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"
                   }`}
                 >
                   <span className="text-[12px] font-medium flex-1">{v.label}</span>

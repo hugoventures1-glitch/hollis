@@ -82,51 +82,95 @@ function makeTier3(
 // ── Tier 2 helpers ─────────────────────────────────────────────────────────────
 
 function buildProposedAction(intent: string, classification: ClassificationResult, docChaseRequestId?: string | null): ProposedAction {
-  const actionMap: Record<string, { description: string; action_type: string }> = {
+  const actionMap: Record<string, { description: string; action_type: string; task_type?: string }> = {
+    // ── v2 canonical intents ──────────────────────────────────────────────────
+    confirmed: {
+      description: "Mark client as confirmed and advance campaign stage to 'confirmed'",
+      action_type: "advance_stage",
+      task_type: "advance_stage",
+    },
+    coverage_question: {
+      description: "Draft AI response to the client query and send automatically",
+      action_type: "draft_and_send_response",
+      task_type: "draft_and_send_response",
+    },
+    price_objection: {
+      description: "Client has raised a pricing concern — broker must respond before renewal can proceed",
+      action_type: "clarification_required",
+      task_type: "price_review",
+    },
+    material_change_disclosed: {
+      description: "Client disclosed a business change — broker must verify coverage is still appropriate before binding",
+      action_type: "broker_change_required",
+      task_type: "material_change_review",
+    },
+    prior_comms_reference: {
+      description: "Client references a prior email or call not visible in this thread — broker must check history before replying",
+      action_type: "clarification_required",
+      task_type: "comms_reference",
+    },
+    unclassified: {
+      description: "Signal could not be classified — broker must review and determine next action",
+      action_type: "clarification_required",
+      task_type: "clarification_required",
+    },
+    // ── Escalation intents (Tier 3 — also in actionMap for Tier 3 queue items) ─
+    declined_churn: {
+      description: "Client is explicitly leaving for another broker — renewal sequence suppressed, retention task created for broker",
+      action_type: "retention_escalation",
+      task_type: "retention_at_risk",
+    },
+    contact_change: {
+      description: "Client has requested a contact update — broker must update records before sequence continues",
+      action_type: "contact_update_required",
+      task_type: "contact_update_required",
+    },
+    // ── v1 canonical names (kept for backward compat) ─────────────────────────
     confirm_renewal: {
       description: "Mark client as confirmed and advance campaign stage to 'confirmed'",
       action_type: "advance_stage",
+      task_type: "advance_stage",
     },
     renewal_with_changes: {
       description: "Client confirmed renewal but requested changes — update policy details before proceeding",
       action_type: "broker_change_required",
+      task_type: "material_change_review",
     },
     request_callback: {
       description: "Create broker callback task and pause the renewal sequence",
       action_type: "create_task_pause_sequence",
+      task_type: "clarification_required",
     },
     document_received: {
       description: "Log document receipt and update document chase status",
       action_type: "log_document",
+      task_type: "log_document",
     },
     soft_query: {
       description: "Draft AI response to the client query and send automatically",
       action_type: "draft_and_send_response",
+      task_type: "draft_and_send_response",
     },
     unverified_third_party: {
       description:
         "Draft verification email to the third-party contact to confirm identity and authority before proceeding",
       action_type: "send_verification_email",
+      task_type: "clarification_required",
     },
     document_required: {
       description: "Agent identified a required document — approve to start a doc chase sequence for this client",
       action_type: "create_doc_chase_request",
+      task_type: "create_doc_chase_request",
     },
     schedule_meeting: {
       description: "Client is requesting a meeting or call — draft a reply offering time options for broker to customise and send",
       action_type: "draft_and_send_response",
+      task_type: "draft_and_send_response",
     },
     ambiguous_acknowledgement: {
       description: "Signal is a vague acknowledgement ('Thanks', 'Got it', 'OK') — broker must confirm whether this is a soft renewal confirmation or just a social reply",
       action_type: "clarification_required",
-    },
-    declined_churn: {
-      description: "Client is explicitly leaving for another broker — renewal sequence suppressed, retention task created for broker",
-      action_type: "retention_escalation",
-    },
-    contact_change: {
-      description: "Client has requested a contact update — broker must update records before sequence continues",
-      action_type: "contact_update_required",
+      task_type: "clarification_required",
     },
   };
 
@@ -152,16 +196,23 @@ function buildProposedAction(intent: string, classification: ClassificationResul
     ? `Document needed: "${classification.document_type_needed}" — approve to start a doc chase sequence for this client`
     : (mapped?.description ?? `Handle "${intent}" intent — ${classification.reasoning}`);
 
+  // Changes list applies to both v2 material_change_disclosed and v1 renewal_with_changes
+  const changesPayload =
+    (intent === "renewal_with_changes" || intent === "material_change_disclosed") &&
+    classification.changes_requested?.length
+      ? { changes: classification.changes_requested }
+      : {};
+
   return {
     description,
     action_type: mapped?.action_type ?? "advance_sequence",
+    task_type: mapped?.task_type,
     payload: {
       intent: classification.intent,
       confidence: classification.confidence,
       reasoning: classification.reasoning,
-      ...(intent === "renewal_with_changes" && classification.changes_requested?.length
-        ? { changes: classification.changes_requested }
-        : {}),
+      ...(classification.extracted_context ? { extracted_context: classification.extracted_context } : {}),
+      ...changesPayload,
       ...(intent === "document_required"
         ? {
             document_type: classification.document_type_needed ?? null,
@@ -190,10 +241,15 @@ function makeTier2(
 // ── Tier 1 helpers ─────────────────────────────────────────────────────────────
 
 const AUTONOMOUS_ACTION_DESCRIPTIONS: Record<string, string> = {
+  // v2 canonical
+  confirmed: "Mark client as confirmed, advance campaign stage to 'confirmed'",
+  coverage_question: "Draft AI response to client query, send automatically",
+  // v1 (kept for backward compat)
   confirm_renewal: "Mark client as confirmed, advance campaign stage to 'confirmed'",
+  soft_query: "Draft AI response to client query, send automatically",
+  // unchanged
   request_callback: "Create broker callback task, pause renewal sequence",
   document_received: "Log document receipt, update document chase status",
-  soft_query: "Draft AI response to client query, send automatically",
   out_of_office: "Log auto-reply detected, resume sequence after detected return date",
 };
 
@@ -394,7 +450,7 @@ export async function routeTier(
   const { isLearning, approvedCount } = await getBrokerTrustLevel(supabase, userId);
   if (isLearning) {
     return makeTier2(
-      `Learning mode — ${approvedCount}/${LEARNING_MODE_THRESHOLD} approvals recorded. Autonomous action held for broker confirmation until confidence baseline is established.`,
+      `Learning mode — autonomous action held for broker confirmation until confidence baseline is established.`,
       flags,
       classification
     );

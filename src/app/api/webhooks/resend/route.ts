@@ -136,10 +136,11 @@ export async function POST(request: NextRequest) {
   if (type === "email.bounced") {
     const errorMsg = data.bounce?.message ?? "Bounced";
 
-    await supabase
+    const { data: updatedLogs } = await supabase
       .from("send_logs")
       .update({ status: "bounced", bounced_at: ts, delivery_error: errorMsg })
-      .eq("provider_message_id", emailId);
+      .eq("provider_message_id", emailId)
+      .select("policy_id, user_id");
 
     if (recipient) {
       await supabase
@@ -147,6 +148,41 @@ export async function POST(request: NextRequest) {
         .update({ email_bounced: true, email_bounced_at: ts })
         .eq("email", recipient)
         .eq("email_bounced", false);
+    }
+
+    // Create a Tier 3 inbox item so the broker is alerted to the bounce
+    const logRow = updatedLogs?.[0];
+    if (logRow?.policy_id && logRow?.user_id) {
+      const { data: policyInfo } = await supabase
+        .from("policies")
+        .select("client_name, policy_name")
+        .eq("id", logRow.policy_id as string)
+        .maybeSingle();
+
+      const clientName = policyInfo?.client_name ?? recipient ?? "client";
+      const policyName = policyInfo?.policy_name ?? "policy";
+
+      await supabase.from("approval_queue").insert({
+        policy_id: logRow.policy_id,
+        user_id: logRow.user_id,
+        signal_id: null,
+        tier: 3,
+        classified_intent: "email_bounced",
+        confidence_score: 1.0,
+        raw_signal_snippet: `Email to ${recipient ?? "client"} bounced${errorMsg !== "Bounced" ? `: ${errorMsg}` : ""}. Update the contact email for ${clientName}.`,
+        proposed_action: {
+          description: `Email delivery failed for ${clientName} (${policyName}). The address "${recipient ?? "unknown"}" doesn't exist or rejected the message. Update their contact details and resend manually.`,
+          action_type: "broker_change_required",
+          payload: {
+            policy_name: policyName,
+            client_name: clientName,
+            bounced_recipient: recipient ?? null,
+            bounce_reason: errorMsg,
+            provider_message_id: emailId,
+          },
+        },
+        status: "pending",
+      });
     }
 
     console.warn(`[webhook/resend] Bounce recorded for ${recipient ?? emailId}: ${errorMsg}`);

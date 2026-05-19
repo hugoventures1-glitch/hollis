@@ -8,7 +8,9 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { logAction, retainStandard } from "@/lib/logAction";
+import { buildReplyHeaders, normalizeReplySubject } from "@/lib/email/threading";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -31,12 +33,25 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   // Verify ownership
   const { data: chase } = await supabase
     .from("doc_chase_requests")
-    .select("id, client_email, client_name, document_type, policy_id, last_client_message_id")
+    .select("id, client_email, client_name, document_type, policy_id, last_client_message_id, thread_index, thread_topic")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (!chase) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Look up the full thread context from inbound_signals for RFC 2822 References header.
+  let threadingReferences: string | null = null;
+  if (chase.last_client_message_id) {
+    const admin = createAdminClient();
+    const { data: sig } = await admin
+      .from("inbound_signals")
+      .select("references_headers")
+      .eq("message_id", chase.last_client_message_id)
+      .limit(1)
+      .maybeSingle();
+    threadingReferences = (sig as { references_headers?: string | null } | null)?.references_headers ?? null;
+  }
 
   // Fetch broker profile for sender name and reply-to
   const { data: profile } = await supabase
@@ -61,21 +76,28 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
-    const threadHeaders: Record<string, string> = {};
-    if (chase.last_client_message_id) {
-      threadHeaders["In-Reply-To"] = chase.last_client_message_id;
-      threadHeaders["References"] = chase.last_client_message_id;
-    }
 
-    const replySubject = subject && /^Re:\s*/i.test(subject) ? subject : `Re: ${subject || chase.document_type}`;
+    const replySubject = normalizeReplySubject(subject || chase.document_type);
     await resend.emails.send({
       from,
       to: chase.client_email,
       subject: replySubject,
       text: emailBody,
       ...(replyTo ? { reply_to: replyTo } : {}),
-      ...(Object.keys(threadHeaders).length > 0 ? { headers: threadHeaders } : {}),
+      headers: buildReplyHeaders({
+        messageId: chase.last_client_message_id ?? null,
+        referencesHeaders: threadingReferences,
+        threadIndex: (chase as Record<string, unknown>).thread_index as string | null ?? null,
+        threadTopic: (chase as Record<string, unknown>).thread_topic as string | null ?? null,
+        subject: subject || chase.document_type,
+      }),
     });
+
+    await supabase
+      .from("doc_chase_requests")
+      .update({ status: "received", received_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     void logAction({
       broker_id: user.id,

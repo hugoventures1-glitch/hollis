@@ -53,17 +53,15 @@ const INDUSTRY_OPTIONS = [
   { value: "financial_services", label: "Financial Services" },
   { value: "education", label: "Education" },
   { value: "other", label: "Other" },
-];
-
-const inputClass =
+];  const inputClass =
   "w-full bg-background border border-border rounded-lg px-4 py-2.5 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-text-secondary transition-colors disabled:opacity-50";
 
 const labelClass =
-  "block text-[11px] font-semibold text-[#505057] uppercase tracking-wider mb-2";
+  "block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-2";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-semibold text-[#505057] uppercase tracking-wider pt-2 pb-1 border-b border-border mb-4">
+    <div className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider pt-2 pb-1 border-b border-border mb-4">
       {children}
     </div>
   );
@@ -202,10 +200,10 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
           />
 
           {/* Panel */}
-          <div className="w-[520px] shrink-0 bg-[#111118] border-l border-[#1e1e2a] flex flex-col h-full shadow-[-24px_0_60px_rgba(0,0,0,0.5)]">
+          <div className="w-[520px] shrink-0 bg-surface border-l border-border flex flex-col h-full shadow-[-24px_0_60px_rgba(0,0,0,0.5)]">
 
             {/* Header */}
-            <div className="h-14 shrink-0 border-b border-[#1e1e2a] flex items-center justify-between px-6">
+            <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-6">
               <span className="text-[14px] font-semibold text-text-primary">Edit Client</span>
               <button
                 onClick={() => setIsOpen(false)}
@@ -347,7 +345,7 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
                   type="button"
                   onClick={() => setOwnsVehicles(!ownsVehicles)}
                   disabled={saving}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${ownsVehicles ? "bg-text-primary" : "bg-[#2a2a2a]"} disabled:opacity-50`}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${ownsVehicles ? "bg-text-primary" : "bg-toggle-track-off"} disabled:opacity-50`}
                 >
                   <span
                     className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow transition-transform ${ownsVehicles ? "translate-x-5" : "translate-x-0"}`}
@@ -376,7 +374,7 @@ export function ClientEditDrawer({ client }: ClientEditDrawerProps) {
             </div>
 
             {/* Footer */}
-            <div className="shrink-0 border-t border-[#1e1e2a] px-6 py-4 flex items-center gap-3">
+            <div className="shrink-0 border-t border-border px-6 py-4 flex items-center gap-3">
               <button
                 onClick={handleSave}
                 disabled={saving || !name.trim()}

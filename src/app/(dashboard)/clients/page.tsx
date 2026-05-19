@@ -42,10 +42,7 @@ export default function ClientsPage() {
     <div className="flex flex-col h-full" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
 
       {/* Header */}
-      <header className="h-[56px] shrink-0 flex items-center justify-between px-6" style={{ borderBottom: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-2.5 text-sm font-medium tracking-tight">
-          <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>CRM</span>
-        </div>
+      <header className="h-[56px] shrink-0 flex items-center justify-end px-6">
         <div className="flex items-center gap-2.5">
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: "rgba(250,250,250,0.2)" }} title="Syncing…" />
@@ -56,15 +53,15 @@ export default function ClientsPage() {
       {/* Search + Tabs bar */}
       <div
         className="shrink-0 px-6 flex items-center gap-6"
-        style={{ height: 60, borderBottom: "1px solid var(--border)" }}
+        style={{ height: 60, paddingTop: -8, paddingBottom: 8, marginTop: -21 }}
       >
         {/* Search box */}
         <div
-          className="flex items-center gap-3 px-4 rounded-xl transition-all duration-200 flex-shrink-0 cursor-text"
-          style={{ width: 280, height: 44, background: "var(--background)", border: "1px solid var(--border)" }}
+          className="flex items-center gap-3 px-5 rounded-xl transition-all duration-200 flex-shrink-0 cursor-text"
+          style={{ width: 308, height: 48, background: "var(--background)", border: "1px solid var(--border)" }}
           onClick={() => inputRef.current?.focus()}
         >
-          <Search size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+          <Search size={18} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -73,12 +70,12 @@ export default function ClientsPage() {
             onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
             placeholder="Search clients"
             className="flex-1 bg-transparent outline-none placeholder-[#555]"
-            style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--text-secondary)" }}
+            style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--text-secondary)" }}
           />
           {query && (
             <button
               onClick={(e) => { e.stopPropagation(); setQuery(""); }}
-              className="text-[11px] shrink-0 transition-colors"
+              className="text-[12px] shrink-0 transition-colors"
               style={{ color: "var(--text-secondary)", lineHeight: 1 }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
@@ -91,7 +88,7 @@ export default function ClientsPage() {
         {/* Tabs */}
         <div
           className="flex items-center gap-2 px-2 rounded-lg flex-shrink-0"
-          style={{ background: "var(--surface-raised)", height: 40 }}
+          style={{ background: "var(--surface-raised)", height: 44 }}
         >
           {tabs.map((t) => {
             const active = tab === t.id;
@@ -99,7 +96,7 @@ export default function ClientsPage() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all rounded-md"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-all rounded-md"
                 style={{
                   color:      active ? "var(--text-primary)" : "var(--text-secondary)",
                   background: active ? "var(--background)" : "transparent",
@@ -109,7 +106,7 @@ export default function ClientsPage() {
                 {t.label}
                 <span
                   className="tabular-nums"
-                  style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: active ? "var(--text-secondary)" : "var(--text-tertiary)" }}
+                  style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: active ? "var(--text-secondary)" : "var(--text-tertiary)" }}
                 >
                   {t.count}
                 </span>
@@ -120,7 +117,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" style={{ marginTop: 21 }}>
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 size={22} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />

@@ -31,6 +31,13 @@ export interface DocChaseReplyItem {
   created_at: string;
 }
 
+export interface SentEmail {
+  id: string;
+  content_snapshot: string | null;
+  recipient: string | null;
+  created_at: string;
+}
+
 export interface InboxItem {
   id: string;
   policy_id: string;
@@ -40,6 +47,7 @@ export interface InboxItem {
   confidence_score: number;
   raw_signal_snippet: string;
   raw_signal: string | null;
+  sender_email: string | null;
   proposed_action: {
     description: string;
     action_type: string;
@@ -56,6 +64,7 @@ export interface InboxItem {
     carrier: string | null;
     campaign_stage: string | null;
   } | null;
+  sent_emails: SentEmail[];
 }
 
 export default async function InboxPage() {
@@ -129,6 +138,7 @@ export default async function InboxPage() {
       )
       .eq("user_id", user.id)
       .not("last_client_reply", "is", null)
+      .in("status", ["pending", "active"])
       .order("last_client_reply_at", { ascending: false })
       .limit(50),
   ]);
@@ -140,23 +150,52 @@ export default async function InboxPage() {
     .filter((id): id is string => Boolean(id));
 
   let signalMap: Record<string, string> = {};
+  let senderEmailMap: Record<string, string | null> = {};
   if (signalIds.length > 0) {
     const { data: signals } = await supabase
       .from("inbound_signals")
-      .select("id, raw_signal")
+      .select("id, raw_signal, sender_email")
       .in("id", signalIds);
     signalMap = Object.fromEntries(
       (signals ?? []).map((s) => [s.id as string, s.raw_signal as string])
     );
+    senderEmailMap = Object.fromEntries(
+      (signals ?? []).map((s) => [s.id as string, (s as unknown as { sender_email?: string | null }).sender_email ?? null])
+    );
   }
 
-  // Preserve actual tier from DB and attach full raw_signal
+  // Fetch sent emails from audit log for all relevant policies
+  const policyIds = [...new Set(allQueueItems.map((i) => (i as unknown as { policy_id: string }).policy_id))];
+  let sentEmailsByPolicy: Record<string, SentEmail[]> = {};
+  if (policyIds.length > 0) {
+    const { data: auditRows } = await supabase
+      .from("renewal_audit_log")
+      .select("id, policy_id, content_snapshot, recipient, created_at")
+      .in("policy_id", policyIds)
+      .eq("event_type", "email_sent")
+      .order("created_at", { ascending: true });
+    for (const row of auditRows ?? []) {
+      const pid = (row as unknown as { policy_id: string }).policy_id;
+      if (!sentEmailsByPolicy[pid]) sentEmailsByPolicy[pid] = [];
+      sentEmailsByPolicy[pid].push({
+        id: row.id as string,
+        content_snapshot: (row as unknown as { content_snapshot: string | null }).content_snapshot,
+        recipient: (row as unknown as { recipient: string | null }).recipient,
+        created_at: row.created_at as string,
+      });
+    }
+  }
+
+  // Preserve actual tier from DB and attach full raw_signal + sender_email
   const normalised: InboxItem[] = allQueueItems.map((item) => {
     const signalId = (item as unknown as { signal_id?: string | null }).signal_id;
+    const policyId = (item as unknown as { policy_id: string }).policy_id;
     return {
       ...(item as unknown as InboxItem),
       tier: ((item as unknown as { tier?: number }).tier ?? 2) as 2 | 3,
       raw_signal: signalId ? (signalMap[signalId] ?? null) : null,
+      sender_email: signalId ? (senderEmailMap[signalId] ?? null) : null,
+      sent_emails: sentEmailsByPolicy[policyId] ?? [],
     };
   });
 

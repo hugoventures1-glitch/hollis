@@ -18,6 +18,7 @@ import { writeAuditLog } from "@/lib/audit/log";
 import { logAction, retainStandard, retainLongTerm } from "@/lib/logAction";
 import { notifyBrokerTier3, notifyBrokerSoftQuerySent } from "@/lib/agent/broker-notifier";
 import { getResendClient } from "@/lib/resend/client";
+import { buildReplyHeaders, normalizeReplySubject } from "@/lib/email/threading";
 import type { AuditEventType, Policy } from "@/types/renewals";
 import type { ParserOutcome, ClassificationResult, RenewalFlags, TierDecision } from "@/types/agent";
 
@@ -70,6 +71,12 @@ export interface ProcessSignalParams {
   inReplyTo?: string | null;
   /** References header from the inbound email */
   referencesHeaders?: string | null;
+  /** Subject line from the inbound email — used as the reply subject so the thread stays consistent */
+  inboundSubject?: string | null;
+  /** Outlook Thread-Index header from the inbound email */
+  threadIndex?: string | null;
+  /** Outlook Thread-Topic header from the inbound email */
+  threadTopic?: string | null;
   /** Optional attachment from the inbound email — stored to Supabase storage and linked to the approval_queue item */
   attachment?: { buffer: Buffer; filename: string; content_type: string } | null;
 }
@@ -98,6 +105,9 @@ export async function processInboundSignal(
     messageId,
     inReplyTo,
     referencesHeaders,
+    inboundSubject,
+    threadIndex,
+    threadTopic,
     attachment,
   } = params;
 
@@ -115,6 +125,9 @@ export async function processInboundSignal(
       message_id: messageId ?? null,
       in_reply_to: inReplyTo ?? null,
       references_headers: referencesHeaders ?? null,
+      subject: inboundSubject ?? null,
+      thread_index: threadIndex ?? null,
+      thread_topic: threadTopic ?? null,
     })
     .select("id")
     .single();
@@ -355,7 +368,7 @@ export async function processInboundSignal(
             confidence_score: classification.confidence,
             raw_signal_snippet: rawSignal.slice(0, 500),
             proposed_action: {
-              description: `OOO lapse risk — client returns ${resumeDateStr}, policy expires ${expiryDate}. Manual intervention required before expiry.`,
+              description: "Out of Office — Lapse Risk",
               action_type: "escalation_review",
               payload: {
                 ooo_return_date: resumeDateStr,
@@ -368,6 +381,8 @@ export async function processInboundSignal(
             tier: 3,
             in_reply_to: messageId ?? null,
             email_references: referencesHeaders ?? null,
+            thread_index: threadIndex ?? null,
+            thread_topic: threadTopic ?? null,
           });
 
         void logAction({
@@ -404,7 +419,8 @@ export async function processInboundSignal(
         });
       }
     } else if (
-      ["soft_query", "confirm_renewal", "request_callback", "document_received"].includes(intent)
+      // v2 canonical + v1 backward-compat names
+      ["coverage_question", "confirmed", "soft_query", "confirm_renewal", "request_callback", "document_received"].includes(intent)
     ) {
       if (!recipientEmail) {
         console.warn(
@@ -429,7 +445,8 @@ export async function processInboundSignal(
           const resend = getResendClient();
 
           let draft: { subject: string; body: string };
-          if (intent === "soft_query") {
+          // coverage_question is the v2 name for soft_query — same auto-reply handler
+          if (intent === "soft_query" || intent === "coverage_question") {
             const { generateQueryResponse } = await import("@/lib/agent/responder");
             draft = await generateQueryResponse(rawSignal, policy as Policy, {
               standingOrders:
@@ -439,38 +456,37 @@ export async function processInboundSignal(
             });
           } else {
             const { generateAckEmail } = await import("@/lib/agent/responder");
-            draft = await generateAckEmail(
-              intent as "confirm_renewal" | "request_callback" | "document_received",
-              policy as Policy,
-              {
-                standingOrders:
-                  (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
-                clientNotes: clientKnowledgeBase,
-              }
-            );
+            // "confirmed" is the v2 name for confirm_renewal — same ack handler
+            const ackIntent = (intent === "confirmed" ? "confirm_renewal" : intent) as
+              | "confirm_renewal"
+              | "request_callback"
+              | "document_received";
+            draft = await generateAckEmail(ackIntent, policy as Policy, {
+              standingOrders:
+                (profile as { standing_orders?: string | null } | null)?.standing_orders ?? null,
+              clientNotes: clientKnowledgeBase,
+            });
           }
 
-          // Build thread headers so the reply appears in the same email thread
-          const threadHeaders: Record<string, string> = {};
-          if (messageId) {
-            threadHeaders["In-Reply-To"] = messageId;
-            const existingRefs = (referencesHeaders ?? "").replace(/[\n\r\t,]+/g, " ").split(/\s+/).filter(Boolean);
-            if (!existingRefs.includes(messageId)) existingRefs.push(messageId);
-            threadHeaders["References"] = existingRefs.join(" ");
-          }
-
-          const replySubject = draft.subject && /^Re:\s*/i.test(draft.subject) ? draft.subject : `Re: ${draft.subject ?? "Your email"}`;
+          const replySubject = normalizeReplySubject(inboundSubject ?? draft.subject);
           const { data: sent } = await resend.emails.send({
             from,
             to: recipientEmail,
             subject: replySubject,
             text: draft.body,
             replyTo: process.env.INBOUND_EMAIL ?? (profile as { email?: string | null } | null)?.email ?? undefined,
-            ...(Object.keys(threadHeaders).length > 0 ? { headers: threadHeaders } : {}),
+            headers: buildReplyHeaders({
+              messageId: messageId ?? null,
+              referencesHeaders: referencesHeaders ?? null,
+              threadIndex: threadIndex ?? null,
+              threadTopic: threadTopic ?? null,
+              subject: inboundSubject ?? draft.subject,
+            }),
           });
 
           // Intent-specific side effects
-          if (intent === "confirm_renewal") {
+          // "confirmed" is the v2 canonical name for confirm_renewal
+          if (intent === "confirm_renewal" || intent === "confirmed") {
             await admin
               .from("policies")
               .update({
@@ -512,32 +528,47 @@ export async function processInboundSignal(
             await admin.from("policies").update({ renewal_paused: true }).eq("id", policyId);
           }
 
+          // Write email_sent to the activity feed so the broker can see what was sent
+          await writeAuditLog({
+            supabase: admin,
+            policy_id: policyId,
+            user_id: userId,
+            event_type: "email_sent",
+            channel: "email",
+            recipient: recipientEmail,
+            content_snapshot: `Subject: ${replySubject}\n\n${draft.body}`,
+            metadata: {
+              signal_id: signal.id,
+              intent,
+              subject: replySubject,
+              provider_message_id: (sent as { id?: string } | null)?.id ?? null,
+            },
+            actor_type: "agent",
+          });
+
+          const isQueryIntent = intent === "soft_query" || intent === "coverage_question";
           void logAction({
             broker_id: userId,
             policy_id: policyId,
-            action_type:
-              intent === "soft_query" ? "tier1_reply_sent" : `tier1_ack_sent_${intent}`,
+            action_type: isQueryIntent ? "tier1_reply_sent" : `tier1_ack_sent_${intent}`,
             tier: "1",
-            trigger_reason:
-              intent === "soft_query"
-                ? `Tier 1 autonomous reply sent to ${recipientEmail} in response to soft_query.`
-                : `Tier 1 acknowledgment sent to ${recipientEmail} for intent "${intent}".`,
+            trigger_reason: isQueryIntent
+              ? `Tier 1 autonomous reply sent to ${recipientEmail} in response to ${intent}.`
+              : `Tier 1 acknowledgment sent to ${recipientEmail} for intent "${intent}".`,
             payload: {
               subject: draft.subject,
               body: draft.body,
               recipient: recipientEmail,
               provider_message_id: (sent as { id?: string } | null)?.id ?? null,
-              in_reply_to: messageId ?? null,
-              references: referencesHeaders ?? null,
             },
             metadata: { signal_id: signal.id, intent, confidence: classification.confidence },
             outcome: "sent",
             retain_until: retainStandard(),
           });
 
-          // FYI the broker whenever Hollis sends an autonomous soft_query reply so
-          // they know what was sent and can follow up if the reply deferred to them.
-          if (intent === "soft_query") {
+          // FYI the broker whenever Hollis sends an autonomous coverage_question / soft_query reply
+          // so they know what was sent and can follow up if the reply deferred to them.
+          if (intent === "soft_query" || intent === "coverage_question") {
             notifyBrokerSoftQuerySent(
               admin,
               userId,
@@ -586,12 +617,27 @@ export async function processInboundSignal(
     }
   }
 
+  // ── 9b. Merge attachment metadata into the tier decision payload ────────────
+  // This runs AFTER tier routing so both Tier 2 and Tier 3 escalations carry
+  // attachment info into the approval_queue row.
+  if (attachmentStoragePath && tierDecision.proposed_action) {
+    tierDecision.proposed_action.payload = {
+      ...tierDecision.proposed_action.payload,
+      attachment_path: attachmentStoragePath,
+      attachment_filename: attachmentFilename,
+      attachment_content_type: attachmentContentType,
+    };
+  }
+
   // ── 10. Tier 2: write to approval_queue ────────────────────────────────────────
   if (tierDecision.tier === 2 && tierDecision.proposed_action) {
     // Pre-generate a reply draft for soft_query signals so the broker sees
     // a ready-to-approve response in the inbox.
     if (
-      (classification.intent === "soft_query" || classification.intent === "schedule_meeting") &&
+      // coverage_question (v2) and soft_query (v1 compat) both pre-generate a reply draft
+      (classification.intent === "coverage_question" ||
+        classification.intent === "soft_query" ||
+        classification.intent === "schedule_meeting") &&
       tierDecision.proposed_action.action_type === "draft_and_send_response" &&
       recipientEmail
     ) {
@@ -608,6 +654,7 @@ export async function processInboundSignal(
           subject: draft.subject,
           body: draft.body,
           recipient_email: recipientEmail,
+          inbound_subject: inboundSubject ?? null,
         };
       } catch (draftErr) {
         console.error(
@@ -617,15 +664,7 @@ export async function processInboundSignal(
       }
     }
 
-    // Merge attachment info into proposed_action payload if we stored one
-    if (attachmentStoragePath && tierDecision.proposed_action) {
-      tierDecision.proposed_action.payload = {
-        ...tierDecision.proposed_action.payload,
-        attachment_path: attachmentStoragePath,
-        attachment_filename: attachmentFilename,
-        attachment_content_type: attachmentContentType,
-      };
-    }
+
 
     const { data: queueItem, error: queueError } = await admin
       .from("approval_queue")
@@ -637,10 +676,13 @@ export async function processInboundSignal(
         confidence_score: classification.confidence,
         raw_signal_snippet: rawSignal.slice(0, 500),
         proposed_action: tierDecision.proposed_action,
+        task_type: tierDecision.proposed_action.task_type ?? null,
         status: "pending",
         doc_chase_request_id: docChaseRequestId,
         in_reply_to: messageId ?? null,
         email_references: referencesHeaders ?? null,
+        thread_index: threadIndex ?? null,
+        thread_topic: threadTopic ?? null,
       })
       .select("id")
       .single();
@@ -727,7 +769,7 @@ export async function processInboundSignal(
         raw_signal_snippet: rawSignal.slice(0, 500),
         proposed_action: {
           description: isChurn
-            ? `RETENTION — ${policy.client_name} is leaving for another broker. All touchpoints suppressed. Review urgently to attempt retention.`
+            ? "Retention Risk — Client Churning"
             : escalationLabel(classification.intent),
           action_type: isChurn ? "retention_escalation" : "escalation_review",
           payload: {
@@ -735,12 +777,18 @@ export async function processInboundSignal(
             escalation_reason: tierDecision.reason,
             intent: classification.intent,
             flags: updatedFlags,
+            attachment_path: tierDecision.proposed_action?.payload?.attachment_path,
+            attachment_filename: tierDecision.proposed_action?.payload?.attachment_filename,
+            attachment_content_type: tierDecision.proposed_action?.payload?.attachment_content_type,
           },
         },
+        task_type: isChurn ? "retention_at_risk" : "escalation_review",
         status: "pending",
         tier: 3,
         in_reply_to: messageId ?? null,
         email_references: referencesHeaders ?? null,
+        thread_index: threadIndex ?? null,
+        thread_topic: threadTopic ?? null,
       })
       .select("id")
       .single();

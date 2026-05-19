@@ -74,7 +74,7 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
   );
 }
 
-export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
+export default function SidebarNav({ profile, autonomousActive }: { profile: SidebarProfile; autonomousActive?: boolean }) {
   const pathname   = usePathname();
   const router     = useRouter();
   const { openPanel } = useUnifiedPanel();
@@ -131,7 +131,6 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
       {/* Wordmark */}
       <div
         className="flex items-center justify-center h-14 shrink-0"
-        style={{ borderBottom: "1px solid var(--border-subtle)" }}
       >
         <Link href="/inbox">
           <span
@@ -139,9 +138,10 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
               fontFamily:    "var(--font-playfair)",
               fontWeight:    900,
               fontSize:      18,
-              color:         "var(--text-primary)",
               letterSpacing: "-0.02em",
               lineHeight:    1,
+              color:         "#dbeafe",
+              animation:     "hollis-glow-pulse 2.4s ease-in-out infinite",
             }}
           >
             h
@@ -150,36 +150,38 @@ export default function SidebarNav({ profile }: { profile: SidebarProfile }) {
       </div>
 
       {/* Icon nav rail */}
-      <nav className="flex-1 flex flex-col items-center py-3 gap-1 overflow-y-auto">
-        {/* Search — opens assistant panel */}
-        <button
-          onClick={openPanel}
-          title="Search"
-          className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 hover:scale-[1.15]"
-          style={{ color: "var(--text-tertiary)" }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)";
-          }}
-        >
-          <Search size={19} strokeWidth={1.6} />
-        </button>
+      <nav className="flex-1 flex flex-col items-center py-3 overflow-y-auto">
+        {/* Primary nav */}
+        <div className="flex flex-col items-center gap-1">
+          {/* Search disabled for now */}
+          {/* <button
+            onClick={openPanel}
+            title="Search"
+            className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 hover:scale-[1.15]"
+            style={{ color: "var(--text-tertiary)" }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "var(--text-tertiary)";
+            }}
+          >
+            <Search size={19} strokeWidth={1.6} />
+          </button> */}
 
-        <RailIcon href="/inbox"     icon={Inbox}           label="Inbox"    pathname={pathname} badge={approvalQueueCount} />
-        <RailIcon href="/activity"  icon={Activity}        label="Activity" pathname={pathname} />
-        <RailIcon href="/renewals"   icon={RefreshCcw}      label="Renewals"   pathname={pathname} badge={renewalCount} />
-        <RailIcon href="/documents" icon={FolderSearch}    label="Documents"  pathname={pathname} badge={docChaseCount} />
-        <RailIcon href="/clients"   icon={Users}           label="Clients"    pathname={pathname} />
-        <RailIcon href="/settings"  icon={Settings}        label="Settings" pathname={pathname} />
+          <RailIcon href="/inbox"     icon={Inbox}        label="Inbox"     pathname={pathname} badge={approvalQueueCount} />
+          <RailIcon href="/activity"  icon={Activity}     label="Activity"  pathname={pathname} />
+          <RailIcon href="/renewals"  icon={RefreshCcw}   label="Renewals"  pathname={pathname} badge={renewalCount} />
+          <RailIcon href="/documents" icon={FolderSearch} label="Documents" pathname={pathname} badge={docChaseCount} />
+          <RailIcon href="/clients"   icon={Users}        label="Clients"   pathname={pathname} />
+        </div>
+
       </nav>
 
       {/* User avatar / profile menu */}
       <div
         ref={menuRef}
         className="relative flex items-center justify-center h-14 shrink-0"
-        style={{ borderTop: "1px solid var(--border-subtle)" }}
       >
         {/* Pop-up menu */}
         {menuOpen && (

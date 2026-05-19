@@ -103,8 +103,7 @@ export async function resolveTierRouting(
   if (isLearning) {
     return tier(
       2,
-      `Learning mode — ${approved}/${LEARNING_MODE_THRESHOLD} approvals recorded. ` +
-        `All sends routed for broker confirmation until the confidence baseline is established.`,
+      `Learning mode — all sends routed for broker confirmation until the confidence baseline is established.`,
       "learning",
       detected,
     );

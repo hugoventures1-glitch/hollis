@@ -167,8 +167,10 @@ async function processDocChaseForSender(opts: {
   resendApiKey: string;
   email_id: string;
   messageId?: string | null;
+  threadIndex?: string | null;
+  threadTopic?: string | null;
 }): Promise<void> {
-  const { admin, senderEmail, rawSignal, emailContent, resendApiKey, email_id, messageId } = opts;
+  const { admin, senderEmail, rawSignal, emailContent, resendApiKey, email_id, messageId, threadIndex, threadTopic } = opts;
 
   const { data: activeChases } = await admin
     .from("doc_chase_requests")
@@ -185,7 +187,9 @@ async function processDocChaseForSender(opts: {
     last_client_reply: rawSignal.slice(0, 2000) || null,
     last_client_reply_at: replyAt,
   };
-  if (messageId) dcUpdate.last_client_message_id = messageId;
+  if (messageId)    dcUpdate.last_client_message_id = messageId;
+  if (threadIndex)  dcUpdate.thread_index = threadIndex;
+  if (threadTopic)  dcUpdate.thread_topic = threadTopic;
 
   await admin
     .from("doc_chase_requests")
@@ -380,7 +384,7 @@ async function processDocChaseForSender(opts: {
           console.error("[webhook/resend/inbound] OOO pause failed:", oooErr);
         }
       }
-    } else if (intent === "soft_query") {
+    } else if (intent === "soft_query" || intent === "coverage_question") {
       // Generate a draft reply for the broker to review
       const firstChase = activeChases[0];
       try {
@@ -544,6 +548,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // ── Admin client (single instance for entire handler) ────────────────────
+  const admin = createAdminClient();
+
+  // ── Fast-path dedup (before body fetch) ────────────────────────────────────
+  // Resend may retry on timeout. Check email_id immediately so we don't waste
+  // time re-fetching the body for a duplicate delivery.
+  if (email_id) {
+    const { data: dupEarly } = await admin
+      .from("inbound_signals")
+      .select("id, processed_at")
+      .eq("email_id", email_id)
+      .limit(1);
+    if (dupEarly && dupEarly.length > 0) {
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "duplicate_ignored",
+        email_id,
+        detail: {
+          existing_signal_id: dupEarly[0].id,
+          processed_at: dupEarly[0].processed_at,
+          dedup_key: "email_id",
+          note: "Fast-path dedup before body fetch",
+        },
+      });
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
+  }
+
   // ── Fetch full email content ───────────────────────────────────────────────
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
@@ -631,9 +663,51 @@ export async function POST(request: NextRequest) {
   const messageId = inboundHeaders["message-id"] ?? null;
   const inReplyTo = inboundHeaders["in-reply-to"] ?? null;
   const referencesHdr = inboundHeaders["references"] ?? null;
+  const threadIndex = inboundHeaders["thread-index"] ?? null;
+  const threadTopic = inboundHeaders["thread-topic"] ?? null;
 
   // ── Parse sender ───────────────────────────────────────────────────────────
   const { email: senderEmail, name: senderName } = parseFromHeader(from);
+
+  // ── Deduplication guard ────────────────────────────────────────────────────
+  // Resend may retry on timeout. Check whether we already processed this email
+  // by email_id (Resend internal ID) or by SMTP Message-ID header.
+  if (email_id || messageId) {
+    let existing: { id: string; processed_at: string | null } | null = null;
+
+    if (email_id) {
+      const { data: dupByEmailId } = await admin
+        .from("inbound_signals")
+        .select("id, processed_at")
+        .eq("email_id", email_id)
+        .limit(1);
+      existing = dupByEmailId?.[0] ?? null;
+    }
+
+    if (!existing && messageId) {
+      const { data: dupByMessageId } = await admin
+        .from("inbound_signals")
+        .select("id, processed_at")
+        .eq("message_id", messageId)
+        .limit(1);
+      existing = dupByMessageId?.[0] ?? null;
+    }
+
+    if (existing) {
+      await logWebhookEvent({
+        endpoint: ENDPOINT,
+        gate: "duplicate_ignored",
+        email_id: email_id ?? null,
+        sender_email: senderEmail,
+        detail: {
+          existing_signal_id: existing.id,
+          processed_at: existing.processed_at,
+          dedup_key: email_id ? "email_id" : "message_id",
+        },
+      });
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
+  }
 
   // ── Extract policy number from subject (used to disambiguate candidates) ──
   const subject: string = emailContent.subject ?? payload.data.subject ?? "";
@@ -641,29 +715,6 @@ export async function POST(request: NextRequest) {
   const subjectPolicyNumber = policyNumberMatch ? policyNumberMatch[0].toUpperCase() : null;
 
   // ── Policy lookup ──────────────────────────────────────────────────────────
-  const admin = createAdminClient();
-
-  // Attachment-only email (no body text) — skip signal pipeline but still
-  // process any doc-chase attachments before returning.
-  if (!rawSignal) {
-    await logWebhookEvent({
-      endpoint: ENDPOINT,
-      gate: "attachment_only_email",
-      email_id,
-      sender_email: senderEmail,
-      detail: { attachment_count: (emailContent.attachments ?? []).length },
-    });
-    await processDocChaseForSender({
-      admin,
-      senderEmail,
-      rawSignal: "",
-      emailContent,
-      resendApiKey,
-      email_id,
-      messageId,
-    });
-    return NextResponse.json({ ok: true });
-  }
 
   // ── Early-exit: active doc chase for sender ────────────────────────────────
   // If the sender has open doc chase requests, their email is a document reply.
@@ -693,6 +744,8 @@ export async function POST(request: NextRequest) {
       resendApiKey,
       email_id,
       messageId,
+      threadIndex,
+      threadTopic,
     });
     return NextResponse.json({ ok: true });
     }
@@ -763,6 +816,8 @@ export async function POST(request: NextRequest) {
       resendApiKey,
       email_id,
       messageId,
+      threadIndex,
+      threadTopic,
     });
 
     return NextResponse.json({ ok: true });
@@ -846,6 +901,31 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Attachment-only email (no body text) ────────────────────────────────────
+  // If there's an attachment but no text body, we still want to run the signal
+  // pipeline so the broker sees the document in their inbox.  Process doc chase
+  // regardless, then continue with the signal pipeline using a placeholder signal.
+  if (!rawSignal && signalAttachment) {
+    rawSignal = "(No message body — document attached.)";
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "attachment_only_email",
+      email_id,
+      sender_email: senderEmail,
+      detail: { attachment_count: (emailContent.attachments ?? []).length, note: "Continuing with signal pipeline using placeholder text" },
+    });
+  } else if (!rawSignal && !signalAttachment) {
+    // Truly empty email — nothing to classify
+    await logWebhookEvent({
+      endpoint: ENDPOINT,
+      gate: "empty_email",
+      email_id,
+      sender_email: senderEmail,
+      detail: { note: "No text body and no attachment — nothing to process" },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   // ── Fix 1: Forwarded email detection — must happen BEFORE processInboundSignal ─
   // Forwards are never direct client replies. We surface them to the broker as
   // a Tier 3 task and skip the signal pipeline entirely so Hollis never auto-replies.
@@ -874,6 +954,8 @@ export async function POST(request: NextRequest) {
         message_id: messageId ?? null,
         in_reply_to: inReplyTo ?? null,
         references_headers: referencesHdr ?? null,
+        thread_index: threadIndex ?? null,
+        thread_topic: threadTopic ?? null,
         processed: true,
         processed_at: new Date().toISOString(),
         classification_result: {
@@ -909,6 +991,8 @@ export async function POST(request: NextRequest) {
       tier: 3,
       in_reply_to: messageId ?? null,
       email_references: referencesHdr ?? null,
+      thread_index: threadIndex ?? null,
+      thread_topic: threadTopic ?? null,
     });
 
     return NextResponse.json({ ok: true });
@@ -929,7 +1013,10 @@ export async function POST(request: NextRequest) {
       messageId,
       inReplyTo,
       referencesHeaders: referencesHdr,
+      inboundSubject: subject || null,
       attachment: signalAttachment,
+      threadIndex,
+      threadTopic,
     });
 
     await logWebhookEvent({
@@ -951,6 +1038,8 @@ export async function POST(request: NextRequest) {
       resendApiKey,
       email_id,
       messageId,
+      threadIndex,
+      threadTopic,
     });
   } catch (pipelineErr) {
     await logWebhookEvent({

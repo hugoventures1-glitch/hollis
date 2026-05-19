@@ -75,10 +75,15 @@ export function computeHealthScore(
   expiry.setHours(0, 0, 0, 0);
   const days = Math.round((expiry.getTime() - today.getTime()) / 86_400_000);
 
-  const score =
+  const callScriptRejected = !!policy.renewal_flags?.call_script_rejected;
+
+  const score = Math.max(
+    0,
     expiryPoints(days) +
     (STAGE_PTS[policy.campaign_stage] ?? 0) +
-    contactPoints(policy.last_contact_at);
+    contactPoints(policy.last_contact_at) +
+    (callScriptRejected ? -25 : 0)
+  );
 
   // Stalled: policy is approaching deadline but outreach has gone quiet
   const lastContact = policy.last_contact_at

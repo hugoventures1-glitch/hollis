@@ -95,10 +95,10 @@ export default function DraftEditDrawer({
       />
 
       {/* Panel */}
-      <div className="w-[560px] shrink-0 bg-[#111118] border-l border-[#1e1e2a] flex flex-col h-full shadow-[−24px_0_60px_rgba(0,0,0,0.5)]">
+      <div className="w-[560px] shrink-0 bg-surface border-l border-border flex flex-col h-full shadow-[-24px_0_60px_rgba(0,0,0,0.5)]">
 
         {/* Header */}
-        <div className="h-14 shrink-0 border-b border-[#1e1e2a] flex items-center justify-between px-6">
+        <div className="h-14 shrink-0 border-b border-border flex items-center justify-between px-6">
           <span className="text-[14px] font-semibold text-text-primary">Review Draft</span>
           <button
             onClick={onClose}
@@ -110,7 +110,7 @@ export default function DraftEditDrawer({
 
         {/* Client meta */}
         {policy && (
-          <div className="px-6 py-4 border-b border-[#1e1e2a] bg-background flex items-center gap-4">
+          <div className="px-6 py-4 border-b border-border bg-background flex items-center gap-4">
             <div className="w-9 h-9 rounded-full bg-hover-overlay border border-border flex items-center justify-center shrink-0">
               <span className="text-[13px] font-bold text-text-primary">
                 {policy.client_name.charAt(0).toUpperCase()}
@@ -148,7 +148,7 @@ export default function DraftEditDrawer({
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-[#555555] transition-colors"
+              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-text-secondary transition-colors"
             />
           </div>
 
@@ -161,7 +161,7 @@ export default function DraftEditDrawer({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={14}
-              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-[#555555] transition-colors resize-none leading-relaxed font-mono"
+              className="w-full bg-background border border-border rounded-lg px-4 py-3 text-[14px] text-text-primary placeholder-text-tertiary outline-none focus:border-text-secondary transition-colors resize-none leading-relaxed font-mono"
             />
             <div className="text-[11px] text-text-tertiary mt-1.5 text-right">
               {body.split(/\s+/).filter(Boolean).length} words
@@ -176,7 +176,7 @@ export default function DraftEditDrawer({
         </div>
 
         {/* Footer actions */}
-        <div className="shrink-0 border-t border-[#1e1e2a] px-6 py-4 flex items-center gap-3">
+        <div className="shrink-0 border-t border-border px-6 py-4 flex items-center gap-3">
           <button
             onClick={handleSend}
             disabled={sending || !subject.trim() || !body.trim()}

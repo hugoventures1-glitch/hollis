@@ -186,9 +186,16 @@ export function LeadTimesSection() {
       </div>
 
       {/* Global defaults — always shown as reference */}
-      <div className="rounded-md border border-border-subtle bg-surface px-4 py-3">
-        <p className="text-[12px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
-          Global defaults (used when no policy type is set)
+      <div
+        className="rounded-md px-4 py-3"
+        style={{
+          border: "1px solid rgba(184,244,0,0.25)",
+          background: "rgba(184,244,0,0.04)",
+          boxShadow: "0 0 0 1px rgba(184,244,0,0.08) inset",
+        }}
+      >
+        <p className="text-[12px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#B8F400" }}>
+          Global defaults — used when no policy type is set
         </p>
         <p className="text-[13px] text-zinc-400">
           First email <span className="text-zinc-300">90 days</span> ·{" "}

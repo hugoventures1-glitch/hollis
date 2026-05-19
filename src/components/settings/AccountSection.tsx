@@ -109,7 +109,7 @@ export function AccountSection({ planName }: Props) {
     <div className="space-y-8">
       <div>
         <h2 className="text-[18px] font-semibold text-text-primary">Account</h2>
-        <p className="text-[13px] text-zinc-500 mt-1">Manage your plan, password, and account data.</p>
+        <p className="text-[13px] text-text-tertiary mt-1">Manage your plan, password, and account data.</p>
       </div>
 
       {/* Plan & Billing */}
@@ -142,7 +142,7 @@ export function AccountSection({ planName }: Props) {
         </div>
       </div>
 
-      <hr className="border-[#1e1e2a]" />
+      <hr className="border-border" />
 
       {/* Change password */}
       <div className="space-y-4">
@@ -179,7 +179,7 @@ export function AccountSection({ planName }: Props) {
         <SaveButton saving={pwSaving} saved={pwSaved} onClick={onChangePassword} label="Update password" />
       </div>
 
-      <hr className="border-[#1e1e2a]" />
+      <hr className="border-border" />
 
       {/* Dev tool — Reset account data */}
       <div className="space-y-4">
@@ -258,7 +258,7 @@ export function AccountSection({ planName }: Props) {
         </div>
       </div>
 
-      <hr className="border-[#1e1e2a]" />
+      <hr className="border-border" />
 
       {/* Danger zone */}
       <div className="space-y-4">
@@ -268,7 +268,7 @@ export function AccountSection({ planName }: Props) {
             <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-[14px] font-semibold text-red-400">Delete account</p>
-              <p className="text-[13px] text-zinc-500 mt-0.5 leading-snug">
+              <p className="text-[13px] text-text-tertiary mt-0.5 leading-snug">
                 Permanently deletes your account and all associated data. This action cannot be undone.
               </p>
             </div>

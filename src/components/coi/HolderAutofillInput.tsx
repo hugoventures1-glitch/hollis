@@ -136,7 +136,7 @@ export function HolderAutofillInput({
           onFocus={handleInputFocus}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full bg-background border border-border rounded-lg px-3 py-2 pr-8 text-[13px] text-text-primary outline-none focus:border-[#555555] placeholder-text-tertiary"
+          className="w-full bg-background border border-border rounded-lg px-3 py-2 pr-8 text-[13px] text-text-primary outline-none focus:border-text-secondary placeholder-text-tertiary"
         />
         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
           {loading ? (
@@ -150,13 +150,13 @@ export function HolderAutofillInput({
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#111118] border border-border rounded-lg overflow-hidden shadow-xl">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-lg overflow-hidden shadow-xl">
           {results.map((holder) => (
             <button
               key={holder.id}
               type="button"
               onClick={() => handleSelect(holder)}
-              className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-surface transition-colors border-b border-[#1e1e2a] last:border-0"
+              className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-surface-raised transition-colors border-b border-border last:border-0"
             >
               <div className="min-w-0">
                 <div className="text-[13px] font-medium text-text-primary truncate">
@@ -168,7 +168,7 @@ export function HolderAutofillInput({
                   </div>
                 )}
               </div>
-              <span className="shrink-0 text-[10px] font-medium text-text-tertiary bg-[#1e1e2a] border border-border px-2 py-0.5 rounded">
+              <span className="shrink-0 text-[10px] font-medium text-text-tertiary bg-surface-raised border border-border px-2 py-0.5 rounded">
                 {holder.usage_count}×
               </span>
             </button>

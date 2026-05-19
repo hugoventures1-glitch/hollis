@@ -64,6 +64,9 @@ export function buildFlagsFromClassification(
   // silent_client: ONLY set by the silence-detection cron — never by the classifier
   const silent_client = current.silent_client;
 
+  // call_script_rejected: sticky — only set by the reject-script API, never by classifier
+  const call_script_rejected = current.call_script_rejected ?? false;
+
   return {
     active_claim,
     insurer_declined,
@@ -71,6 +74,7 @@ export function buildFlagsFromClassification(
     business_restructure,
     third_party_contact,
     silent_client,
+    call_script_rejected,
     // days_to_expiry recomputed fresh at call time
     days_to_expiry: daysUntilExpiry(expirationDate),
   };

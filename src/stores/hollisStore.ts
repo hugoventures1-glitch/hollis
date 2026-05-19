@@ -50,6 +50,10 @@ export interface HollisStoreState {
   docChaseRequests: DocChaseRequestSummary[];
   /** Count of pending items in the agent approval queue */
   approvalQueueCount: number;
+  /** Whether the broker has paused all automation */
+  automationPaused: boolean;
+  /** Whether the broker is still in learning mode (< threshold approvals) */
+  isLearning: boolean;
   /** Authenticated user ID — populated on first fetch */
   userId: string | null;
   /** Epoch ms of last successful full fetch, or null if never fetched */
@@ -60,6 +64,8 @@ export interface HollisStoreState {
   backgroundRefreshing: boolean;
   /** Remove a policy from the local cache (after archive/delete) */
   removePolicy: (id: string) => void;
+  /** Update the campaign_stage of a single policy in the local cache */
+  updatePolicyStage: (id: string, stage: import("@/types/renewals").CampaignStage) => void;
   /** Trigger a full refresh of all data */
   fetchAll: () => Promise<void>;
 }
@@ -75,6 +81,8 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
   certificates: [],
   docChaseRequests: [],
   approvalQueueCount: 0,
+  automationPaused: false,
+  isLearning: true,
   userId: null,
   lastFetched: null,
   loading: false,
@@ -85,6 +93,13 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
       policies: s.policies.filter((p) => p.id !== id),
       renewals: s.renewals.filter((p) => p.id !== id),
       completedPolicies: s.completedPolicies.filter((p) => p.id !== id),
+    }));
+  },
+
+  updatePolicyStage: (id, stage) => {
+    set((s) => ({
+      policies: s.policies.map((p) => p.id === id ? { ...p, campaign_stage: stage } : p),
+      renewals: s.renewals.map((p) => p.id === id ? { ...p, campaign_stage: stage } : p),
     }));
   },
 
@@ -110,6 +125,8 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
         certsRes,
         docChaseRes,
         approvalQueueRes,
+        agentProfileRes,
+        parserOutcomesRes,
       ] = await Promise.all([
         supabase.auth.getUser(),
 
@@ -150,6 +167,16 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
           .from("approval_queue")
           .select("id", { count: "exact", head: true })
           .eq("status", "pending"),
+
+        supabase
+          .from("agent_profiles")
+          .select("automation_paused")
+          .single(),
+
+        supabase
+          .from("parser_outcomes")
+          .select("id", { count: "exact", head: true })
+          .in("broker_action", ["approved", "edited"]),
       ]);
 
       const allPolicies = (policiesRes.data ?? []) as Policy[];
@@ -168,6 +195,8 @@ export const useHollisStore = create<HollisStoreState>((set, get) => ({
         certificates: (certsRes.data ?? []) as CertWithSequences[],
         docChaseRequests: (docChaseRes.requests ?? []) as DocChaseRequestSummary[],
         approvalQueueCount: approvalQueueRes.count ?? 0,
+        automationPaused: agentProfileRes.data?.automation_paused ?? false,
+        isLearning: (parserOutcomesRes.count ?? 0) < 20,
         lastFetched: Date.now(),
         loading: false,
         backgroundRefreshing: false,

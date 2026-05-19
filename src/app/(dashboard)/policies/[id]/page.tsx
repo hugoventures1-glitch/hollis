@@ -12,7 +12,6 @@ import {
   FileText,
   CheckCircle2,
   X,
-  Download,
   Loader2,
   ArrowLeft,
   Clock,
@@ -784,18 +783,6 @@ export default function PolicyCheckDetailPage() {
             </span>
           )}
 
-          {/* Download report */}
-          {check.overall_status === "complete" && (
-            <a
-              href={`/api/policy-checks/${id}/report`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-8 px-3 flex items-center gap-1.5 rounded-md border border-border text-[12px] text-text-secondary hover:text-text-primary hover:border-[#3e3e4a] transition-colors"
-            >
-              <Download size={12} />
-              Export PDF
-            </a>
-          )}
         </div>
       </div>
 

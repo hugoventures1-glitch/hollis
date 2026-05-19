@@ -22,14 +22,23 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("agent_profiles")
-    .select("first_name, last_name, agency_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { count: parserCount }] = await Promise.all([
+    supabase
+      .from("agent_profiles")
+      .select("first_name, last_name, agency_name, automation_paused")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("parser_outcomes")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("broker_action", ["approved", "edited"]),
+  ]);
 
   const profileIncomplete =
     !profile?.first_name?.trim() || !profile?.last_name?.trim();
+
+  const autonomousActive = !(profile?.automation_paused ?? false) && (parserCount ?? 0) >= 20;
 
   return (
     <ToastProvider>
@@ -42,6 +51,7 @@ export default async function DashboardLayout({
               agencyName: profile?.agency_name ?? null,
               email:      user.email           ?? null,
             }}
+            autonomousActive={autonomousActive}
           />
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             {profileIncomplete && <ProfileCompletionBanner />}

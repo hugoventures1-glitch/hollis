@@ -840,50 +840,47 @@ export default function DocumentsPage() {
     <div className="flex flex-col h-full bg-background text-text-primary">
 
       {/* Header */}
-      <header className="h-[56px] shrink-0 border-b border-border flex items-center justify-between px-10">
-        <Suspense fallback={<span className="text-[13px]" style={{ color: "var(--text-primary)" }}>Documents</span>}>
-          <DocsBreadcrumb />
-        </Suspense>
+      <div className="h-[56px] shrink-0 flex items-center justify-end px-16">
         <div className="flex items-center gap-3">
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full bg-text-primary/40 animate-pulse shrink-0" title="Syncing…" />
           )}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity shadow-[0_0_20px_rgba(0,212,170,0.25),0_0_6px_rgba(0,212,170,0.15)]"
+            className="h-10 px-5 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity shadow-[0_0_20px_rgba(0,212,170,0.25),0_0_6px_rgba(0,212,170,0.15)]"
           >
-            <Plus size={13} strokeWidth={2.5} />
+            <Plus size={14} strokeWidth={2.5} />
             Request Document
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Stats strip */}
       <div
         className="flex items-stretch justify-around shrink-0"
-        style={{ borderBottom: "1px solid var(--surface-raised)" }}
+        style={{ borderBottom: "1px solid var(--surface-raised)", paddingTop: 8, paddingBottom: 8, marginTop: -21 }}
       >
-        <div className="py-6 flex flex-col gap-1 items-center">
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: "var(--text-primary)" }}>
+        <div className="flex flex-col gap-1 items-center justify-center">
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 35, fontWeight: 700, lineHeight: 1, color: "var(--text-primary)" }}>
             {loading ? "—" : activeCount}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Active
           </div>
         </div>
-        <div className="py-6 flex flex-col gap-1 items-center">
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: "var(--text-primary)" }}>
+        <div className="flex flex-col gap-1 items-center justify-center">
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 35, fontWeight: 700, lineHeight: 1, color: "var(--text-primary)" }}>
             {loading ? "—" : receivedThisMonth}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Received This Month
           </div>
         </div>
-        <div className="py-6 flex flex-col gap-1 items-center">
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: overdueCount > 0 ? "var(--danger)" : "var(--text-secondary)" }}>
+        <div className="flex flex-col gap-1 items-center justify-center">
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 35, fontWeight: 700, lineHeight: 1, color: overdueCount > 0 ? "var(--danger)" : "var(--text-secondary)" }}>
             {loading ? "—" : overdueCount}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Overdue
           </div>
         </div>
@@ -899,7 +896,7 @@ export default function DocumentsPage() {
         return (
           <div
             className="shrink-0 px-14 py-3 flex items-center gap-6"
-            style={{ borderBottom: "1px solid var(--surface-raised)", height: 60 }}
+            style={{ height: 60, borderBottom: "none", marginTop: 21 }}
           >
             <div
               className="flex items-center gap-3 px-4 rounded-xl transition-all duration-200 flex-shrink-0"

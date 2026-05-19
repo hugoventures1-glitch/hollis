@@ -201,13 +201,23 @@ export function touchpointScheduledDate(
 }
 
 export const TOUCHPOINT_LABELS: Record<TouchpointType, string> = {
-  email_90: "90-Day Email",
-  email_60: "60-Day Follow-up",
-  sms_30: "30-Day SMS",
-  script_14: "14-Day Call Script",
+  email_90: "First Outreach",
+  email_60: "Follow-up Email",
+  sms_30: "SMS Reminder",
+  script_14: "Call Script",
   submission_60: "Insurer Submission",
   recommendation_30: "Recommendation Pack",
-  final_notice_7: "7-Day Final Notice",
+  final_notice_7: "Final Notice",
+};
+
+export const TOUCHPOINT_DESCRIPTIONS: Record<TouchpointType, string> = {
+  email_90: "Opening renewal email — sent 90 days before expiry",
+  email_60: "Follow-up if no response — sent 60 days before expiry",
+  sms_30: "Short SMS nudge — sent 30 days before expiry",
+  script_14: "Phone call guide — ready 14 days before expiry",
+  submission_60: "Submission to insurer — sent 60 days before expiry",
+  recommendation_30: "Recommendation to client — sent 30 days before expiry",
+  final_notice_7: "Final notice — sent 7 days before expiry",
 };
 
 export const STAGE_LABELS: Record<CampaignStage, string> = {

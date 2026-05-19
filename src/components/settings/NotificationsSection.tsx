@@ -80,7 +80,7 @@ export function NotificationsSection({ profile }: Props) {
       {/* Automation alerts */}
       <div>
         <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Automation Alerts</p>
-        <div className="divide-y divide-[#1e1e2a]">
+        <div className="divide-y divide-border">
           <ToggleRow
             label="Renewal email fired"
             description="When Hollis sends a renewal reminder to a client"
@@ -111,7 +111,7 @@ export function NotificationsSection({ profile }: Props) {
       {/* Summary reports */}
       <div>
         <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Summary Reports</p>
-        <div className="divide-y divide-[#1e1e2a]">
+        <div className="divide-y divide-border">
           <ToggleRow
             label="Daily digest"
             description="A morning email summarising what's due and what fired overnight"

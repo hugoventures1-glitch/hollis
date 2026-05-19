@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, memo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, MessageSquare, Trash2 } from "lucide-react";
+import { ChevronRight, MessageSquare, Trash2, Flag } from "lucide-react";
 import { ActionButton } from "@/components/actions/ActionButton";
 import { useToast } from "@/components/actions/MicroToast";
 import { SignalModal } from "@/components/renewals/SignalModal";
@@ -119,9 +119,24 @@ function StageDots({ stage }: { stage: CampaignStage }) {
   );
 }
 
+// ── Expiry flag (≤7 days) ─────────────────────────────────────────────────────
+
+function ExpiryFlag() {
+  return (
+    <div
+      className="shrink-0 flex items-center gap-1 animate-pulse"
+      title="Expiring within 7 days"
+      style={{ color: "var(--danger)" }}
+    >
+      <Flag size={11} fill="currentColor" />
+    </div>
+  );
+}
+
 // ── Urgency helpers ───────────────────────────────────────────────────────────
 
 function urgencyColor(days: number): string {
+  if (days <= 7)  return "var(--danger)";
   if (days <= 14) return "var(--danger)";
   if (days <= 30) return "#F59E0B";
   if (days <= 60) return "var(--text-secondary)";
@@ -136,11 +151,12 @@ interface RowProps {
   optimisticStage: CampaignStage | null;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
+  onStageConfirm: (id: string, stage: CampaignStage) => void;
   onLogSignal: (policyId: string, clientName: string) => void;
   onArchive: (id: string) => void;
 }
 
-const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage, onStageUpdate, onStageRevert, onLogSignal, onArchive }: RowProps) {
+const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage, onStageUpdate, onStageRevert, onStageConfirm, onLogSignal, onArchive }: RowProps) {
   const { toast }          = useToast();
   const router             = useRouter();
   const [loading, setLoading] = useState(false);
@@ -197,11 +213,14 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         return;
       }
 
-      // Tier 2: surface flags, require re-click
+      // Tier 2: queue for approval, require re-click to override
       if (data.flagged) {
         onStageRevert(policy.id);
         setPendingOverride(data.reason);
-        toast(`Review required — ${data.reason}. Click again to confirm.`, "info");
+        const msg = data.mode === "learning"
+          ? "Queued for your approval — or click again to send now."
+          : `Queued for your approval — ${data.reason}. Click again to send now.`;
+        toast(msg, "info");
         return;
       }
 
@@ -215,7 +234,10 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
 
       // Success (Tier 1 or Tier 2 override)
       setPendingOverride(null);
-      if (data.newStage) onStageUpdate(policy.id, data.newStage as CampaignStage);
+      if (data.newStage) {
+        onStageUpdate(policy.id, data.newStage as CampaignStage);
+        onStageConfirm(policy.id, data.newStage as CampaignStage);
+      }
       toast(
         toastMessageForAction(data.channel, data.recipient, data.newStage, policy.client_name),
         "success",
@@ -227,7 +249,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
     } finally {
       setLoading(false);
     }
-  }, [canSend, loading, pendingOverride, effectiveStage, policy, onStageUpdate, onStageRevert, toast]);
+  }, [canSend, loading, pendingOverride, effectiveStage, policy, onStageUpdate, onStageRevert, onStageConfirm, toast]);
 
   const dColor = urgencyColor(days);
   const expiry = new Date(policy.expiration_date + "T00:00:00").toLocaleDateString("en-AU", {
@@ -266,6 +288,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
       {/* Client name + policy ID — primary info (health dot moves with expansion) */}
       <div className="flex-1 min-w-0 flex items-center gap-3 py-4 transition-transform duration-200 group-hover:scale-105" data-client-info>
         <HealthDot label={policy.health_label} />
+        {days <= 7 && <ExpiryFlag />}
         <div className="min-w-0">
           <div
             className="truncate leading-snug transition-colors duration-200"
@@ -308,6 +331,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
       {/* Days remaining — visual anchor */}
       <div className="shrink-0 text-right" style={{ width: 52 }}>
         <div
+          className={days <= 7 && days >= 0 ? "animate-pulse" : ""}
           style={{
             fontFamily: "var(--font-mono)",
             fontSize:   20,
@@ -318,8 +342,8 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
         >
           {Math.abs(days)}
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, letterSpacing: "0.04em" }}>
-          {days < 0 ? "PAST" : "DAYS"}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: days <= 7 && days >= 0 ? "var(--danger)" : "var(--text-tertiary)", marginTop: 2, letterSpacing: "0.04em" }}>
+          {days < 0 ? "PAST" : days <= 7 ? "URGENT" : "DAYS"}
         </div>
       </div>
 
@@ -346,7 +370,7 @@ const RenewalRow = memo(function RenewalRow({ policy, clientId, optimisticStage,
               setArchiveConfirm(true);
             }
           }}
-          title={archiveConfirm ? "Click again to archive" : "Archive policy"}
+          title={archiveConfirm ? "Click again to delete" : "Delete policy"}
           className="flex items-center justify-center h-7 rounded-md transition-all duration-150 shrink-0"
           style={{
             background: archiveConfirm ? "#2A0A0A" : "var(--surface-raised)",
@@ -430,6 +454,7 @@ function PolicyGroup({
   clientIdByName,
   onStageUpdate,
   onStageRevert,
+  onStageConfirm,
   onLogSignal,
   onArchive,
 }: {
@@ -438,6 +463,7 @@ function PolicyGroup({
   clientIdByName: Map<string, string>;
   onStageUpdate: (id: string, stage: CampaignStage) => void;
   onStageRevert: (id: string) => void;
+  onStageConfirm: (id: string, stage: CampaignStage) => void;
   onLogSignal: (policyId: string, clientName: string) => void;
   onArchive: (id: string) => void;
 }) {
@@ -487,6 +513,7 @@ function PolicyGroup({
           optimisticStage={optimisticStages[p.id] ?? null}
           onStageUpdate={onStageUpdate}
           onStageRevert={onStageRevert}
+          onStageConfirm={onStageConfirm}
           onLogSignal={onLogSignal}
           onArchive={onArchive}
         />
@@ -510,6 +537,7 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
   const { toast } = useToast();
   const storeClients = useHollisStore(s => s.clients);
   const removePolicy = useHollisStore(s => s.removePolicy);
+  const updatePolicyStage = useHollisStore(s => s.updatePolicyStage);
   const clientIdByName = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of storeClients) map.set(c.name, c.id);
@@ -528,6 +556,10 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
     });
   }, []);
 
+  const confirmStage = useCallback((id: string, stage: CampaignStage) => {
+    updatePolicyStage(id, stage);
+  }, [updatePolicyStage]);
+
   const openSignal = useCallback((policyId: string, clientName: string) => {
     setSignalPolicy({ id: policyId, clientName });
   }, []);
@@ -537,16 +569,14 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
     removePolicy(id);
     try {
       const res = await fetch(`/api/renewals/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "inactive" }),
+        method: "DELETE",
       });
       if (!res.ok) {
-        toast("Failed to archive policy", "error");
+        toast("Failed to delete policy", "error");
         // Re-fetch to restore if it failed
         useHollisStore.getState().fetchAll();
       } else {
-        toast("Policy archived", "success");
+        toast("Policy deleted", "success");
       }
     } catch {
       toast("Connection error", "error");
@@ -631,6 +661,7 @@ export function RenewalsTable({ policies, view, searchQuery }: RenewalsTableProp
             clientIdByName={clientIdByName}
             onStageUpdate={updateStage}
             onStageRevert={revertStage}
+            onStageConfirm={confirmStage}
             onLogSignal={openSignal}
             onArchive={archivePolicy}
           />

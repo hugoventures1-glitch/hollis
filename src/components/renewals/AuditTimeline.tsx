@@ -132,16 +132,6 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
             ({entries.length} event{entries.length !== 1 ? "s" : ""})
           </span>
         </div>
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg transition-colors print:hidden"
-          style={{ background: "var(--hover-overlay)", color: "var(--text-secondary)" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--surface-raised)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--hover-overlay)"; }}
-        >
-          <Printer size={12} />
-          Download Report
-        </button>
       </div>
 
       <div className="relative">

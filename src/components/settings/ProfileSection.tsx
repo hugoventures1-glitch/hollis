@@ -72,13 +72,12 @@ export function ProfileSection({ profile, userEmail }: Props) {
         <SettingsInput {...register("title")} placeholder="Insurance Broker" error={!!errors.title} />
       </SettingsField>
 
-      <SettingsField label="Phone" error={errors.phone?.message} hint="E.g. +1 (555) 000-0000 or +61 4XX XXX XXX">
-        <SettingsInput {...register("phone")} placeholder="+1 (555) 000-0000" error={!!errors.phone} />
+      <SettingsField label="Phone" error={errors.phone?.message} hint="E.g. 04XX XXX XXX or +61 4XX XXX XXX">
+        <SettingsInput {...register("phone")} placeholder="04XX XXX XXX" error={!!errors.phone} />
       </SettingsField>
 
       <SettingsField label="Email">
         <SettingsInput value={userEmail} readOnly className="opacity-50 cursor-not-allowed" />
-        <p className="text-[12px] text-zinc-500 mt-1">To change your email, contact support.</p>
       </SettingsField>
 
       <div className="pt-2">

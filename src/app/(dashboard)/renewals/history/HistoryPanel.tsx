@@ -53,17 +53,30 @@ const TEMPLATE_LABELS: Record<string, string> = {
 };
 
 const INTENT_LABELS: Record<string, string> = {
-  renewal_with_changes:  "renewal with changes",
-  confirm_renewal:       "confirmed renewal",
-  soft_query:            "query",
-  out_of_office:         "out of office",
-  request_callback:      "callback request",
-  document_received:     "document received",
-  active_claim_mentioned:"claim mentioned",
-  cancel_policy:         "cancellation",
-  legal_dispute:         "legal dispute",
-  complaint:             "complaint",
-  unknown:               "unclassified",
+  // v2 canonical
+  confirmed:                "confirmed renewal",
+  coverage_question:        "coverage query",
+  price_objection:          "price concern",
+  material_change_disclosed:"material change",
+  contact_change:           "contact update",
+  forwarded_no_intent:      "forwarded email",
+  ambiguous_acknowledgement:"acknowledgement",
+  prior_comms_reference:    "prior comms reference",
+  declined_churn:           "client leaving",
+  unclassified:             "unclassified",
+  // v1 (backward compat)
+  renewal_with_changes:     "renewal with changes",
+  confirm_renewal:          "confirmed renewal",
+  soft_query:               "query",
+  out_of_office:            "out of office",
+  request_callback:         "callback request",
+  document_received:        "document received",
+  document_required:        "document required",
+  active_claim_mentioned:   "claim mentioned",
+  cancel_policy:            "cancellation",
+  legal_dispute:            "legal dispute",
+  complaint:                "complaint",
+  unknown:                  "unclassified",
 };
 
 const TIER_LABELS: Record<string, string> = {
@@ -256,13 +269,9 @@ function SystemLog({ action }: { action: HollisAction }) {
 
 function Inspector({
   action,
-  onArchive,
 }: {
   action: HollisAction | null;
-  onArchive: (id: string) => void;
 }) {
-  const { toast } = useToast();
-
   if (!action) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -297,22 +306,6 @@ function Inspector({
 
   return (
     <div className="relative flex flex-col h-full overflow-y-auto">
-      {/* Top-right buttons */}
-      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">          {action.archived ? (
-            <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>Archived</span>
-          ) : (
-            <button
-              onClick={() => onArchive(action.id)}
-              className="h-7 px-3 text-[12px] transition-colors rounded"
-              style={{ border: "1px solid var(--border)", color: "var(--text-secondary)", background: "transparent" }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--text-secondary)")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-            >
-              Archive
-            </button>
-          )}
-      </div>
-
       {/* Section A — Reasoning */}
       <div className="px-6 pt-4 pb-5" style={{ borderBottom: "1px solid var(--border)" }}>
         <div
@@ -322,10 +315,14 @@ function Inspector({
           Reasoning
         </div>
         <div
-          className="font-mono text-[13px] leading-[1.6]"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, padding: "12px 16px", color: "var(--text-secondary)" }}
+          className="text-[13.5px] leading-[1.7]"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "14px 16px", color: "var(--text-secondary)" }}
         >
-          {action.trigger_reason}
+          {action.trigger_reason.split(/(\b\d+%|\bTier [123]\b|\bLearning mode\b|\bAutonomous mode\b|\blearning mode\b|\bautonomous mode\b)/g).map((part, i) =>
+            /^\d+%$|^Tier [123]$|^[Ll]earning mode$|^[Aa]utonomous mode$/.test(part)
+              ? <strong key={i} style={{ color: "var(--text-primary)", fontWeight: 600 }}>{part}</strong>
+              : <span key={i}>{part}</span>
+          )}
         </div>
       </div>
 
@@ -560,86 +557,84 @@ export default function HistoryPanel() {
 
   const [actions,    setActions]    = useState<HollisAction[]>([]);
   const [loading,    setLoading]    = useState(true);
+  const [loadingMore,setLoadingMore]= useState(false);
+  const [hasMore,    setHasMore]    = useState(false);
+  const [offset,     setOffset]     = useState(0);
   const [selected,   setSelected]   = useState<HollisAction | null>(null);
   const [filterGroup,setFilterGroup]= useState("all");
   const [search,     setSearch]     = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Infinite scroll
-  const [page,       setPage]       = useState(1);
   const PAGE_SIZE = 50;
   const loaderRef = useRef<HTMLDivElement>(null);
 
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // When filters change, reset and fetch from scratch
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch("/api/hollis-actions")
+    setActions([]);
+    setOffset(0);
+
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: "0", group: filterGroup });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+
+    fetch(`/api/hollis-actions?${params}`)
       .then((r) => r.json())
-      .then((data) => {
+      .then(({ data, hasMore: more }) => {
         if (!cancelled) {
           setActions(Array.isArray(data) ? data : []);
+          setHasMore(!!more);
+          setOffset(Array.isArray(data) ? data.length : 0);
           setLoading(false);
         }
       })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
+      .catch(() => { if (!cancelled) setLoading(false); });
 
-  // Infinite scroll observer
+    return () => { cancelled = true; };
+  }, [filterGroup, debouncedSearch]);
+
+  // Infinite scroll: fetch next page when sentinel is visible
+  const fetchMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset), group: filterGroup });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+
+    fetch(`/api/hollis-actions?${params}`)
+      .then((r) => r.json())
+      .then(({ data, hasMore: more }) => {
+        if (Array.isArray(data)) {
+          setActions((prev) => [...prev, ...data]);
+          setOffset((o) => o + data.length);
+          setHasMore(!!more);
+        }
+        setLoadingMore(false);
+      })
+      .catch(() => setLoadingMore(false));
+  }, [loadingMore, hasMore, offset, filterGroup, debouncedSearch]);
+
+  // Intersection observer triggers fetchMore
   useEffect(() => {
     const el = loaderRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setPage((p) => p + 1); },
+      ([entry]) => { if (entry.isIntersecting) fetchMore(); },
       { threshold: 0.1 }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [loading]);
-
-  const handleArchive = useCallback(async (id: string) => {
-    const res = await fetch(`/api/hollis-actions/${id}/archive`, { method: "PATCH" });
-    if (res.ok) {
-      setActions((prev) => prev.map((a) => a.id === id ? { ...a, archived: true } : a));
-      setSelected((prev) => prev?.id === id ? { ...prev, archived: true } : prev);
-      toast("Action archived.", "success");
-    } else {
-      toast("Failed to archive action.", "error");
-    }
-  }, [toast]);
-
-  // ── Filter + search ──
-  const filtered = actions.filter((a) => {
-    if (filterGroup !== "all") {
-      const grp = FILTER_GROUPS.find((g) => g.id === filterGroup);
-      if (grp && !grp.types.includes(a.action_type)) return false;
-    }
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const clientMatch  = (a.policies?.client_name ?? a.clients?.name ?? "").toLowerCase().includes(q);
-      const policyMatch  = (a.policies?.policy_name ?? "").toLowerCase().includes(q);
-      if (!clientMatch && !policyMatch) return false;
-    }
-    return true;
-  });
+  }, [fetchMore]);
 
   // ── Group by date ──
-  const grouped: { dateKey: string; actions: HollisAction[] }[] = [];
-  for (const a of filtered) {
-    const dk = toDateKey(a.created_at);
-    const last = grouped[grouped.length - 1];
-    if (last && last.dateKey === dk) {
-      last.actions.push(a);
-    } else {
-      grouped.push({ dateKey: dk, actions: [a] });
-    }
-  }
-
-  // Paginate groups (flatten first, then slice)
-  const visibleActions = filtered.slice(0, page * PAGE_SIZE);
   const visibleGrouped: { dateKey: string; actions: HollisAction[] }[] = [];
-  for (const a of visibleActions) {
+  for (const a of actions) {
     const dk = toDateKey(a.created_at);
     const last = visibleGrouped[visibleGrouped.length - 1];
     if (last && last.dateKey === dk) {
@@ -648,8 +643,6 @@ export default function HistoryPanel() {
       visibleGrouped.push({ dateKey: dk, actions: [a] });
     }
   }
-
-  const hasMore = visibleActions.length < filtered.length;
 
   // ── Mobile: show inspector or list ──
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
@@ -773,7 +766,7 @@ export default function HistoryPanel() {
               ← Back
             </button>
           )}
-          <Inspector action={selected} onArchive={handleArchive} />
+          <Inspector action={selected} />
         </div>
       </div>
     </div>

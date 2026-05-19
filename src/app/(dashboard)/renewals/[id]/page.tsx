@@ -14,7 +14,7 @@ import { Breadcrumb } from "@/components/nav/Breadcrumb";
 import { decodeCrumbs } from "@/lib/trail";
 import { StageBadge } from "@/components/renewals/stage-badge";
 import { DaysBadge } from "@/components/renewals/days-badge";
-import { daysUntilExpiry, TOUCHPOINT_LABELS } from "@/types/renewals";
+import { daysUntilExpiry, TOUCHPOINT_LABELS, TOUCHPOINT_DESCRIPTIONS } from "@/types/renewals";
 import type {
   PolicyDetailFull,
   CampaignTouchpoint,
@@ -24,6 +24,7 @@ import type {
 import { RenewalOverrideControls } from "@/components/renewals/RenewalOverrideControls";
 // import { InsurerTermsPanel } from "@/components/renewals/InsurerTermsPanel";
 import { AuditTimeline } from "@/components/renewals/AuditTimeline";
+import { RejectScriptButton } from "@/components/renewals/RejectScriptButton";
 import { PolicyTimelinePanel } from "@/components/renewals/PolicyTimelinePanel";
 import type { TimelineConfig } from "@/types/timeline";
 
@@ -32,6 +33,21 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ trail?: string; back?: string; backId?: string; backName?: string }>;
+}
+
+function scheduleTiming(scheduledAt: string, status: string): { label: string; urgent: boolean } {
+  if (status === "sent") return { label: "Sent", urgent: false };
+  if (status === "skipped") return { label: "Skipped", urgent: false };
+  if (status === "failed") return { label: "Failed — retry needed", urgent: true };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const sched = new Date(scheduledAt + "T00:00:00"); sched.setHours(0, 0, 0, 0);
+  const diff = Math.round((sched.getTime() - today.getTime()) / 86_400_000);
+  if (diff < 0) return { label: "Overdue — sends next cron run", urgent: true };
+  if (diff === 0) return { label: "Sends today", urgent: true };
+  if (diff === 1) return { label: "Sends tomorrow", urgent: false };
+  if (diff < 7) return { label: `Sends in ${diff} days`, urgent: false };
+  const weeks = Math.round(diff / 7);
+  return { label: `Sends in ${weeks === 1 ? "1 week" : `${weeks} weeks`}`, urgent: false };
 }
 
 const TOUCHPOINT_ICONS: Record<string, React.ElementType> = {
@@ -218,13 +234,16 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                   No touchpoints yet.
                 </div>
               )}
-              {touchpoints.map((tp: CampaignTouchpoint) => {
+              {touchpoints.map((tp: CampaignTouchpoint, tpIndex: number) => {
                 const Icon = TOUCHPOINT_ICONS[tp.type] ?? Mail;
                 const tpBg = tp.status === "failed" ? "rgba(255,68,68,0.06)" : "var(--surface)";
                 const tpBorder = tp.status === "failed" ? "rgba(255,68,68,0.2)" : "var(--border)";
                 const tpOpacity = tp.status === "skipped" ? 0.5 : 1;
                 const iconBg = tp.status === "sent" ? "rgba(250,250,250,0.08)" : tp.status === "failed" ? "rgba(255,68,68,0.08)" : "rgba(255,255,255,0.04)";
                 const iconColor = tp.status === "sent" ? "var(--text-primary)" : tp.status === "failed" ? "var(--danger)" : "var(--text-secondary)";
+                const timing = scheduleTiming(tp.scheduled_at, tp.status);
+                const isFirstPending = tpIndex === 0 && tp.status === "pending";
+                const isScriptPending = tp.type === "script_14" && tp.status === "pending";
                 return (
                   <div
                     key={tp.id}
@@ -240,31 +259,43 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                           <div className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>
                             {TOUCHPOINT_LABELS[tp.type]}
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <div className="flex items-center gap-1 text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                              {STATUS_ICON_MAP[tp.status]}
-                              <span>{STATUS_LABEL_MAP[tp.status]}</span>
-                            </div>
-                            <span style={{ color: "var(--text-tertiary)" }}>·</span>
-                            <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                              Scheduled{" "}
-                              {new Date(tp.scheduled_at + "T00:00:00").toLocaleDateString("en-AU", {
-                                month: "short", day: "numeric", year: "numeric",
-                              })}
+                          <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                            {TOUCHPOINT_DESCRIPTIONS[tp.type]}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                              style={{
+                                background: timing.urgent ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.04)",
+                                color: timing.urgent ? "#fbbf24" : "var(--text-secondary)",
+                                border: timing.urgent ? "1px solid rgba(251,191,36,0.2)" : "1px solid var(--border-subtle)",
+                              }}
+                            >
+                              {timing.label}
                             </span>
                             {tp.sent_at && (
-                              <>
-                                <span style={{ color: "var(--text-tertiary)" }}>·</span>
-                                <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                                  Sent{" "}
-                                  {new Date(tp.sent_at).toLocaleDateString("en-AU", {
-                                    month: "short", day: "numeric",
-                                  })}
-                                </span>
-                              </>
+                              <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                                on {new Date(tp.sent_at).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
+                              </span>
                             )}
                           </div>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isFirstPending && (
+                          <form method="POST" action={`/api/actions/renew/${p.id}`}>
+                            <button
+                              type="submit"
+                              className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-[12px] font-medium transition-colors"
+                              style={{ background: "var(--border)", color: "var(--text-primary)", border: "1px solid var(--border-subtle)" }}
+                            >
+                              Send Now
+                            </button>
+                          </form>
+                        )}
+                        {isScriptPending && (
+                          <RejectScriptButton policyId={p.id} />
+                        )}
                       </div>
                     </div>
 
@@ -317,7 +348,7 @@ export default async function PolicyDetailPage({ params, searchParams }: PagePro
                         <td className="px-4 py-3">
                           <span className="text-[12px]" style={{
                             color: log.status === "sent" ? "var(--text-primary)" :
-                                   log.status === "bounced" ? "var(--text-secondary)" :
+                                   log.status === "bounced" ? "var(--danger)" :
                                    "var(--danger)"
                           }}>
                             {log.status}

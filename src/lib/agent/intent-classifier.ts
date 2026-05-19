@@ -1,149 +1,271 @@
 /**
  * lib/agent/intent-classifier.ts
  *
- * Step 3: Classifies inbound signals using Claude structured output (tool_use).
- * Returns { intent, confidence, flags_detected[], premium_increase_pct, reasoning }.
+ * Classifier v2 — native structured outputs via output_config JSON schema.
  *
- * When recent parser_outcomes are provided (Step 8 wires this fully), they are
- * injected as few-shot examples so the classifier learns the broker's style.
- * Learning generalises on INTENT PATTERNS only — never on client-level trust.
+ * Architecture:
+ *   1. Primary model: Haiku (fast, cheap, handles ~95% of replies)
+ *   2. Cascade: if confidence < 0.85 → re-run on Sonnet (accuracy on edge cases)
+ *   3. Output: JSON schema compiled into the model's token grammar — no prompt-
+ *      based JSON, no parse errors, no malformed output.
+ *
+ * The schema intentionally keeps flags_detected and premium_increase_pct from
+ * v1 so the flag-writer's escalation path (active_claim → Tier 3) remains intact
+ * even though those signals are no longer primary intents.
+ *
+ * When recent parser_outcomes are provided they are injected as few-shot examples
+ * so the classifier learns the broker's classification style over time.
  */
 
 import { getAnthropicClient } from "@/lib/anthropic/client";
 import type { ClassificationResult, ParserOutcome } from "@/types/agent";
 import { ALL_KNOWN_INTENTS } from "@/types/agent";
 
-const MODEL = "claude-haiku-4-5-20251001";
+const HAIKU_MODEL  = "claude-haiku-4-5-20251001";
+const SONNET_MODEL = "claude-sonnet-4-6-20250514";
 
-// Tool schema for structured output
-const CLASSIFY_TOOL = {
-  name: "classify_intent",
-  description: "Classify the intent and extract renewal flags from an inbound signal",
-  input_schema: {
-    type: "object" as const,
-    properties: {
-      intent: {
+// ── JSON schema for structured output ────────────────────────────────────────
+// Compiled into the model's token grammar via output_config — the model
+// physically cannot return output that violates this shape.
+
+const CLASSIFICATION_SCHEMA = {
+  type: "object",
+  properties: {
+    primary_intent: {
+      type: "string",
+      enum: [
+        // v2 canonical intents
+        "confirmed",
+        "declined_churn",
+        "coverage_question",
+        "price_objection",
+        "material_change_disclosed",
+        "contact_change",
+        "out_of_office",
+        "forwarded_no_intent",
+        "ambiguous_acknowledgement",
+        "prior_comms_reference",
+        "request_callback",
+        "document_received",
+        "document_required",
+        "unclassified",
+      ],
+    },
+    secondary_flags: {
+      type: "array",
+      items: {
         type: "string",
-        description:
-          "The single best-matching intent from the known taxonomy, or a novel label if none match",
-      },
-      confidence: {
-        type: "number",
-        description: "Confidence score between 0.000 and 1.000",
-      },
-      flags_detected: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "List of renewal flag names detected in the signal. Valid values: active_claim, insurer_declined, business_restructure, third_party_contact, premium_increase_pct",
-      },
-      premium_increase_pct: {
-        type: ["number", "null"],
-        description:
-          "Numeric percentage if a premium increase was mentioned (e.g. 42 for 42%), otherwise null",
-      },
-      reasoning: {
-        type: "string",
-        description: "One or two sentences explaining the classification for audit purposes",
-      },
-      changes_requested: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "When intent is renewal_with_changes: a list of specific changes the client is requesting before they will renew (e.g. 'Update business address to 123 Main St'). Empty array for all other intents.",
-      },
-      document_type_needed: {
-        type: ["string", "null"],
-        description:
-          "When intent is document_required: the specific document type needed (e.g. 'Loss Runs', 'Certificate of Currency', 'Signed ACORD 25 Form'). Null for all other intents.",
-      },
-      secondary_flags: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "Additional signals co-existing alongside the primary intent. Valid values: cross_sell_signal (client mentions another insurance product they need), lapse_risk (OOO return date is after policy expiry), complaint_tone (signal contains frustration or dissatisfaction). Empty array when no secondary signals detected.",
-      },
-      ooo_return_date: {
-        type: ["string", "null"],
-        description:
-          "When intent is out_of_office: the return date extracted from the OOO message in ISO 8601 format (YYYY-MM-DD). Null if no return date is mentioned or intent is not out_of_office.",
+        enum: [
+          "material_change_disclosed",
+          "coverage_question",
+          "price_concern",
+          "cross_sell_signal",
+          "contact_change",
+          "prior_comms_reference",
+          "lapse_risk",
+          "complaint_tone",
+        ],
       },
     },
-    // Mutable array required by Anthropic SDK types
-    required: ["intent", "confidence", "flags_detected", "premium_increase_pct", "reasoning", "changes_requested", "document_type_needed", "secondary_flags", "ooo_return_date"] as string[],
+    // Kept from v1 so the flag-writer's escalation path stays intact.
+    // active_claim, insurer_declined, business_restructure in here trigger
+    // Tier 3 via the flag hard-stops in tier-router even without a matching
+    // primary intent.
+    flags_detected: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: [
+          "active_claim",
+          "insurer_declined",
+          "business_restructure",
+          "third_party_contact",
+          "premium_increase_pct",
+        ],
+      },
+    },
+    premium_increase_pct: {
+      type: ["number", "null"],
+    },
+    confidence: {
+      type: "number",
+    },
+    ooo_return_date: {
+      type: ["string", "null"],
+    },
+    ooo_alt_contact: {
+      type: ["string", "null"],
+    },
+    extracted_context: {
+      type: "string",
+    },
+    reasoning: {
+      type: "string",
+    },
+    // Kept from v1 for backward compat with document_required handler
+    document_type_needed: {
+      type: ["string", "null"],
+    },
+    // Kept from v1 for backward compat with material_change_disclosed handler
+    changes_requested: {
+      type: "array",
+      items: { type: "string" },
+    },
   },
-};
+  required: [
+    "primary_intent",
+    "secondary_flags",
+    "flags_detected",
+    "premium_increase_pct",
+    "confidence",
+    "ooo_return_date",
+    "ooo_alt_contact",
+    "extracted_context",
+    "reasoning",
+    "document_type_needed",
+    "changes_requested",
+  ],
+  additionalProperties: false,
+} as const;
 
-const SYSTEM_PROMPT = `You are an intent classifier for an insurance renewal management system operated by an Australian insurance broker.
+// ── System prompt ─────────────────────────────────────────────────────────────
 
-Your job is to analyse inbound signals (client emails, SMS replies, third-party correspondence) and classify them into the appropriate intent, with a confidence score.
+const SYSTEM_PROMPT = `You are the reply classifier for Hollis, an AI renewal automation system for Australian commercial insurance brokers.
 
-PRIORITY DISAMBIGUATION RULES (apply in this order):
+Your job is to analyse an inbound client email reply and classify the client's intent. You return only structured JSON — no prose, no preamble.
 
-1. FORWARDED EMAIL: If the subject line starts with "Fwd:" or "FW:", or the body contains "---------- Forwarded message ----------", "Begin forwarded message:", or the FROM address in a forwarded header is the broker's own renewals address — classify as forwarded_no_intent. Do NOT reply to forwards.
+---
 
-2. CHURN SIGNAL: If the client states they are going with a different broker, have already arranged cover elsewhere, are not renewing, or uses phrases like "going with another broker", "found a better deal elsewhere", "won't be renewing with you", "switching brokers" — classify as declined_churn immediately. This overrides all other intent signals.
+CLASSIFICATION RULES
 
-3. CONTACT CHANGE: If the client asks to update contact details, send future correspondence to a different person, or names someone else as the new contact — classify as contact_change. Phrases: "send this to Lisa", "please update your records", "new contact is", "forward to my colleague".
+**confirmed**
+The client explicitly agrees to renew, proceed, or continue the policy. The word must be there or clearly implied.
+✓ "yes go ahead" / "please renew" / "all good, proceed" / "renew it"
+✗ "thanks" / "ok" / "cheers" / "noted" / "received" — these are NOT confirmation
 
-4. DOCUMENT RECEIVED: If the inbound signal contains any of the following — an attachment reference, a document type name (certificate, loss run, accord, invoice, financials, statement, policy documents), or phrases like "attached", "sending you", "here is", "please find" — classify as document_received, NOT confirm_renewal, even if confirmation language is also present.
-   EXCEPTION: Do NOT classify as document_received when the client is merely promising to send a document in the future. Future-tense phrases like "I'll attach", "I will send", "I'll email it through", "I'll put it together", "I'll get that to you", or "I'll send it over" indicate intent to send later.
+**declined_churn**
+The client declines renewal or signals they are moving to another broker.
+✓ "going with a different broker" / "no thanks" / "not renewing" / "cancelling" / "found someone else"
+This is NOT a business_change. It is a retention emergency.
 
-5. AMBIGUOUS ACKNOWLEDGEMENT: Polite social replies like "Thanks", "Thank you", "Got it", "OK", "Noted", "Cheers", "Will do", "Sounds good" — with NO additional intent — are NOT confirmations of renewal. Classify as ambiguous_acknowledgement. Do NOT classify as confirm_renewal.
+**coverage_question**
+The client asks a specific question about what their policy covers, how it works, or has a general query before committing. Also use when a client confirms renewal BUT also asks a question — the open question prevents treating them as confirmed.
 
-6. CONFIRM RENEWAL: Only valid when: (1) no document is referenced, (2) no open questions, (3) completely unconditional, (4) explicit renewal intent is present (e.g. "yes please proceed", "happy to renew", "go ahead with renewal"). Degrade to soft_query, ambiguous_acknowledgement, or document_received if any of those conditions fail.
+**price_objection**
+The client expresses concern about premium cost or requests a requote. Extract any dollar figures mentioned in extracted_context.
 
-KNOWN INTENT TAXONOMY:
-Autonomous intents (can be handled without broker intervention if confidence is high):
-- confirm_renewal: Client explicitly and unconditionally confirms they want to proceed with renewal. No questions, no conditions, no documents referenced. Must contain clear renewal intent language — a simple "thanks" or "ok" does NOT qualify.
-- request_callback: Client is asking to be called back
-- document_received: Client has sent or mentioned sending a document (certificate, invoice, financial statement)
-- soft_query: Client has a general question that does not involve claims, disputes, or sensitive changes
-- out_of_office: Detected auto-reply or out-of-office response — no human intent present. Extract return date into ooo_return_date if mentioned.
+**material_change_disclosed**
+The client discloses a change to their business (headcount, revenue, new activities, new locations, new vehicles, equipment).
+Note: This often appears alongside confirmed. Use secondary_flags for compound replies where confirmed is still primary.
 
-Broker action required intents (always Tier 2 — broker must confirm before agent acts):
-- renewal_with_changes: Client confirms they want to renew BUT requests specific changes first (e.g. update address, increase a coverage limit, add/remove an item). Use this whenever a renewal confirmation comes with any conditions or modification requests. Extract each change as a separate item in changes_requested.
-- document_required: A specific document is needed from the client to proceed with the renewal (e.g. loss runs, certificate of currency, signed ACORD form, proof of payroll, financial statements). Use this when the broker or renewal process identifies a missing or required document. Extract the document type in document_type_needed.
-- schedule_meeting: Client is requesting a face-to-face meeting, video call, or phone appointment — and is asking for the broker to send available times or schedule a session. This is distinct from request_callback (which is a simple "call me back" without scheduling intent). Use schedule_meeting when the client explicitly wants to arrange a time, discuss something in person/video, or asks the broker to send calendar availability.
-- ambiguous_acknowledgement: Signal is a polite social reply ("Thanks", "Got it", "OK", "Noted", "Cheers", "Sounds good") with no clear action intent. The broker must review to determine whether this is a soft confirmation or just an acknowledgement.
+**contact_change**
+The client asks you to redirect communications to a different person.
+✓ "send this to Lisa" / "contact X instead" / "she handles insurance now"
 
-Escalation intents (ALWAYS require broker review regardless of confidence):
-- active_claim_mentioned: Signal contains ANY mention of a claim, incident, accident, loss, or damage — even historical
-- insurer_declined: Signal indicates an insurer has declined, refused, or pulled out of quoting
-- premium_increase_major: Signal indicates a large premium increase (typically >20%)
-- business_restructure: Signal mentions ABN change, new company, business sale, merger, acquisition, or restructure
-- cancel_policy: Client explicitly wants to cancel or not renew the policy
-- legal_dispute_mentioned: Signal mentions lawyers, solicitors, legal action, court, or dispute
-- unverified_third_party: Signal appears to be from someone other than the primary policy contact (accountant, bookkeeper, lawyer, business partner)
-- declined_churn: Client is explicitly leaving for a different broker or has arranged cover elsewhere. Renewal sequence must be stopped and a retention task created.
-- contact_change: Client is requesting that future correspondence be sent to a different person or wants to update contact details. Must be resolved before sequence continues.
-- forwarded_no_intent: Email is a forward (Fwd:/FW: subject, forwarded message header detected, or broker's own address appears in a forwarded-from header). Do NOT reply to this signal.
+**out_of_office**
+An automated OOO reply. Extract return date and alternative contact if present. Always populate ooo_return_date and ooo_alt_contact fields.
 
-SECONDARY FLAGS (populate secondary_flags array — these co-exist with the primary intent):
-- cross_sell_signal: Client mentions needing another type of insurance product not currently on this policy (e.g. "also need home insurance", "looking for life cover", "need a public liability policy"). Add when detected alongside ANY primary intent.
-- lapse_risk: OOO return date is on or after the policy expiry date — client will be unreachable when renewal action is due.
-- complaint_tone: Signal contains frustration, disappointment, or dissatisfaction language, even if it is not a formal complaint.
+**forwarded_no_intent**
+The email body contains a forwarded message pattern — the client forwarded your email to a third party. There is no renewal intent from the original recipient.
+Detection patterns: "---------- Forwarded message", "Begin forwarded message:", subject starting with Fwd: or FW:, or "From: renewals@hollisai.com.au" appearing mid-body.
+CRITICAL: Never classify this as confirmed or as any other intent. Return forwarded_no_intent immediately.
 
-DETECTABLE FLAGS:
-When classifying, also check for these flags in the signal:
-- active_claim: any mention of claim, incident, accident, loss (even if past)
-- insurer_declined: any mention of insurer declining or not quoting
-- business_restructure: any mention of business structure change, ABN change, company sale
-- third_party_contact: sender appears to be someone other than the policyholder
-- premium_increase_pct: if a premium amount or percentage increase is mentioned, extract the number
+**ambiguous_acknowledgement**
+The client replied but expressed no clear renewal intent. Single words like "thanks", "ok", "cheers", "noted", "received" with no other content.
 
-CONFIDENCE SCORING GUIDE:
-- 0.90+: Signal is unambiguous. Single clear intent, no conflicting signals.
-- 0.75–0.89: Mostly clear but some ambiguity (e.g., soft language, partial information).
-- 0.60–0.74: Plausible interpretation but signal is vague or could mean multiple things.
-- Below 0.60: Unclear or contradictory signal — do not classify confidently.
+**prior_comms_reference**
+The client references a prior conversation or email that is not visible in this thread ("as I mentioned", "the email I sent last week", "did you get that").
 
-IMPORTANT RULES:
-- If the signal contains ANY mention of a claim or incident, flag active_claim regardless of the main intent.
-- third_party_contact should be flagged when the sender uses language like "on behalf of", "I'm writing for", uses a different company domain, or explicitly states they are not the policyholder.
-- Do not infer intent from previous context — classify only on the signal provided.
-- If a signal expresses willingness to renew BUT also asks a question or requests information, always classify as soft_query (not confirm_renewal). A confirmation is only valid when it is unconditional — the unanswered question means the client cannot yet be treated as confirmed.
-- "Thanks", "Thank you", "Got it", "OK", "Noted", "Cheers" with no further content are NEVER confirm_renewal — always classify as ambiguous_acknowledgement.`;
+**request_callback**
+The client is asking to be called back. Simple callback request — not a scheduled meeting.
+
+**document_received**
+Client has sent or mentioned sending a document (certificate, invoice, financials, statement, loss run). Also classify as document_received when an attachment is referenced. EXCEPTION: Do NOT classify as document_received for future-tense promises ("I'll send it", "I'll attach it").
+
+**document_required**
+A specific document is needed from the client to proceed with the renewal. Use this when the broker or renewal process identifies a missing document. Populate document_type_needed with the specific document type.
+
+**unclassified**
+Use only if none of the above categories apply. Set confidence below 0.6.
+
+---
+
+SECONDARY FLAGS
+
+After determining primary_intent, check for these secondary signals. A reply can have a confirmed primary intent AND secondary flags. Report all that apply.
+
+- material_change_disclosed: client mentions business changes alongside their primary intent
+- coverage_question: client asks a coverage question alongside their primary intent
+- price_concern: client expresses cost concern without it being the primary intent
+- cross_sell_signal: client mentions another policy type or renewal coming up
+- contact_change: client mentions a contact change alongside their primary intent
+- prior_comms_reference: client references a prior email alongside their primary intent
+- lapse_risk: set this if primary_intent is out_of_office AND the policy expiry date would fall before the ooo_return_date (only set if expiry date is explicitly mentioned in the signal)
+- complaint_tone: signal contains frustration, disappointment, or dissatisfaction language
+
+---
+
+FLAGS DETECTED
+
+Also check for these escalation signals in the signal body. These are separate from primary_intent and trigger automatic escalation in the tier routing system.
+
+- active_claim: any mention of a claim, incident, accident, loss, damage (even if past)
+- insurer_declined: any mention of an insurer declining or refusing to quote
+- business_restructure: any mention of ABN change, company sale, merger, acquisition, or major restructure
+- third_party_contact: sender appears to be someone other than the policyholder (uses "on behalf of", different company domain, states they are not the policyholder)
+- premium_increase_pct: if a premium percentage increase is mentioned (also populate premium_increase_pct field with the number)
+
+---
+
+CONFIDENCE
+
+Return a float from 0.0 to 1.0.
+- 0.95+ : unambiguous, single clear intent
+- 0.85–0.94 : clear primary intent, minor ambiguity
+- 0.70–0.84 : probable intent, some ambiguity
+- below 0.70 : genuinely unclear — err toward ambiguous_acknowledgement or unclassified
+
+---
+
+EXTRACTED CONTEXT
+
+Always populate extracted_context with the key facts a broker would need to act:
+- Dollar figures mentioned
+- Names of people mentioned
+- Business changes described
+- Dates mentioned
+- Other policy types mentioned
+Quote the client's exact words where relevant. Keep it under 100 words.
+
+---
+
+FEW-SHOT EXAMPLES
+
+Input: "Yep all good, go ahead."
+Output: { "primary_intent": "confirmed", "secondary_flags": [], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.97, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Client explicitly confirmed renewal.", "reasoning": "Unambiguous confirmation of intent to proceed.", "document_type_needed": null, "changes_requested": [] }
+
+Input: "Thanks"
+Output: { "primary_intent": "ambiguous_acknowledgement", "secondary_flags": [], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.92, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Single-word reply with no renewal intent.", "reasoning": "Acknowledgement only. No confirmation of intent to renew.", "document_type_needed": null, "changes_requested": [] }
+
+Input: "Renew it but I've taken on 2 new apprentices since last year so you might need to update the headcount. Also we're now doing some solar panel work — not sure if that changes anything."
+Output: { "primary_intent": "confirmed", "secondary_flags": ["material_change_disclosed"], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.91, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Client confirmed renewal. Disclosed: 2 new apprentices (headcount change), new solar panel installation work (potential coverage impact).", "reasoning": "Clear confirmation in first clause. Two material business changes disclosed that require broker verification before binding.", "document_type_needed": null, "changes_requested": ["Update headcount — 2 new apprentices", "New activity: solar panel installation work"] }
+
+Input: "No thanks, we've decided to go with a different broker."
+Output: { "primary_intent": "declined_churn", "secondary_flags": [], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.99, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Client explicitly declining. Moving to a different broker.", "reasoning": "Unambiguous churn signal. Not a business change — this is a retention emergency.", "document_type_needed": null, "changes_requested": [] }
+
+Input: "Hi Mum, can you have a look at this and let me know what you think before I say yes\n---------- Forwarded message ----------\nFrom: renewals@hollisai.com.au"
+Output: { "primary_intent": "forwarded_no_intent", "secondary_flags": [], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.99, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Client forwarded the renewal email to a third party (addressed as Mum). No renewal intent expressed by the original recipient.", "reasoning": "Forward pattern detected. Email is not addressed to Hollis — it is a private message from the client to another person. Do not reply.", "document_type_needed": null, "changes_requested": [] }
+
+Input: "I'm on leave until 14 June. For urgent matters please contact james@karenokafor.com.au"
+Output: { "primary_intent": "out_of_office", "secondary_flags": [], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.97, "ooo_return_date": "2026-06-14", "ooo_alt_contact": "james@karenokafor.com.au", "extracted_context": "Client on leave until 14 June. Alternative contact: james@karenokafor.com.au", "reasoning": "Standard OOO reply. Return date and alternative contact extracted.", "document_type_needed": null, "changes_requested": [] }
+
+Input: "All good. By the way, is there any way to bundle this with our workers comp? We've got that up for renewal in September too."
+Output: { "primary_intent": "confirmed", "secondary_flags": ["cross_sell_signal"], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.93, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Client confirmed renewal. Also mentioned workers comp policy due for renewal in September — asked about bundling.", "reasoning": "Clear confirmation. Cross-sell signal: workers comp, September renewal. Capture for broker opportunity task.", "document_type_needed": null, "changes_requested": [] }
+
+Input: "Can you send this to Lisa? She handles all our insurance now."
+Output: { "primary_intent": "contact_change", "secondary_flags": [], "flags_detected": [], "premium_increase_pct": null, "confidence": 0.96, "ooo_return_date": null, "ooo_alt_contact": null, "extracted_context": "Client requests communications be redirected to Lisa. She now handles their insurance.", "reasoning": "Contact routing request. No renewal intent expressed. Broker must update contact record before continuing.", "document_type_needed": null, "changes_requested": [] }`;
+
+// ── Few-shot injection ────────────────────────────────────────────────────────
 
 function buildFewShotBlock(outcomes: ParserOutcome[]): string {
   if (outcomes.length === 0) return "";
@@ -159,67 +281,100 @@ function buildFewShotBlock(outcomes: ParserOutcome[]): string {
   return `\nHere are recent examples of how this broker classifies signals. Use the same judgement:\n\n${examples}\n`;
 }
 
+// ── Core classifier (single model run) ───────────────────────────────────────
+
+interface RawClassification {
+  primary_intent: string;
+  secondary_flags: string[];
+  flags_detected: string[];
+  premium_increase_pct: number | null;
+  confidence: number;
+  ooo_return_date: string | null;
+  ooo_alt_contact: string | null;
+  extracted_context: string;
+  reasoning: string;
+  document_type_needed: string | null;
+  changes_requested: string[];
+}
+
+async function runClassifier(
+  model: string,
+  userMessage: string
+): Promise<RawClassification> {
+  const anthropic = getAnthropicClient();
+
+  const response = await anthropic.beta.messages.create({
+    model,
+    max_tokens: 300,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: userMessage }],
+    betas: ["structured-outputs-2025-12-15"],
+    output_config: {
+      format: {
+        type: "json_schema",
+        schema: CLASSIFICATION_SCHEMA as Record<string, unknown>,
+      },
+    },
+  });
+
+  const textBlock = response.content.find((c) => c.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("[intent-classifier] No text block in structured output response");
+  }
+
+  return JSON.parse(textBlock.text) as RawClassification;
+}
+
+// ── Public entry point ────────────────────────────────────────────────────────
+
 export async function classifyIntent(
   rawSignal: string,
   recentOutcomes: ParserOutcome[] = []
 ): Promise<ClassificationResult> {
-  const anthropic = getAnthropicClient();
   const fewShotBlock = buildFewShotBlock(recentOutcomes);
-
   const userMessage = `${fewShotBlock}Classify the following inbound signal:\n\n"${rawSignal}"`;
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 512,
-    system: SYSTEM_PROMPT,
-    tools: [CLASSIFY_TOOL],
-    tool_choice: { type: "tool", name: "classify_intent" },
-    messages: [{ role: "user", content: userMessage }],
-  });
+  // Step 1: run Haiku
+  let raw = await runClassifier(HAIKU_MODEL, userMessage);
 
-  const toolUse = response.content.find((c) => c.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") {
-    throw new Error("[intent-classifier] Claude did not return a tool_use block");
+  // Step 2: cascade to Sonnet if confidence is below threshold
+  if (raw.confidence < 0.85) {
+    try {
+      raw = await runClassifier(SONNET_MODEL, userMessage);
+    } catch (cascadeErr) {
+      // Sonnet failed — log and proceed with Haiku result
+      console.warn(
+        "[intent-classifier] Sonnet cascade failed, using Haiku result:",
+        cascadeErr instanceof Error ? cascadeErr.message : cascadeErr
+      );
+    }
   }
 
-  const raw = toolUse.input as {
-    intent: string;
-    confidence: number;
-    flags_detected: string[];
-    premium_increase_pct: number | null;
-    reasoning: string;
-    changes_requested?: string[];
-    document_type_needed?: string | null;
-    secondary_flags?: string[];
-    ooo_return_date?: string | null;
-  };
+  // Map primary_intent → intent (internal field name kept for backward compat)
+  const intent = raw.primary_intent ?? "unclassified";
+  const confidence = Math.max(0, Math.min(1, raw.confidence ?? 0));
 
-  // Validate and clamp
-  const result: ClassificationResult = {
-    intent: raw.intent ?? "unknown",
-    confidence: Math.max(0, Math.min(1, raw.confidence ?? 0)),
+  // Safety cap: novel intents (not in known taxonomy) stay in Tier 2 range
+  const isKnown = ALL_KNOWN_INTENTS.includes(intent);
+  const clampedConfidence = isKnown ? confidence : Math.min(confidence, 0.84);
+
+  return {
+    intent,
+    confidence: clampedConfidence,
     flags_detected: Array.isArray(raw.flags_detected) ? raw.flags_detected : [],
     premium_increase_pct: raw.premium_increase_pct ?? null,
     reasoning: raw.reasoning ?? "",
-    changes_requested: Array.isArray(raw.changes_requested) && raw.changes_requested.length > 0
-      ? raw.changes_requested
-      : undefined,
-    document_type_needed: raw.document_type_needed ?? null,
-    secondary_flags: Array.isArray(raw.secondary_flags) && raw.secondary_flags.length > 0
-      ? raw.secondary_flags
-      : undefined,
+    extracted_context: raw.extracted_context ?? null,
+    ooo_alt_contact: raw.ooo_alt_contact ?? null,
     ooo_return_date: raw.ooo_return_date ?? null,
+    secondary_flags:
+      Array.isArray(raw.secondary_flags) && raw.secondary_flags.length > 0
+        ? raw.secondary_flags
+        : undefined,
+    changes_requested:
+      Array.isArray(raw.changes_requested) && raw.changes_requested.length > 0
+        ? raw.changes_requested
+        : undefined,
+    document_type_needed: raw.document_type_needed ?? null,
   };
-
-  // Safety: if intent is in the escalation list, floor confidence to ensure
-  // it never accidentally gets routed to Tier 1 via a confidence edge case.
-  // The tier router checks ALWAYS_ESCALATE_INTENTS explicitly, but this is
-  // a second layer of defence.
-  const isKnown = ALL_KNOWN_INTENTS.includes(result.intent);
-  if (!isKnown) {
-    // Novel intent — cap confidence to keep it in Tier 2 range
-    result.confidence = Math.min(result.confidence, 0.84);
-  }
-
-  return result;
 }

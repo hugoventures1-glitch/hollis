@@ -91,10 +91,10 @@ export function PhoneScriptModal({
         aria-hidden
       />
       <div
-        className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#111118] border border-[#1e1e2a] shadow-2xl overflow-hidden"
+        className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-surface border border-border shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2a] shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <Phone size={16} className="text-text-secondary" />
             <span className="text-[15px] font-semibold text-text-primary">
@@ -103,7 +103,7 @@ export function PhoneScriptModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-hover-overlay transition-colors"
+            className="p-2 rounded-md text-text-tertiary hover:text-text-secondary hover:bg-hover-overlay transition-colors"
             aria-label="Close"
           >
             <X size={16} />
@@ -113,18 +113,18 @@ export function PhoneScriptModal({
         <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={22} className="animate-spin text-zinc-500" />
+              <Loader2 size={22} className="animate-spin text-text-tertiary" />
             </div>
           ) : error ? (
             <p className="text-[13px] text-red-400">{error}</p>
           ) : data ? (
             <>
               <div className="mb-4">
-                <p className="text-[12px] text-zinc-500">Calling about</p>
+                <p className="text-[12px] text-text-tertiary">Calling about</p>
                 <p className="text-[14px] font-medium text-text-primary">
                   {data.client_name}
                 </p>
-                <p className="text-[13px] text-zinc-400 mt-0.5">
+                <p className="text-[13px] text-text-secondary mt-0.5">
                   {data.document_type}
                 </p>
               </div>
@@ -134,7 +134,7 @@ export function PhoneScriptModal({
                   {bullets.map((point, i) => (
                     <li
                       key={i}
-                      className="flex gap-3 text-[14px] text-[#c5c5cb] leading-relaxed"
+                      className="flex gap-3 text-[14px] text-text-secondary leading-relaxed"
                     >
                       <span className="text-text-secondary shrink-0">•</span>
                       <span>{point}</span>
@@ -150,7 +150,7 @@ export function PhoneScriptModal({
           ) : null}
         </div>
 
-        <div className="px-5 py-4 border-t border-[#1e1e2a] bg-background shrink-0">
+        <div className="px-5 py-4 border-t border-border bg-background shrink-0">
           <button
             onClick={handleMarkCalled}
             disabled={submitting || loading}
