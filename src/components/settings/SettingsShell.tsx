@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTour } from "@/components/tour/TourProvider";
 import { User, Building2, Mail, Bell, Settings, Upload, Bot, Clock, CalendarRange } from "lucide-react";
 import type { AgentProfile } from "@/types/settings";
 import { ProfileSection } from "./ProfileSection";
@@ -45,6 +46,9 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
 
   const [activeTab, setActiveTab] = useState<Tab>(startTab);
 
+  const { signalReady } = useTour();
+  useEffect(() => { signalReady(); }, [signalReady]);
+
   function handleTab(id: Tab) {
     setActiveTab(id);
     router.replace(`/settings?tab=${id}`, { scroll: false });
@@ -64,6 +68,9 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
               key={id}
               type="button"
               onClick={() => handleTab(id)}
+              {...(["hollis","profile","agency","email","notifications","renewals","account"].includes(id)
+                ? { "data-tour": `settings-${id}` }
+                : {})}
               className={`w-full flex items-center gap-2.5 px-2.5 py-[9px] rounded-[4px] text-left transition-colors text-[14px] font-medium ${
                 active
                   ? "bg-border border-l-2 border-text-primary text-text-primary pl-[9px]"
@@ -88,7 +95,11 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[640px] px-10 py-10">
+          <div className="max-w-[640px] px-8 pt-10 pb-4">
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>Settings</h1>
+            <p style={{ margin: "5px 0 0", fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.4 }}>Configure your profile, email templates, and Hollis behavior.</p>
+          </div>
+          <div className="max-w-[640px] px-10 pb-10">
             {activeTab === "hollis" && (
               <HollisSection
                 initialOrders={profile.standing_orders}

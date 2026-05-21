@@ -110,14 +110,17 @@ export default function ReviewQueueClient({ initialItems }: ReviewQueueClientPro
   return (
     <div className="flex flex-col h-full bg-background text-text-primary">
       {/* Header */}
-      <header className="h-[56px] shrink-0 border-b border-border flex items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <span className="text-text-primary text-[15px] font-semibold">Agent Review</span>
-          {items.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-hover-overlay border border-border text-[11px] font-semibold text-text-secondary">
-              {items.length} pending
-            </span>
-          )}
+      <header className="shrink-0 border-b border-border flex items-start justify-between pl-8 pr-6" style={{ paddingTop: 36, paddingBottom: 20 }}>
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 style={{ margin: 0, fontSize: 39, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>Review Queue</h1>
+            {items.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-hover-overlay border border-border text-[11px] font-semibold text-text-secondary">
+                {items.length} pending
+              </span>
+            )}
+          </div>
+          <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Approve or reject AI-drafted responses before they send.</p>
         </div>
       </header>
 

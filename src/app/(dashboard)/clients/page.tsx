@@ -42,7 +42,11 @@ export default function ClientsPage() {
     <div className="flex flex-col h-full" style={{ background: "var(--background)", color: "var(--text-primary)" }}>
 
       {/* Header */}
-      <header className="h-[56px] shrink-0 flex items-center justify-end px-6">
+      <header className="shrink-0 flex items-center justify-between px-8" style={{ paddingTop: 36, paddingBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 39, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>Clients</h1>
+          <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--text-tertiary)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>View and manage your book of business by client.</p>
+        </div>
         <div className="flex items-center gap-2.5">
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: "rgba(250,250,250,0.2)" }} title="Syncing…" />
@@ -52,8 +56,8 @@ export default function ClientsPage() {
 
       {/* Search + Tabs bar */}
       <div
-        className="shrink-0 px-6 flex items-center gap-6"
-        style={{ height: 60, paddingTop: -8, paddingBottom: 8, marginTop: -21 }}
+        className="shrink-0 px-8 flex items-center gap-6"
+        style={{ paddingBottom: 20 }}
       >
         {/* Search box */}
         <div
@@ -117,7 +121,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto" style={{ marginTop: 21 }}>
+      <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 size={22} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />

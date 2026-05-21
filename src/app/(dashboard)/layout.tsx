@@ -6,6 +6,7 @@ import AssistantPanelWrapper from "@/components/assistant/AssistantPanelWrapper"
 import { UnifiedPanelProvider } from "@/contexts/UnifiedPanelContext";
 import { ProfileCompletionBanner } from "@/components/onboarding/ProfileCompletionBanner";
 import FeedbackButton from "@/components/feedback/FeedbackButton";
+import { TourProvider } from "@/components/tour/TourProvider";
 
 
 export default async function DashboardLayout({
@@ -25,7 +26,7 @@ export default async function DashboardLayout({
   const [{ data: profile }, { count: parserCount }] = await Promise.all([
     supabase
       .from("agent_profiles")
-      .select("first_name, last_name, agency_name, automation_paused")
+      .select("first_name, last_name, agency_name, automation_paused, tutorial_completed")
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
   return (
     <ToastProvider>
       <UnifiedPanelProvider>
+        <TourProvider tutorialCompleted={profile?.tutorial_completed ?? false}>
         <div className="flex h-screen overflow-hidden">
           <SidebarNav
             profile={{
@@ -60,6 +62,7 @@ export default async function DashboardLayout({
         </div>
         <AssistantPanelWrapper />
         <FeedbackButton />
+        </TourProvider>
       </UnifiedPanelProvider>
     </ToastProvider>
   );

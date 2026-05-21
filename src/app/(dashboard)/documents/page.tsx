@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useTour } from "@/components/tour/TourProvider";
 import {
   FileText,
   Plus,
@@ -1172,6 +1173,9 @@ export default function DocumentsPage() {
   // Detail drawer
   const [detailId, setDetailId] = useState<string | null>(null);
 
+  const { signalReady } = useTour();
+  useEffect(() => { signalReady(); }, [signalReady]);
+
   // Confirm state: { id, action }
   const [confirm, setConfirm] = useState<{
     id: string;
@@ -1300,12 +1304,17 @@ export default function DocumentsPage() {
     <div className="flex flex-col h-full bg-background text-text-primary">
 
       {/* Header */}
-      <div className="h-[56px] shrink-0 flex items-center justify-end px-16">
+      <div className="shrink-0 flex items-start justify-between pl-8 pr-16" style={{ paddingTop: 36, paddingBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 39, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>Documents</h1>
+          <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Chase and track outstanding documents from clients.</p>
+        </div>
         <div className="flex items-center gap-3">
           {backgroundRefreshing && (
             <span className="w-1.5 h-1.5 rounded-full bg-text-primary/40 animate-pulse shrink-0" title="Syncing…" />
           )}
           <button
+            data-tour="doc-chase-request-btn"
             onClick={() => setDrawerOpen(true)}
             className="h-10 px-5 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity shadow-[0_0_20px_rgba(0,212,170,0.25),0_0_6px_rgba(0,212,170,0.15)]"
           >

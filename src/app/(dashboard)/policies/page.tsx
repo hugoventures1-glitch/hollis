@@ -75,8 +75,11 @@ export default async function PoliciesPage() {
     <div className="flex flex-col h-full bg-background">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-10 h-[56px] border-b border-border shrink-0">
-        <span className="text-[13px]" style={{ color: "var(--text-primary)" }}>Policy Audit</span>
+      <div className="flex items-start justify-between pl-8 pr-10 border-b border-border shrink-0" style={{ paddingTop: 36, paddingBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 39, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>Policy Audit</h1>
+          <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Upload policies to detect coverage gaps and potential risks.</p>
+        </div>
         <Link
           href="/policies/new"
           className="h-8 px-4 flex items-center gap-1.5 rounded-md bg-text-primary text-text-inverse text-[13px] font-semibold hover:opacity-80 transition-opacity"

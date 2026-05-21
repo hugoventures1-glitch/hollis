@@ -42,15 +42,18 @@ export function FlashingDotStyle() {
 
 // ── Type pill ─────────────────────────────────────────────────────────────────
 
-export function TypePill({ type }: { type: ItemType }) {
+export function TypePill({ type, unread = true }: { type: ItemType; unread?: boolean }) {
   const s = PILL[type];
   return (
     <span
       style={{
         display: "inline-flex", alignItems: "center",
         padding: "2px 8px", borderRadius: 999,
-        background: s.bg, color: s.fg,
-        fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
+        background: unread ? s.bg : s.bgMuted,
+        color: unread ? s.fg : s.fgMuted,
+        fontSize: 12, fontWeight: unread ? 600 : 400,
+        whiteSpace: "nowrap",
+        transition: "background 150ms, color 150ms",
       }}
     >
       {s.label}
@@ -108,13 +111,13 @@ export function FilterTab({
     <button
       onClick={onClick}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "10px 0",
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: "9px 0",
         background: "transparent", border: "none",
         borderBottom: `1.5px solid ${active ? "var(--text-primary)" : "transparent"}`,
         marginBottom: -1,
         color: active ? "var(--text-primary)" : "var(--text-tertiary)",
-        fontSize: 13, fontWeight: 500, cursor: "pointer",
+        fontSize: 12.5, fontWeight: 500, cursor: "pointer",
         transition: "color 120ms",
       }}
       onMouseEnter={(e) => {
@@ -126,7 +129,13 @@ export function FilterTab({
     >
       <span>{label}</span>
       {count > 0 && (
-        <span style={{ fontSize: 11.5, color: "var(--text-tertiary)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+        <span style={{
+          fontSize: 11, fontWeight: 600, lineHeight: 1,
+          background: active ? "var(--text-primary)" : "rgba(0,0,0,0.08)",
+          color: active ? "#fff" : "var(--text-tertiary)",
+          padding: "2px 5px", borderRadius: 999,
+          fontVariantNumeric: "tabular-nums",
+        }}>
           {count}
         </span>
       )}

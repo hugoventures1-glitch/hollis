@@ -7,11 +7,14 @@ export type Filter   = "all" | "decision" | "todo" | "docchase";
 
 // ── Type pill metadata ─────────────────────────────────────────────────────────
 
-export const PILL: Record<ItemType, { bg: string; fg: string; label: string }> = {
-  decision:   { bg: "color-mix(in oklch, oklch(0.60 0.12 245) 18%, var(--background))", fg: "oklch(0.42 0.13 245)", label: "Decision"   },
-  escalation: { bg: "rgba(220,38,38,0.10)",                                              fg: "#f87171",             label: "Escalation" },
-  docchase:   { bg: "color-mix(in oklch, oklch(0.60 0.10 150) 18%, var(--background))", fg: "oklch(0.40 0.10 150)", label: "Doc chase"  },
-  todo:       { bg: "color-mix(in oklch, oklch(0.70 0.12 75)  22%, var(--background))", fg: "oklch(0.42 0.10 65)",  label: "To-do"      },
+export const PILL: Record<ItemType, {
+  bg: string; fg: string; label: string;
+  bgMuted: string; fgMuted: string;
+}> = {
+  decision:   { bg: "#2563eb",  fg: "#ffffff", bgMuted: "rgba(37,99,235,0.14)",   fgMuted: "#3b82f6",  label: "Decision"   },
+  escalation: { bg: "#dc2626",  fg: "#ffffff", bgMuted: "rgba(220,38,38,0.14)",   fgMuted: "#ef4444",  label: "Escalation" },
+  docchase:   { bg: "#059669",  fg: "#ffffff", bgMuted: "rgba(5,150,105,0.14)",   fgMuted: "#10b981",  label: "Doc chase"  },
+  todo:       { bg: "#d97706",  fg: "#ffffff", bgMuted: "rgba(217,119,6,0.14)",   fgMuted: "#f59e0b",  label: "To-do"      },
 };
 
 // ── Display row (normalised shape for list + detail) ──────────────────────────

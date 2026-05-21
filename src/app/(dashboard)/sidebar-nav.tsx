@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -19,8 +20,10 @@ import {
   FolderSearch,
   Sun,
   Moon,
+  GraduationCap,
 } from "lucide-react";
 import { useUnifiedPanel } from "@/contexts/UnifiedPanelContext";
+import { useTour } from "@/components/tour/TourProvider";
 
 interface SidebarProfile {
   firstName:  string | null;
@@ -45,32 +48,65 @@ function RailIcon({ href, icon: Icon, label, badge, pathname }: RailIconProps) {
       ? pathname === "/certificates" || pathname.startsWith("/certificates/")
       : pathname === href || pathname.startsWith(href + "/");
 
+  const [tooltip, setTooltip] = useState<{ top: number; left: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const showTooltip = () => {
+    if (!wrapRef.current) return;
+    const rect = wrapRef.current.getBoundingClientRect();
+    setTooltip({ top: rect.top + rect.height / 2, left: rect.right + 10 });
+  };
+
+  const hideTooltip = () => setTooltip(null);
+
   return (
-    <Link
-      href={href}
-      title={label}
-      className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 hover:scale-[1.15]"
-      style={{
-        color:      active ? "var(--text-primary)" : "var(--text-tertiary)",
-        background: active ? "var(--border)" : "transparent",
-      }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        if (!active) el.style.color = "var(--text-primary)";
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        if (!active) el.style.color = "var(--text-tertiary)";
-      }}
-    >
-      <Icon size={19} strokeWidth={1.6} />
-      {!!badge && badge > 0 && (
-        <span
-          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
-          style={{ background: "var(--danger)" }}
-        />
+    <div ref={wrapRef} className="relative flex items-center" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
+      <Link
+        href={href}
+        className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 hover:scale-[1.15]"
+        style={{
+          color:      active ? "var(--text-primary)" : "var(--text-tertiary)",
+          background: active ? "var(--border)" : "transparent",
+        }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          if (!active) el.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          if (!active) el.style.color = "var(--text-tertiary)";
+        }}
+      >
+        <Icon size={19} strokeWidth={1.6} />
+        {!!badge && badge > 0 && (
+          <span
+            className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
+            style={{ background: "var(--danger)" }}
+          />
+        )}
+      </Link>
+
+      {/* Tooltip — fixed so it escapes overflow:hidden containers */}
+      {tooltip && (
+        <div
+          className="pointer-events-none fixed z-[9999] whitespace-nowrap
+                     animate-in fade-in slide-in-from-left-1 duration-150"
+          style={{ top: tooltip.top, left: tooltip.left, transform: "translateY(-50%)" }}
+        >
+          <div
+            className="px-2.5 py-1 rounded-md text-[11px] font-medium"
+            style={{
+              background: "var(--surface-raised)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow)",
+            }}
+          >
+            {label}
+          </div>
+        </div>
       )}
-    </Link>
+    </div>
   );
 }
 
@@ -97,6 +133,10 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 80 });
+
+  const { startTour } = useTour();
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -132,25 +172,25 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
       <div
         className="flex items-center justify-center h-14 shrink-0"
       >
-        <Link href="/inbox">
-          <span
-            style={{
-              fontFamily:    "var(--font-playfair)",
-              fontWeight:    900,
-              fontSize:      18,
-              letterSpacing: "-0.02em",
-              lineHeight:    1,
-              color:         "#dbeafe",
-              animation:     "hollis-glow-pulse 2.4s ease-in-out infinite",
-            }}
-          >
-            h
-          </span>
+        <Link
+          href="/overview"
+          title="Home"
+          className="flex items-center justify-center w-10 h-10"
+        >
+          <Image
+            src="/hollis-logo.png"
+            alt="Hollis"
+            width={28}
+            height={28}
+            className="dark:invert"
+            style={{ objectFit: "contain" }}
+            priority
+          />
         </Link>
       </div>
 
       {/* Icon nav rail */}
-      <nav className="flex-1 flex flex-col items-center py-3 overflow-y-auto">
+      <nav className="flex-1 flex flex-col items-center pt-[30px] pb-3 overflow-y-auto">
         {/* Primary nav */}
         <div className="flex flex-col items-center gap-1">
           {/* Search disabled for now */}
@@ -186,8 +226,10 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
         {/* Pop-up menu */}
         {menuOpen && (
           <div
-            className="absolute bottom-[calc(100%+8px)] left-full ml-2 z-50 rounded-xl overflow-hidden"
+            className="fixed z-50 rounded-xl overflow-hidden"
             style={{
+              bottom: menuPos.bottom,
+              left: menuPos.left,
               width: 200,
               background: "var(--surface)",
               border: "1px solid var(--border)",
@@ -229,6 +271,14 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
                 <User size={13} strokeWidth={1.6} />
                 Profile
               </Link>
+              <button
+                onClick={() => { setMenuOpen(false); startTour(); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] transition-colors hover-text-primary"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <GraduationCap size={13} strokeWidth={1.6} />
+                Tutorial
+              </button>
             </div>
 
             {/* Theme toggle — subtle, between nav items and sign out */}
@@ -261,7 +311,14 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
         )}
 
         <button
-          onClick={() => setMenuOpen((o) => !o)}
+          ref={buttonRef}
+          onClick={() => {
+            if (!menuOpen && buttonRef.current) {
+              const rect = buttonRef.current.getBoundingClientRect();
+              setMenuPos({ bottom: window.innerHeight - rect.bottom, left: rect.right + 8 });
+            }
+            setMenuOpen((o) => !o);
+          }}
           title={agencyName ?? "Account"}
           className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors"
           style={{

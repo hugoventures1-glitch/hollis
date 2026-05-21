@@ -120,8 +120,14 @@ function CertificatesContent() {
         </div>
       </div>
 
+      {/* Page heading */}
+      <div className="px-8 shrink-0" style={{ paddingTop: 36, paddingBottom: 20 }}>
+        <h1 className="font-bold text-text-primary" style={{ margin: 0, fontSize: 39, letterSpacing: "-0.02em", lineHeight: 1 }}>Certificates</h1>
+        <p className="text-[12px] text-text-tertiary" style={{ margin: "8px 0 0", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Issue and track Certificates of Insurance for your clients.</p>
+      </div>
+
       {/* Stats */}
-      <div className="flex items-center gap-0 px-10 py-7 border-b border-border shrink-0">
+      <div className="flex items-center gap-0 px-10 py-5 border-b border-border shrink-0">
         <div className="pr-10">
           <div className="text-[28px] font-bold text-text-primary leading-none">
             {certs.length}

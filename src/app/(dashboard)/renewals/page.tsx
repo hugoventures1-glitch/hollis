@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState, useRef } from "react";
+import { Suspense, useMemo, useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Loader2, Search } from "lucide-react";
@@ -9,6 +9,7 @@ import type { Policy, CampaignStage } from "@/types/renewals";
 import { RenewalsTable } from "./_components/RenewalsTable";
 import type { ViewTab } from "./_components/RenewalsTable";
 import { useHollisData } from "@/hooks/useHollisData";
+import { useTour } from "@/components/tour/TourProvider";
 
 // Stages that belong to each view tab
 const ACTION_STAGES: CampaignStage[] = [
@@ -34,6 +35,9 @@ function RenewalsContent() {
   // Hollis command bar state
   const [hollisQuery, setHollisQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { signalReady } = useTour();
+  useEffect(() => { signalReady(); }, [signalReady]);
 
   // Rows for current view
   let rows: Policy[];
@@ -72,9 +76,13 @@ function RenewalsContent() {
 
       {/* ── Header ── */}
       <div
-        className="flex items-center justify-between px-14 shrink-0"
-        style={{ height: 56 }}
+        className="flex items-start justify-between pl-8 pr-14 shrink-0"
+        style={{ paddingTop: 36, paddingBottom: 20 }}
       >
+        <div>
+          <h1 style={{ margin: 0, fontSize: 39, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}>Renewals</h1>
+          <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Manage active campaigns and track clients toward renewal.</p>
+        </div>
         <div className="flex items-center gap-2">
           {backgroundRefreshing && (
             <span
@@ -88,6 +96,7 @@ function RenewalsContent() {
 
       {/* ── Stats strip ── */}
       <div
+        data-tour="renewals-stats"
         className="flex items-stretch justify-around shrink-0"
         style={{ borderBottom: "1px solid var(--surface-raised)", paddingTop: 8, paddingBottom: 8, marginTop: -21 }}
       >
@@ -242,7 +251,7 @@ function RenewalsContent() {
       </div>
 
       {/* ── Feed ── */}
-      <div className="flex-1 overflow-y-auto relative">
+      <div data-tour="renewals-table" className="flex-1 overflow-y-auto relative">
         {isLoading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 size={20} className="animate-spin" style={{ color: "var(--border)" }} />

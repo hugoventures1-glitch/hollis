@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useTour } from "@/components/tour/TourProvider";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { LEARNING_MODE_THRESHOLD } from "@/lib/agent/tier-constants";
 import type { InboxItem, DocChaseReplyItem } from "./page";
@@ -21,7 +22,6 @@ export default function InboxClient({
 }) {
   const [items,            setItems]           = useState<InboxItem[]>(initialItems);
   const [docChaseReplies,  setDocChaseReplies] = useState<DocChaseReplyItem[]>(initialDocChaseReplies);
-  const [view,             setView]            = useState<"list" | "detail">("list");
   const [selectedRow,      setSelectedRow]     = useState<DisplayRow | null>(null);
   const [isEditing,        setIsEditing]       = useState(false);
   const [editedBody,       setEditedBody]      = useState("");
@@ -39,6 +39,16 @@ export default function InboxClient({
   const [learningApproved,  setLearningApproved]  = useState(0);
   const [learningThreshold, setLearningThreshold] = useState(LEARNING_MODE_THRESHOLD);
   const [toasts,           setToasts]          = useState<{ id: string; message: string; type: "success" | "error" }[]>([]);
+
+  const { signalReady } = useTour();
+  const signaledRef = useRef(false);
+
+  useEffect(() => {
+    if (!signaledRef.current) {
+      signaledRef.current = true;
+      signalReady();
+    }
+  }, [signalReady]);
 
   function addToast(message: string, type: "success" | "error") {
     const id = Math.random().toString(36).slice(2);
@@ -66,7 +76,6 @@ export default function InboxClient({
 
   function openRow(row: DisplayRow) {
     setSelectedRow(row);
-    setView("detail");
     setIsEditing(false);
     setErrorMsg(null);
     setSentId(null);
@@ -75,8 +84,7 @@ export default function InboxClient({
     fetchLearningCount();
   }
 
-  function goBack() {
-    setView("list");
+  function clearSelection() {
     setSelectedRow(null);
     fetchLearningCount();
   }
@@ -90,7 +98,7 @@ export default function InboxClient({
     const clientName = snapshot?.policies?.client_name ?? "client";
     setItems((prev) => prev.filter((i) => i.id !== id));
     setSentId(null); setSentAction(null); setIsEditing(false);
-    goBack();
+    clearSelection();
 
     fetch(`/api/agent/review/${id}`, {
       method: "PATCH",
@@ -117,132 +125,154 @@ export default function InboxClient({
     });
   }
 
-  if (view === "list") {
-    return (
-      <>
-        <FlashingDotStyle />
-        <ListView
-          allItems={items}
-          docChaseReplies={docChaseReplies}
-          onOpen={openRow}
-          readIds={readIds}
-          onRead={(id) => setReadIds((prev) => new Set([...prev, id]))}
+  function renderDetail() {
+    if (!selectedRow) return null;
+
+    if (selectedRow.kind === "docchase" && selectedRow.dcItem) {
+      const live = docChaseReplies.find((r) => r.id === selectedRow.id) ?? selectedRow.dcItem;
+      return (
+        <DocChaseDetail
+          row={selectedRow}
+          item={live}
+          onBack={clearSelection}
+          learningApproved={learningApproved}
+          learningThreshold={learningThreshold}
+          onMarkReceived={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); clearSelection(); }}
+          onReplySent={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); clearSelection(); }}
+          onRejected={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); clearSelection(); }}
+          onRestoreItem={(item) => setDocChaseReplies((prev) => [item, ...prev])}
+          addToast={addToast}
         />
-        {toasts.length > 0 && (
-          <div style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 8, zIndex: 9999 }}>
-            {toasts.map((t) => (
-              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: t.type === "error" ? "#f87171" : "var(--text-primary)", background: "var(--surface)", border: `1px solid ${t.type === "error" ? "rgba(248,113,113,0.35)" : "var(--border)"}`, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", animation: "escalation-slide-in 200ms ease-out forwards" }}>
-                {t.type === "error" ? <AlertTriangle size={13} /> : <CheckCircle2 size={13} />}
-                {t.message}
-              </div>
-            ))}
-          </div>
-        )}
-      </>
-    );
-  }
+      );
+    }
 
-  if (!selectedRow) { setView("list"); return null; }
+    const selectedItem = items.find((i) => i.id === selectedRow.id);
+    if (!selectedItem) { setSelectedRow(null); return null; }
 
-  // DocChase detail
-  if (selectedRow.kind === "docchase" && selectedRow.dcItem) {
-    const live = docChaseReplies.find((r) => r.id === selectedRow.id) ?? selectedRow.dcItem;
+    const isSent = sentId === selectedItem.id;
+    const itemType = deriveType(selectedItem);
+
+    if (itemType === "todo") {
+      return (
+        <TodoDetailView
+          row={selectedRow}
+          item={selectedItem}
+          onBack={clearSelection}
+          busy={busy}
+          done={isSent && sentAction === "approved"}
+          checked={checkedMap[selectedItem.id] ?? new Set<number>()}
+          onToggle={(idx) => toggleCheck(selectedItem.id, idx)}
+          onComplete={() => resolve(selectedItem.id, "approved")}
+          learningApproved={learningApproved}
+          learningThreshold={learningThreshold}
+        />
+      );
+    }
+
+    if (itemType === "escalation") {
+      return (
+        <EscalationDetail
+          row={selectedRow}
+          item={selectedItem}
+          onBack={clearSelection}
+          busy={false}
+          resolved={false}
+          resolutionType={null}
+          errorMsg={null}
+          onResolve={(resolution) => {
+            const snapshot = items.find((i) => i.id === selectedItem.id);
+            setItems((prev) => prev.filter((i) => i.id !== selectedItem.id));
+            clearSelection();
+
+            const toastMessages: Record<string, string> = {
+              handled:   "Marked as handled — no further action taken.",
+              resume:    "Sequence resumed — Hollis will continue outreach.",
+              terminate: "Sequence terminated — renewal stopped.",
+            };
+
+            fetch(`/api/agent/escalation/${selectedItem.id}/resolve`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resolution }),
+            }).then(async (res) => {
+              if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed to resolve escalation"); }
+              addToast(toastMessages[resolution] ?? "Resolved.", "success");
+            }).catch(() => {
+              if (snapshot) setItems((prev) => [snapshot, ...prev]);
+              addToast("Failed to resolve — item restored to inbox", "error");
+            });
+          }}
+        />
+      );
+    }
+
     return (
-      <DocChaseDetail
-        row={selectedRow}
-        item={live}
-        onBack={goBack}
-        learningApproved={learningApproved}
-        learningThreshold={learningThreshold}
-        onMarkReceived={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); goBack(); }}
-        onReplySent={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); goBack(); }}
-        onRejected={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); goBack(); }}
-        onRestoreItem={(item) => setDocChaseReplies((prev) => [item, ...prev])}
-        addToast={addToast}
-      />
-    );
-  }
-
-  const selectedItem = items.find((i) => i.id === selectedRow.id);
-  if (!selectedItem) { setView("list"); return null; }
-
-  const isSent = sentId === selectedItem.id;
-  const itemType = deriveType(selectedItem);
-
-  if (itemType === "todo") {
-    return (
-      <TodoDetailView
+      <DecisionDetail
         row={selectedRow}
         item={selectedItem}
-        onBack={goBack}
+        onBack={clearSelection}
         busy={busy}
-        done={isSent && sentAction === "approved"}
-        checked={checkedMap[selectedItem.id] ?? new Set<number>()}
-        onToggle={(idx) => toggleCheck(selectedItem.id, idx)}
-        onComplete={() => resolve(selectedItem.id, "approved")}
-        learningApproved={learningApproved}
-        learningThreshold={learningThreshold}
-      />
-    );
-  }
-
-  if (itemType === "escalation") {
-    return (
-      <EscalationDetail
-        row={selectedRow}
-        item={selectedItem}
-        onBack={goBack}
-        busy={false}
-        resolved={false}
-        resolutionType={null}
-        errorMsg={null}
-        onResolve={(resolution) => {
-          const snapshot = items.find((i) => i.id === selectedItem.id);
-          setItems((prev) => prev.filter((i) => i.id !== selectedItem.id));
-          goBack();
-
-          const toastMessages: Record<string, string> = {
-            handled: `Marked as handled — no further action taken.`,
-            resume: `Sequence resumed — Hollis will continue outreach.`,
-            terminate: `Sequence terminated — renewal stopped.`,
-          };
-
-          fetch(`/api/agent/escalation/${selectedItem.id}/resolve`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ resolution }),
-          }).then(async (res) => {
-            if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed to resolve escalation"); }
-            addToast(toastMessages[resolution] ?? "Resolved.", "success");
-          }).catch(() => {
-            if (snapshot) setItems((prev) => [snapshot, ...prev]);
-            addToast("Failed to resolve — item restored to inbox", "error");
-          });
+        sent={isSent}
+        sentAction={sentAction}
+        isEditing={isEditing}
+        editedBody={editedBody}
+        errorMsg={errorMsg}
+        onApprove={() => resolve(selectedItem.id, "approved")}
+        onReject={() => resolve(selectedItem.id, "rejected")}
+        onEdit={() => {
+          setIsEditing(true);
+          setEditedBody(typeof selectedItem.proposed_action?.payload?.body === "string" ? selectedItem.proposed_action.payload.body : "");
         }}
+        onEditedBodyChange={setEditedBody}
+        onConfirmEdit={() => resolve(selectedItem.id, "edited", { edited_body: editedBody })}
+        onCancelEdit={() => { setIsEditing(false); setEditedBody(""); }}
       />
     );
   }
 
   return (
-    <DecisionDetail
-      row={selectedRow}
-      item={selectedItem}
-      onBack={goBack}
-      busy={busy}
-      sent={isSent}
-      sentAction={sentAction}
-      isEditing={isEditing}
-      editedBody={editedBody}
-      errorMsg={errorMsg}
-      onApprove={() => resolve(selectedItem.id, "approved")}
-      onReject={() => resolve(selectedItem.id, "rejected")}
-      onEdit={() => {
-        setIsEditing(true);
-        setEditedBody(typeof selectedItem.proposed_action?.payload?.body === "string" ? selectedItem.proposed_action.payload.body : "");
-      }}
-      onEditedBodyChange={setEditedBody}
-      onConfirmEdit={() => resolve(selectedItem.id, "edited", { edited_body: editedBody })}
-      onCancelEdit={() => { setIsEditing(false); setEditedBody(""); }}
-    />
+    <>
+      <FlashingDotStyle />
+      <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+
+        {/* Left: list panel */}
+        <div style={{
+          width: 380, flexShrink: 0,
+          borderRight: "1px solid var(--border-subtle)",
+          overflow: "hidden", display: "flex", flexDirection: "column",
+        }}>
+          <ListView
+            allItems={items}
+            docChaseReplies={docChaseReplies}
+            onOpen={openRow}
+            readIds={readIds}
+            onRead={(id) => setReadIds((prev) => new Set([...prev, id]))}
+            selectedId={selectedRow?.id ?? null}
+          />
+        </div>
+
+        {/* Right: detail panel */}
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {selectedRow ? renderDetail() : (
+            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
+                Select an item to review
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {toasts.length > 0 && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 8, zIndex: 9999 }}>
+          {toasts.map((t) => (
+            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: t.type === "error" ? "#f87171" : "var(--text-primary)", background: "var(--surface)", border: `1px solid ${t.type === "error" ? "rgba(248,113,113,0.35)" : "var(--border)"}`, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", animation: "escalation-slide-in 200ms ease-out forwards" }}>
+              {t.type === "error" ? <AlertTriangle size={13} /> : <CheckCircle2 size={13} />}
+              {t.message}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
