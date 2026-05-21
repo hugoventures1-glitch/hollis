@@ -54,7 +54,7 @@ function ListRow({
     >
       <div style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, marginTop: 5, background: unread ? "#3b82f6" : "transparent" }} />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, opacity: unread ? 1 : 0.45, transition: "opacity 150ms" }}>
         {/* Top: client name + pill + time */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <span style={{
@@ -66,7 +66,7 @@ function ListRow({
             {row.client}
           </span>
           {row.hasAttachment && <Paperclip size={10} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />}
-          <TypePill type={row.type} unread={unread} />
+          <TypePill type={row.type} unread={true} />
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-tertiary)", whiteSpace: "nowrap", flexShrink: 0 }}>
             {row.timeAgoStr}
           </span>
@@ -126,7 +126,7 @@ function EscalationRow({
         style={{ width: 7, height: 7, borderRadius: 999, background: "var(--danger)", marginTop: 5, flexShrink: 0 }}
       />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, opacity: unread ? 1 : 0.45, transition: "opacity 150ms" }}>
         {/* Top: client + pill + time */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <span style={{
@@ -137,7 +137,7 @@ function EscalationRow({
           }}>
             {row.client}
           </span>
-          <TypePill type="escalation" unread={unread} />
+          <TypePill type="escalation" unread={true} />
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-tertiary)", whiteSpace: "nowrap", flexShrink: 0 }}>
             {row.timeAgoStr}
           </span>
