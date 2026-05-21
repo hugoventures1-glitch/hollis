@@ -44,7 +44,7 @@ export default async function DashboardLayout({
   return (
     <ToastProvider>
       <UnifiedPanelProvider>
-        <TourProvider tutorialCompleted={profile?.tutorial_completed ?? false}>
+        <TourProvider tutorialCompleted={profile?.tutorial_completed !== false}>
         <div className="flex h-screen overflow-hidden">
           <SidebarNav
             profile={{
