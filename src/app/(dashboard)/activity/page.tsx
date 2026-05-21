@@ -1,77 +1,54 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { redirect } from "next/navigation";
-import ActivityClient from "./ActivityClient";
-import type { AuditRow } from "./ActivityClient";
+import HistoryPanel from "@/app/(dashboard)/renewals/history/HistoryPanel";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Activity — Hollis" };
 
+const PAGE_SIZE = 50;
+
 export default async function ActivityPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const admin = createAdminClient();
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const [feedRes, sendCountRes, progressedRes, policyCountRes, autonomousRes] =
-    await Promise.all([
-      // Full audit feed — last 200 entries
-      supabase
-        .from("renewal_audit_log")
-        .select("id, event_type, channel, created_at, policies(client_name)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(200),
+  if (!user) {
+    return <HistoryPanel initialData={[]} initialHasMore={false} initialCursor={null} />;
+  }
 
-      // Touchpoints (send_logs) last 30 days
-      supabase
-        .from("send_logs")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .gte("sent_at", thirtyDaysAgo),
+  const fetchLimit = PAGE_SIZE + 1;
 
-      // Confirmed renewals last 7 days
-      supabase
-        .from("renewal_audit_log")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("event_type", "client_confirmed")
-        .gte("created_at", sevenDaysAgo),
+  const [actionsRes, auditRes] = await Promise.all([
+    supabase
+      .from("hollis_actions")
+      .select("*, policies(policy_name, client_name)")
+      .eq("broker_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(fetchLimit),
+    supabase
+      .from("renewal_audit_log")
+      .select("id, event_type, channel, content_snapshot, recipient, metadata, created_at, policy_id, policies(policy_name, client_name)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(fetchLimit),
+  ]);
 
-      // Total active policies (monitoring count)
-      supabase
-        .from("policies")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id),
+  const actionRows = (actionsRes.data ?? []).map(r => ({ ...r, source: "action" as const }));
+  const auditRows  = (auditRes.data  ?? []).map(r => ({ ...r, source: "event"  as const }));
 
-      // Autonomous (Tier 1) actions — all time
-      admin
-        .from("hollis_actions")
-        .select("id", { count: "exact", head: true })
-        .eq("broker_id", user.id)
-        .eq("tier", "1"),
-    ]);
+  const merged = [...actionRows, ...auditRows].sort(
+    (a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime()
+  );
 
-  const feed = (feedRes.data ?? []) as AuditRow[];
-  const touchpoints = sendCountRes.count ?? 0;
-  const confirmed = progressedRes.count ?? 0;
-  const monitoringCount = policyCountRes.count ?? 0;
-  const autonomousActionsTotal = autonomousRes.count ?? 0;
+  const hasMore    = merged.length > PAGE_SIZE;
+  const page       = merged.slice(0, PAGE_SIZE);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nextCursor = page.length > 0 ? (page[page.length - 1] as any).created_at as string : null;
 
   return (
-    <ActivityClient
-      feed={feed}
-      stats={{
-        touchpoints,
-        confirmed,
-        totalSent: touchpoints,
-        monitoringCount,
-        autonomousActionsTotal,
-      }}
+    <HistoryPanel
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialData={page as any[]}
+      initialHasMore={hasMore}
+      initialCursor={nextCursor}
     />
   );
 }

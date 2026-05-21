@@ -117,9 +117,7 @@ export function DecisionDetail({
     >
       {(item.sent_emails.length > 0 || (item.signal_id !== null && (item.raw_signal ?? item.raw_signal_snippet))) && (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <SectionDivider label="Conversation" />
-          </div>
+          <SectionDivider label="Conversation" />
           {senderEmail && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
               <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase" }}>From</span>

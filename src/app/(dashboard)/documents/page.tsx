@@ -17,21 +17,26 @@ import {
   Plus,
   X,
   CheckCircle2,
+  XCircle,
   AlertCircle,
   Loader2,
   Search,
   Phone,
   MessageSquare,
-  ChevronDown,
-  ChevronUp,
   Mail,
   Upload,
+  Download,
+  ExternalLink,
+  Maximize2,
+  Clock,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PhoneScriptModal } from "@/components/doc-chase/PhoneScriptModal";
-import { ChaseRow } from "@/components/doc-chase/ChaseRow";
 import { DOCUMENT_TYPES } from "@/types/doc-chase";
-import type { DocChaseRequestSummary, DocChaseRequestStatus } from "@/types/doc-chase";
+import type { DocChaseRequestSummary, DocChaseRequestStatus, DocChaseMessage } from "@/types/doc-chase";
 import { useHollisData } from "@/hooks/useHollisData";
 import { useHollisStore } from "@/stores/hollisStore";
 import { Breadcrumb } from "@/components/nav/Breadcrumb";
@@ -119,6 +124,16 @@ function ToastStack({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: nu
   );
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDocType(raw: string): string {
+  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function daysInChase(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+}
+
 // ── Chase Detail Drawer ───────────────────────────────────────────────────────
 
 function ChaseDetailDrawer({
@@ -132,67 +147,512 @@ function ChaseDetailDrawer({
   onStatusChange?: (id: string, status: "received" | "cancelled") => void;
   onForceSent?: () => void;
 }) {
+  const [history,         setHistory]         = useState<DocChaseMessage[] | null>(null);
+  const [historyLoading,  setHistoryLoading]  = useState(false);
+  const [signedUrl,       setSignedUrl]       = useState<string | null>(null);
+  const [urlLoading,      setUrlLoading]      = useState(false);
+  const [uploading,       setUploading]       = useState(false);
+  const [uploadResult,    setUploadResult]    = useState<{ verdict: string; summary: string; issues: string[] } | null>(null);
+  const [sending,         setSending]         = useState(false);
+  const [sendError,       setSendError]       = useState<string | null>(null);
+  const [confirming,      setConfirming]      = useState<"received" | "cancelled" | null>(null);
+  const [fullscreen,      setFullscreen]      = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isResolved   = request ? (request.status === "received" || request.status === "cancelled") : false;
+  const hasAttachment = Boolean(request?.received_attachment_path);
+  const isPdf        = request?.received_attachment_content_type?.startsWith("application/pdf") ?? false;
+  const isImage      = request?.received_attachment_content_type?.startsWith("image/") ?? false;
+  const isPreviewable = isPdf || isImage;
+  const canForceSend = !isResolved && (request?.touches_sent ?? 0) < (request?.touches_total ?? 4);
+
+  const validationStatus  = uploadResult?.verdict ?? request?.validation_status ?? null;
+  const validationSummary = uploadResult?.summary  ?? request?.validation_summary ?? null;
+  const validationIssues  = uploadResult?.issues   ?? request?.validation_issues  ?? null;
+
+  // Escape key
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") { if (fullscreen) setFullscreen(false); else onClose(); } };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [onClose, fullscreen]);
+
+  // Auto-load history + attachment URL on open
+  useEffect(() => {
+    if (!request) return;
+    setHistory(null); setUploadResult(null); setSendError(null); setConfirming(null);
+    setSignedUrl(null); setFullscreen(false);
+
+    setHistoryLoading(true);
+    fetch(`/api/doc-chase/${request.id}`)
+      .then((r) => r.json())
+      .then((d) => setHistory(d.messages ?? []))
+      .catch(() => setHistory([]))
+      .finally(() => setHistoryLoading(false));
+
+    if (hasAttachment) {
+      setUrlLoading(true);
+      fetch(`/api/doc-chase/${request.id}/attachment`)
+        .then((r) => r.json())
+        .then((d) => setSignedUrl(d.signedUrl ?? null))
+        .catch(() => {})
+        .finally(() => setUrlLoading(false));
+    }
+  }, [request?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleForceSend() {
+    if (!request) return;
+    setSending(true); setSendError(null);
+    try {
+      const res = await fetch(`/api/doc-chase/${request.id}/send-next`, { method: "POST" });
+      if (!res.ok) { const d = await res.json(); setSendError(d.error ?? "Send failed"); }
+      else { onForceSent?.(); }
+    } catch { setSendError("Send failed"); }
+    finally   { setSending(false); }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!request) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setUploadResult(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res  = await fetch(`/api/doc-chase/${request.id}/validate-document`, { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) {
+        setUploadResult({ verdict: "unreadable", summary: json.error ?? "Upload failed", issues: [] });
+      } else {
+        setUploadResult({ verdict: json.verdict, summary: json.summary, issues: json.issues ?? [] });
+        if (json.verdict === "pass") onForceSent?.();
+      }
+    } catch {
+      setUploadResult({ verdict: "unreadable", summary: "Upload failed — please try again", issues: [] });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  function handleStatusConfirm(status: "received" | "cancelled") {
+    if (!request) return;
+    onStatusChange?.(request.id, status);
+    setConfirming(null);
+    onClose();
+  }
 
   if (!request) return null;
+
+  const daysIn = daysInChase(request.created_at);
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px]"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
 
-      {/* Drawer panel */}
+      {/* Panel */}
       <div
-        className="fixed inset-y-0 right-0 z-40 w-[520px] bg-background border-l border-border shadow-2xl flex flex-col"
+        className="fixed inset-y-0 right-0 z-40 bg-background border-l border-border shadow-2xl flex flex-col"
+        style={{ width: "min(92vw, 1020px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          className="shrink-0 flex items-start justify-between px-6 py-4 border-b border-border"
-        >
-          <div className="flex-1 min-w-0">
-            <div className="text-[15px] font-semibold text-text-primary leading-tight">
-              {request.client_name}
-            </div>
-            <div className="text-[12px] mt-1 flex items-center gap-2 flex-wrap">
-              <span style={{ color: "var(--text-secondary)" }}>{request.document_type}</span>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 14, padding: "16px 28px", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.015em", lineHeight: 1.3 }}>
+              {formatDocType(request.document_type)}
+            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>{request.client_name}</span>
+              <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>·</span>
               <span
-                className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full border"
                 style={{
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
+                  fontSize: 11, fontWeight: 500, padding: "1px 7px", borderRadius: 999,
+                  border: "1px solid var(--border)", background: "var(--surface)",
+                  color: request.status === "received" ? "#4ade80" : request.status === "cancelled" ? "var(--text-tertiary)" : "var(--text-secondary)",
                 }}
               >
-                {request.status}
+                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
               </span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-text-tertiary hover:text-text-primary transition-colors ml-4 flex-shrink-0"
-          >
+          <button onClick={onClose} style={{ color: "var(--text-tertiary)", background: "none", border: "none", cursor: "pointer", display: "flex", padding: 4 }}>
             <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          <ChaseRow
-            chase={request}
-            onForceSent={onForceSent}
-            onStatusChange={onStatusChange}
-            showHistory={true}
-          />
+        {/* Two-column body */}
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "40fr 60fr", minHeight: 0, overflow: "hidden" }}>
+
+          {/* ── LEFT: context + client reply ────────────────────────────── */}
+          <div style={{ overflow: "auto", borderRight: "1px solid var(--border-subtle)", padding: "24px 24px 80px" }}>
+            {/* Context block */}
+            <div style={{ marginBottom: 20 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
+                Document requested
+              </span>
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  From{" "}
+                  <strong style={{ color: "var(--text-primary)", fontWeight: 600 }}>{request.client_name}</strong>
+                </span>
+                {request.client_email && (
+                  <span style={{ fontSize: 11.5, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
+                    {request.client_email}
+                  </span>
+                )}
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--text-tertiary)" }}>
+                  <Clock size={10} />
+                  {daysIn === 0 ? "Started today" : `${daysIn} day${daysIn !== 1 ? "s" : ""} in chase`}
+                </span>
+              </div>
+            </div>
+
+            {/* Touch progress */}
+            {!isResolved && (
+              <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Dots */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {Array.from({ length: request.touches_total }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 8, height: 8, borderRadius: 999,
+                        background: i < request.touches_sent ? "var(--text-primary)" : "var(--border)",
+                      }}
+                    />
+                  ))}
+                  <span style={{ fontSize: 11.5, color: "var(--text-tertiary)", marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {request.touches_sent}/{request.touches_total} sent
+                  </span>
+                </div>
+
+                {/* Escalation funnel */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {(["email", "sms", "phone_script"] as const).map((lvl) => {
+                    const order = ["email", "sms", "phone_script"];
+                    const current = order.indexOf(request.escalation_level as string);
+                    const idx = order.indexOf(lvl);
+                    const isActive = idx === current;
+                    const isPast = idx < current;
+                    const label = lvl === "sms" ? "SMS" : lvl === "phone_script" ? "Phone" : "Email";
+                    return (
+                      <span
+                        key={lvl}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500,
+                          border: "1px solid",
+                          borderColor: (isActive || isPast) ? "var(--border)" : "transparent",
+                          background: (isActive || isPast) ? "var(--surface)" : "transparent",
+                          color: isActive ? "var(--text-primary)" : isPast ? "var(--text-secondary)" : "var(--text-tertiary)",
+                        }}
+                      >
+                        {lvl === "sms" ? <MessageSquare size={9} /> : lvl === "phone_script" ? <Phone size={9} /> : <Mail size={9} />}
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div style={{ height: 1, background: "var(--border-subtle)", marginBottom: 20 }} />
+
+            {/* Client reply */}
+            {request.last_client_reply ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{request.client_name}</span>
+                  {request.last_client_reply_at && (
+                    <span> · {timeAgo(request.last_client_reply_at)}</span>
+                  )}
+                </div>
+                <div style={{
+                  fontSize: 13.5, lineHeight: 1.65, color: "var(--text-primary)",
+                  background: "var(--surface)", border: "1px solid var(--border-subtle)",
+                  borderRadius: 12, borderTopLeftRadius: 4, padding: "12px 14px", whiteSpace: "pre-wrap",
+                }}>
+                  {request.last_client_reply}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "24px 0", color: "var(--text-tertiary)" }}>
+                <MessageSquare size={22} style={{ opacity: 0.2 }} />
+                <span style={{ fontSize: 12.5 }}>No reply from client yet</span>
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT: history + attachment + upload ─────────────────────── */}
+          <div style={{ overflow: "auto", padding: "24px 24px 80px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* Validation result (uploaded or stored) */}
+            {validationStatus && (
+              <div style={{
+                padding: "12px 14px", borderRadius: 10,
+                border: "1px solid var(--border)", background: "var(--surface)",
+                display: "flex", flexDirection: "column", gap: 6,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                    ...(validationStatus === "pass"
+                      ? { background: "rgba(22,163,74,0.10)", color: "#4ade80", border: "1px solid rgba(22,163,74,0.20)" }
+                      : validationStatus === "partial"
+                      ? { background: "rgba(245,158,11,0.10)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.20)" }
+                      : { background: "rgba(220,38,38,0.10)", color: "#f87171", border: "1px solid rgba(220,38,38,0.20)" }),
+                  }}>
+                    {validationStatus === "pass" ? <ShieldCheck size={10} /> : validationStatus === "partial" ? <ShieldAlert size={10} /> : <ShieldX size={10} />}
+                    {validationStatus === "pass" ? "Validated" : validationStatus === "partial" ? "Partial match" : validationStatus === "unreadable" ? "Unreadable" : "Review needed"}
+                  </span>
+                  {request.received_attachment_filename && (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>
+                      {request.received_attachment_filename}
+                    </span>
+                  )}
+                </div>
+                {validationSummary && (
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    {validationSummary}
+                  </p>
+                )}
+                {(validationIssues ?? []).length > 0 && (
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 3 }}>
+                    {(validationIssues ?? []).map((issue, i) => (
+                      <li key={i} style={{ display: "flex", gap: 7, fontSize: 12, color: "#f87171" }}>
+                        <span style={{ flexShrink: 0 }}>·</span><span>{issue}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Attachment preview (received docs) */}
+            {hasAttachment && (
+              urlLoading ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-tertiary)" }}>
+                  <Loader2 size={13} className="animate-spin" /> Loading document…
+                </div>
+              ) : signedUrl && isPreviewable ? (
+                <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{request.received_attachment_filename ?? "Attachment"}</span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <a href={signedUrl} download={request.received_attachment_filename ?? "attachment"} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "0 8px", height: 24, borderRadius: 5, border: "1px solid var(--border)", background: "transparent", fontSize: 11, color: "var(--text-secondary)", textDecoration: "none" }}>
+                        <Download size={10} /> Download
+                      </a>
+                      <button onClick={() => setFullscreen(true)} style={{ height: 24, padding: "0 8px", borderRadius: 5, border: "1px solid var(--border)", background: "transparent", color: "var(--text-tertiary)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                        <Maximize2 size={10} /> Expand
+                      </button>
+                    </div>
+                  </div>
+                  {isPdf ? (
+                    <iframe src={`${signedUrl}#toolbar=0&navpanes=0`} title="Document" style={{ width: "100%", height: 400, border: "none", background: "#fff", display: "block" }} />
+                  ) : (
+                    <div style={{ background: "#fff", display: "flex", justifyContent: "center" }}>
+                      <img src={signedUrl} alt={request.received_attachment_filename ?? "Attachment"} style={{ maxWidth: "100%", maxHeight: 380, objectFit: "contain", display: "block", cursor: "zoom-in" }} onClick={() => setFullscreen(true)} />
+                    </div>
+                  )}
+                </div>
+              ) : signedUrl ? (
+                <div style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <FileText size={16} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {request.received_attachment_filename ?? "Document"}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{request.received_attachment_content_type ?? "Unknown type"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <a href={signedUrl} download style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", fontSize: 12, color: "var(--text-secondary)", textDecoration: "none" }}>
+                      <Download size={11} /> Download
+                    </a>
+                    <a href={signedUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", fontSize: 12, color: "var(--text-secondary)", textDecoration: "none" }}>
+                      <ExternalLink size={11} /> Open
+                    </a>
+                  </div>
+                </div>
+              ) : null
+            )}
+
+            {/* Upload doc (active chases) */}
+            {!isResolved && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input ref={fileInputRef} type="file" accept=".pdf,image/*" style={{ display: "none" }} onChange={handleFileChange} />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || sending}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, border: "1px solid var(--border)", background: "transparent", fontSize: 12.5, color: "var(--text-secondary)", cursor: (uploading || sending) ? "not-allowed" : "pointer", opacity: (uploading || sending) ? 0.6 : 1 }}
+                >
+                  {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                  {uploading ? "Validating…" : "Upload document"}
+                </button>
+                {sendError && <span style={{ fontSize: 12, color: "var(--danger)" }}>{sendError}</span>}
+              </div>
+            )}
+
+            {/* Message history */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
+                Touch history
+              </span>
+              {historyLoading ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-tertiary)" }}>
+                  <Loader2 size={13} className="animate-spin" /> Loading…
+                </div>
+              ) : !history || history.length === 0 ? (
+                <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>No touches sent yet.</div>
+              ) : (
+                history.map((msg) => {
+                  const isSent = msg.status === "sent";
+                  const isScheduled = msg.status === "scheduled";
+                  const isCancelled = msg.status === "cancelled";
+                  const ts = isSent ? msg.sent_at : msg.scheduled_for;
+                  return (
+                    <div
+                      key={msg.id}
+                      style={{
+                        padding: "10px 14px", borderRadius: 10,
+                        border: "1px solid var(--border-subtle)", background: "var(--surface)",
+                        opacity: isCancelled ? 0.5 : 1,
+                        display: "flex", flexDirection: "column", gap: 5,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 5px", borderRadius: 4, background: "var(--surface-raised)", color: "var(--text-secondary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                          T{msg.touch_number}
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "var(--text-secondary)" }}>
+                          {msg.channel === "sms" ? <MessageSquare size={10} /> : msg.channel === "phone_script" ? <Phone size={10} /> : <Mail size={10} />}
+                          {msg.channel === "sms" ? "SMS" : msg.channel === "phone_script" ? "Phone script" : "Email"}
+                        </span>
+                        {ts && (
+                          <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
+                            {timeAgo(ts)}
+                          </span>
+                        )}
+                        <span style={{ marginLeft: "auto", fontSize: 11, color: isSent ? "var(--text-secondary)" : isCancelled ? "var(--text-tertiary)" : "var(--text-tertiary)" }}>
+                          {isCancelled ? "Cancelled" : isSent ? "Sent" : "Scheduled"}
+                        </span>
+                      </div>
+                      {msg.channel === "email" && msg.subject && (
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text-tertiary)" }}>{msg.subject}</div>
+                      )}
+                      {msg.body && msg.channel !== "phone_script" && (
+                        <div style={{ fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" as const }}>
+                          {msg.body}
+                        </div>
+                      )}
+                      {msg.channel === "phone_script" && msg.phone_script && (
+                        <div style={{ fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5 }}>
+                          {msg.phone_script.split("\n").slice(0, 3).map((line, i) => (
+                            <div key={i} style={{ display: "flex", gap: 6 }}><span>·</span><span>{line.trim()}</span></div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bottom action bar ─────────────────────────────────────────────── */}
+        <div style={{ borderTop: "1px solid var(--border-subtle)", padding: "12px 28px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {confirming ? (
+              <>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  {confirming === "received" ? "Mark as received and cancel pending follow-ups?" : "Cancel this chase?"}
+                </span>
+                <button
+                  onClick={() => handleStatusConfirm(confirming)}
+                  style={{ height: 32, padding: "0 14px", borderRadius: 7, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12.5, fontWeight: 500, color: "var(--text-primary)", cursor: "pointer" }}
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setConfirming(null)}
+                  style={{ height: 32, padding: "0 12px", borderRadius: 7, border: "none", background: "transparent", fontSize: 12.5, color: "var(--text-tertiary)", cursor: "pointer" }}
+                >
+                  Back
+                </button>
+              </>
+            ) : isResolved ? (
+              <span style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
+                {request.status === "received" ? "Document received." : "Chase cancelled."}
+              </span>
+            ) : (
+              <>
+                <button
+                  onClick={() => setConfirming("received")}
+                  style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "var(--accent)", color: "var(--text-inverse)", border: "1px solid var(--accent)" }}
+                >
+                  <CheckCircle2 size={12} /> Mark received
+                </button>
+                <button
+                  onClick={() => setConfirming("cancelled")}
+                  style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--danger)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(204,41,41,0.4)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; }}
+                >
+                  <XCircle size={12} /> Cancel chase
+                </button>
+                {canForceSend && (
+                  <>
+                    <span style={{ flex: 1 }} />
+                    <button
+                      onClick={handleForceSend}
+                      disabled={sending}
+                      style={{ height: 32, display: "inline-flex", alignItems: "center", gap: 5, padding: "0 12px", borderRadius: 7, cursor: sending ? "not-allowed" : "pointer", fontSize: 12, background: "transparent", color: "var(--text-tertiary)", border: "1px solid var(--border)", opacity: sending ? 0.6 : 1 }}
+                    >
+                      {sending ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
+                      {sending ? "Sending…" : "Force send next touch"}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Fullscreen modal */}
+      {fullscreen && signedUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.92)" }}>
+          <div className="shrink-0 flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="flex items-center gap-2">
+              <FileText size={14} style={{ color: "rgba(255,255,255,0.5)" }} />
+              <span className="text-[13px]" style={{ color: "rgba(255,255,255,0.7)" }}>{request.received_attachment_filename ?? "Document"}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <a href={signedUrl} download={request.received_attachment_filename ?? "attachment"} className="flex items-center gap-1.5 text-[12px] hover:opacity-70 transition-opacity" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <Download size={14} /> Download
+              </a>
+              <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[12px] hover:opacity-70 transition-opacity" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <ExternalLink size={14} /> Open in tab
+              </a>
+              <button onClick={() => setFullscreen(false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium hover:opacity-80 transition-opacity" style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", cursor: "pointer" }}>
+                <X size={13} /> Close
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 p-4">
+            {isPdf ? (
+              <iframe src={signedUrl} className="w-full h-full rounded-lg" style={{ border: "none" }} title="Document" />
+            ) : isImage ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <img src={signedUrl} alt="Document" className="max-w-full max-h-full object-contain rounded-lg" />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </>
   );
 }
