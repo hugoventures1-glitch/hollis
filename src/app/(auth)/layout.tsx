@@ -3,19 +3,10 @@ import Image from "next/image";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
-      {/* ── Left panel: form ── */}
-      <div className="relative flex w-full flex-col overflow-hidden bg-surface lg:w-[45%]">
-        {/* Subtle warm radial glow behind form area */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 70% at 50% 55%, rgba(230,210,180,0.18) 0%, transparent 70%)",
-          }}
-        />
-
+      {/* ── Left panel: clean white form ── */}
+      <div className="flex w-full flex-col bg-surface lg:w-[45%]">
         {/* Logo */}
-        <div className="relative flex items-center gap-3 px-12 pt-9">
+        <div className="flex items-center gap-3 px-12 pt-9">
           <Image
             src="/hollis-logo.png"
             alt="Hollis"
@@ -30,12 +21,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Form */}
-        <div className="relative flex flex-1 items-center justify-center px-12 py-10">
+        <div className="flex flex-1 items-center justify-center px-12 py-10">
           <div className="w-full max-w-[380px]">{children}</div>
         </div>
 
         {/* Footer */}
-        <div className="relative px-12 pb-9">
+        <div className="px-12 pb-9">
           <p className="text-xs text-text-tertiary">
             By continuing, you agree to our{" "}
             <a
@@ -64,61 +55,40 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Gradient orbs */}
         <div
           className="pointer-events-none absolute -top-64 -right-64 h-[800px] w-[800px] rounded-full blur-[180px]"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 60%)",
-          }}
+          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.38) 0%, transparent 60%)" }}
         />
         <div
           className="pointer-events-none absolute -bottom-64 -left-32 h-[700px] w-[700px] rounded-full blur-[160px]"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(59,130,246,0.28) 0%, transparent 60%)",
-          }}
+          style={{ background: "radial-gradient(circle, rgba(59,130,246,0.26) 0%, transparent 60%)" }}
         />
         <div
           className="pointer-events-none absolute top-1/2 left-1/4 h-[400px] w-[400px] -translate-y-1/2 rounded-full blur-[120px]"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 65%)",
-          }}
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 65%)" }}
         />
 
-        {/* Content */}
+        {/* MacBook image — rounded corners, fills panel */}
         <div className="relative z-10 flex w-full flex-col items-center px-8 pb-10">
-          {/* Tagline above image */}
-          <div className="mb-7 text-center">
-            <p
-              className="text-[11px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: "rgba(250,250,250,0.35)" }}
-            >
-              AI-powered renewal automation
-            </p>
+          <div className="w-full overflow-hidden rounded-2xl" style={{ boxShadow: "0 48px 96px rgba(0,0,0,0.85), 0 0 120px rgba(99,102,241,0.12)" }}>
+            <Image
+              src="/hollis-macbook.png"
+              alt="Hollis dashboard"
+              width={1100}
+              height={720}
+              className="w-full"
+              priority
+            />
           </div>
-
-          <Image
-            src="/hollis-macbook.png"
-            alt="Hollis dashboard"
-            width={1100}
-            height={720}
-            className="w-full"
-            style={{
-              filter:
-                "drop-shadow(0 32px 64px rgba(0,0,0,0.9)) drop-shadow(0 0 120px rgba(99,102,241,0.15))",
-            }}
-            priority
-          />
 
           <div className="mt-7 text-center">
             <p
-              className="text-[26px] font-semibold leading-tight tracking-tight"
-              style={{ color: "rgba(250,250,250,0.92)" }}
+              className="text-[24px] font-semibold leading-tight tracking-tight"
+              style={{ color: "rgba(250,250,250,0.88)" }}
             >
               Renewal automation,
             </p>
             <p
-              className="text-[26px] font-semibold leading-tight tracking-tight"
-              style={{ color: "rgba(250,250,250,0.3)" }}
+              className="text-[24px] font-semibold leading-tight tracking-tight"
+              style={{ color: "rgba(250,250,250,0.28)" }}
             >
               on autopilot.
             </p>
