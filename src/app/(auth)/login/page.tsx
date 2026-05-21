@@ -48,11 +48,11 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+      <div className="mb-7">
+        <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
           Welcome back
         </h1>
-        <p className="mt-1 text-sm text-text-secondary">
+        <p className="mt-2 text-sm text-text-secondary">
           Sign in to your Hollis account
         </p>
       </div>
