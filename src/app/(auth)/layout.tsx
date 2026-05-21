@@ -10,8 +10,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Image
             src="/hollis-logo.png"
             alt="Hollis"
-            width={28}
-            height={28}
+            width={32}
+            height={32}
+            className="dark:invert"
             style={{ objectFit: "contain" }}
             priority
           />
