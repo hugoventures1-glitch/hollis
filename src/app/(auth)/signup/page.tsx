@@ -2,45 +2,29 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { signUpAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
-
-const signupSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-});
-
-type SignupFormValues = z.infer<typeof signupSchema>;
+import { signUpAction } from "./actions";
 
 export default function SignupPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [confirmedEmail, setConfirmedEmail] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
 
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    formState: { errors, isSubmitting },
-  } = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
-  });
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const onSubmit = async (data: SignupFormValues) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setServerError(null);
-    const result = await signUpAction(data);
+    setLoading(true);
+    const result = await signUpAction(form);
     if (result && "error" in result) {
       setServerError(result.error);
+      setLoading(false);
     } else if (result && "needsConfirmation" in result) {
-      setConfirmedEmail(getValues("email"));
+      setConfirmedEmail(form.email);
     }
   };
 
@@ -49,9 +33,7 @@ export default function SignupPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
     });
   };
 
@@ -59,18 +41,8 @@ export default function SignupPage() {
     return (
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface border border-border">
-          <svg
-            className="h-6 w-6 text-text-primary"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
-            />
+          <svg className="h-6 w-6 text-text-primary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-text-primary">Check your email</h2>
@@ -81,10 +53,7 @@ export default function SignupPage() {
         </p>
         <p className="mt-6 text-sm text-text-tertiary">
           Already confirmed?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-text-primary underline-offset-4 hover:underline"
-          >
+          <Link href="/login" className="font-medium text-text-primary underline-offset-4 hover:underline">
             Sign in
           </Link>
         </p>
@@ -94,20 +63,20 @@ export default function SignupPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight text-text-primary">
-          Create your account
+      <div className="mb-10">
+        <h1 className="text-5xl font-bold tracking-tight text-text-primary leading-[1.1]">
+          Create account
         </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Get started with Hollis today
+        <p className="mt-3 text-xl text-text-tertiary font-normal">
+          Start automating renewals today
         </p>
       </div>
 
       <button
         type="button"
         onClick={handleGoogleSignUp}
-        disabled={googleLoading || isSubmitting}
-        className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={googleLoading}
+        className="flex w-full items-center justify-center gap-3 rounded-full border border-border bg-surface px-6 py-3.5 text-sm font-medium text-text-primary transition-colors hover:bg-background disabled:opacity-50"
       >
         {googleLoading ? (
           <svg className="h-4 w-4 animate-spin text-text-tertiary" viewBox="0 0 24 24" fill="none">
@@ -131,83 +100,58 @@ export default function SignupPage() {
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {serverError && (
-          <div className="rounded-lg bg-red-950/40 border border-red-800/50 px-4 py-3 text-sm text-red-400">
+          <p className="rounded-full bg-red-950/40 border border-red-800/50 px-5 py-2.5 text-sm text-red-400 text-center">
             {serverError}
-          </div>
+          </p>
         )}
 
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-1.5">
-            Full name
-          </label>
-          <input
-            {...register("name")}
-            id="name"
-            type="text"
-            autoComplete="name"
-            placeholder="Jane Smith"
-            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none"
-          />
-          {errors.name && (
-            <p className="mt-1.5 text-xs text-red-400">{errors.name.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-1.5">
-            Email
-          </label>
-          <input
-            {...register("email")}
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none"
-          />
-          {errors.email && (
-            <p className="mt-1.5 text-xs text-red-400">{errors.email.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1.5">
-            Password
-          </label>
-          <input
-            {...register("password")}
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            placeholder="••••••••"
-            className="block w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none"
-          />
-          {errors.password ? (
-            <p className="mt-1.5 text-xs text-red-400">{errors.password.message}</p>
-          ) : (
-            <p className="mt-1.5 text-xs text-text-tertiary">
-              8+ characters, one uppercase, one number
-            </p>
-          )}
-        </div>
+        <input
+          type="text"
+          value={form.name}
+          onChange={set("name")}
+          autoComplete="name"
+          placeholder="Full name"
+          required
+          minLength={2}
+          className="block w-full rounded-full border border-border bg-surface px-6 py-3.5 text-base text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none"
+        />
+        <input
+          type="email"
+          value={form.email}
+          onChange={set("email")}
+          autoComplete="email"
+          placeholder="Email"
+          required
+          className="block w-full rounded-full border border-border bg-surface px-6 py-3.5 text-base text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none"
+        />
+        <input
+          type="password"
+          value={form.password}
+          onChange={set("password")}
+          autoComplete="new-password"
+          placeholder="Password"
+          required
+          minLength={8}
+          className="block w-full rounded-full border border-border bg-surface px-6 py-3.5 text-base text-text-primary placeholder-text-tertiary transition-colors focus:border-text-secondary focus:outline-none"
+        />
+        <p className="px-2 text-xs text-text-tertiary">
+          8+ characters, one uppercase, one number
+        </p>
 
         <button
           type="submit"
-          disabled={isSubmitting || googleLoading}
-          className="w-full rounded-lg bg-text-primary px-4 py-2.5 text-sm font-semibold text-text-inverse transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={loading}
+          className="w-full rounded-full bg-text-primary px-6 py-3.5 text-base font-semibold text-text-inverse transition-colors hover:opacity-80 disabled:opacity-50"
         >
-          {isSubmitting ? "Creating account…" : "Create account"}
+          {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="mt-5 text-center text-sm text-text-secondary">
+      <p className="mt-8 text-center text-sm text-text-secondary">
         Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-medium text-text-primary underline-offset-4 hover:underline"
-        >
+        <Link href="/login" className="font-medium text-text-primary underline-offset-4 hover:underline">
           Sign in
         </Link>
       </p>
