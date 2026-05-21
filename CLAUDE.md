@@ -2,6 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Workflow (enforce every session)
+
+At the start of every conversation, and any time it seems Hugo may be working directly on `main`:
+
+1. Run `git status` to check the current branch
+2. If on `main` and we're building a new feature, stop and ask Hugo what we're working on, then create a branch named `hugo/<short-description>` before touching any files
+3. If on `main` and it's a fix or maintenance task, staying on main is fine — confirm with Hugo first
+4. Confirm the branch before making any changes
+
+When changes are done:
+- Run `git add` for the relevant files
+- `git commit -m "description"`
+- `git push origin <branch-name>`
+- If on a feature branch, remind Hugo to open a Pull Request on GitHub to merge into main
+
+Never let Hugo skip these steps. Never edit files while on `main` for a new feature.
+
 ## Project Overview
 
 **Hollis** is an AI-powered renewal automation platform for insurance brokers. It automates the renewal lifecycle (email/SMS/scripts/questionnaires), validates policy coverage, processes Certificate of Insurance (COI) requests, and routes broker decisions through a three-tier autonomy system backed by Claude AI.
