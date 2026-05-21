@@ -233,34 +233,17 @@ export default function InboxClient({
   return (
     <>
       <FlashingDotStyle />
-      <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
-
-        {/* Left: list panel */}
-        <div style={{
-          width: 380, flexShrink: 0,
-          borderRight: "1px solid var(--border-subtle)",
-          overflow: "hidden", display: "flex", flexDirection: "column",
-        }}>
+      <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        {selectedRow ? renderDetail() : (
           <ListView
             allItems={items}
             docChaseReplies={docChaseReplies}
             onOpen={openRow}
             readIds={readIds}
             onRead={(id) => setReadIds((prev) => new Set([...prev, id]))}
-            selectedId={selectedRow?.id ?? null}
+            selectedId={null}
           />
-        </div>
-
-        {/* Right: detail panel */}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {selectedRow ? renderDetail() : (
-            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
-                Select an item to review
-              </span>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {toasts.length > 0 && (

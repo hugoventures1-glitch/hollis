@@ -15,7 +15,7 @@ import {
   FileText,
   Zap,
   RefreshCcw,
-  TrendingUp,
+  Timer,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -27,6 +27,7 @@ interface HomeStats {
   monitoringCount: number;
   autonomousActionsThisWeek: number;
   activeDocChase: number;
+  timeSavedMinutes: number;
 }
 
 interface UrgentRenewal {
@@ -81,6 +82,14 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function formatTimeSaved(minutes: number): string {
+  if (minutes <= 0) return "0m";
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 const EVENT_META: Record<string, {
   label: string;
   icon: React.ElementType;
@@ -92,10 +101,10 @@ const EVENT_META: Record<string, {
   sms_sent:         { label: "SMS sent",           icon: MessageSquare, color: "#A78BFA", bg: "rgba(167,139,250,0.10)", bar: "#A78BFA" },
   script_ready:     { label: "Script ready",       icon: Phone,         color: "#34D399", bg: "rgba(52,211,153,0.10)",  bar: "#34D399" },
   client_confirmed: { label: "Client confirmed",   icon: CheckCircle2,  color: "#22C55E", bg: "rgba(34,197,94,0.12)",   bar: "#22C55E" },
-  tier2_queued:     { label: "Draft queued",        icon: Clock,         color: "#F59E0B", bg: "rgba(245,158,11,0.10)",  bar: "#F59E0B" },
-  tier3_escalation: { label: "Escalation",          icon: AlertCircle,   color: "#F87171", bg: "rgba(248,113,113,0.12)", bar: "#F87171" },
-  inbound_received: { label: "Reply received",      icon: Mail,          color: "#60A5FA", bg: "rgba(96,165,250,0.10)",  bar: "#60A5FA" },
-  doc_received:     { label: "Document received",   icon: FileText,      color: "#34D399", bg: "rgba(52,211,153,0.10)",  bar: "#34D399" },
+  tier2_queued:     { label: "Draft queued",       icon: Clock,         color: "#F59E0B", bg: "rgba(245,158,11,0.10)",  bar: "#F59E0B" },
+  tier3_escalation: { label: "Escalation",         icon: AlertCircle,   color: "#F87171", bg: "rgba(248,113,113,0.12)", bar: "#F87171" },
+  inbound_received: { label: "Reply received",     icon: Mail,          color: "#60A5FA", bg: "rgba(96,165,250,0.10)",  bar: "#60A5FA" },
+  doc_received:     { label: "Document received",  icon: FileText,      color: "#34D399", bg: "rgba(52,211,153,0.10)",  bar: "#34D399" },
 };
 
 function eventMeta(type: string) {
@@ -157,6 +166,41 @@ function AnimatedNumber({
       }}
     >
       {displayed}
+    </span>
+  );
+}
+
+// ── Animated text value (for non-numeric displays) ────────────────────────
+
+function AnimatedText({
+  value,
+  color,
+  size = 38,
+}: {
+  value: string;
+  color?: string;
+  size?: number;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 200);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <span
+      style={{
+        fontSize: size,
+        fontWeight: 300,
+        lineHeight: 1,
+        letterSpacing: "-0.02em",
+        color: color ?? "var(--text-primary)",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 600ms ease",
+      }}
+    >
+      {value}
     </span>
   );
 }
@@ -231,14 +275,14 @@ function Card({
 // ── Animated gradient orbs ────────────────────────────────────────────────
 
 interface Orb {
-  rgb: string;      // e.g. "96,165,250"
+  rgb: string;
   opacity: number;
-  size: string;     // CSS width/height e.g. "60%"
-  x: string;        // CSS left
-  y: string;        // CSS top
+  size: string;
+  x: string;
+  y: string;
   anim: 1 | 2 | 3 | 4;
-  dur: number;      // seconds
-  delay: number;    // seconds
+  dur: number;
+  delay: number;
 }
 
 function GradientOrbs({ orbs }: { orbs: Orb[] }) {
@@ -269,6 +313,7 @@ function MetricTile({
   label,
   sublabel,
   value,
+  valueDisplay,
   color,
   orbRgb,
   icon: Icon,
@@ -277,6 +322,7 @@ function MetricTile({
   label: string;
   sublabel: string;
   value: number;
+  valueDisplay?: string;
   color: string;
   orbRgb: string;
   icon: React.ElementType;
@@ -284,25 +330,40 @@ function MetricTile({
 }) {
   return (
     <Stagger delay={delay}>
-      <Card style={{ padding: "22px 24px", position: "relative", overflow: "hidden" }}>
+      <Card
+        style={{
+          padding: "22px 24px 20px",
+          position: "relative",
+          overflow: "hidden",
+          borderTop: `2px solid ${color}`,
+        }}
+      >
         <GradientOrbs orbs={[
-          { rgb: orbRgb, opacity: 0.30, size: "75%", x: "92%",  y: "-18%", anim: 1, dur: 18, delay: 0 },
-          { rgb: orbRgb, opacity: 0.18, size: "60%", x: "3%",   y: "88%",  anim: 3, dur: 24, delay: 7 },
+          { rgb: orbRgb, opacity: 0.28, size: "75%", x: "92%",  y: "-18%", anim: 1, dur: 18, delay: 0 },
+          { rgb: orbRgb, opacity: 0.16, size: "60%", x: "3%",   y: "88%",  anim: 3, dur: 24, delay: 7 },
         ]} />
+
         <p
           className="text-[10px] tracking-[0.14em] uppercase mb-4 relative"
           style={{ color: "var(--text-secondary)" }}
         >
           {label}
         </p>
-        <div className="relative mb-1">
-          <AnimatedNumber value={value} color={color} size={42} />
+
+        <div className="relative mb-2">
+          {valueDisplay !== undefined ? (
+            <AnimatedText value={valueDisplay} color={color} size={44} />
+          ) : (
+            <AnimatedNumber value={value} color={color} size={44} />
+          )}
         </div>
-        <p className="text-[10px] mt-2" style={{ color: "var(--text-secondary)" }}>
+
+        <p className="text-[11px] mt-1" style={{ color: "var(--text-secondary)" }}>
           {sublabel}
         </p>
+
         <Icon
-          size={32}
+          size={34}
           strokeWidth={1}
           className="absolute bottom-4 right-4 opacity-[0.07]"
           style={{ color }}
@@ -339,6 +400,7 @@ export function HomeClient({
   }
 
   const totalAttention = stats.inboxPending + urgentRenewals.length;
+  const timeSavedDisplay = formatTimeSaved(stats.timeSavedMinutes);
 
   return (
     <div
@@ -374,7 +436,7 @@ export function HomeClient({
             </p>
 
             <h1
-              className="leading-none tracking-tight mb-3 relative"
+              className="leading-none tracking-tight mb-4 relative"
               style={{ fontSize: 46 }}
             >
               <span style={{ fontWeight: 300, color: "var(--text-primary)" }}>
@@ -393,8 +455,9 @@ export function HomeClient({
               )}
             </h1>
 
+            {/* Status / attention line */}
             <p
-              className="text-[13px] leading-relaxed relative"
+              className="text-[13px] leading-relaxed relative mb-4"
               style={{ color: "var(--text-secondary)", maxWidth: 480 }}
             >
               {totalAttention > 0
@@ -408,6 +471,22 @@ export function HomeClient({
                     .join(" · ") + "."
                 : "Everything looks clear. Hollis is on it."}
             </p>
+
+            {/* Time saved callout */}
+            {stats.timeSavedMinutes > 0 && (
+              <div
+                className="relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                style={{
+                  background: "rgba(167,139,250,0.10)",
+                  border: "1px solid rgba(167,139,250,0.20)",
+                }}
+              >
+                <Timer size={12} style={{ color: "#A78BFA" }} strokeWidth={2} />
+                <span className="text-[11px] font-medium" style={{ color: "#A78BFA" }}>
+                  Hollis saved you {timeSavedDisplay} this week
+                </span>
+              </div>
+            )}
           </Card>
         </Stagger>
 
@@ -435,7 +514,7 @@ export function HomeClient({
                   className="text-[11px] tracking-[0.14em] uppercase mb-2"
                   style={{ color: automationActive ? "#22C55E" : "var(--text-secondary)" }}
                 >
-                  {automationActive ? "Automation" : "Automation"}
+                  Automation
                 </p>
                 <p
                   className="text-[22px] font-semibold tracking-tight leading-none"
@@ -474,7 +553,6 @@ export function HomeClient({
                 : "Manual review mode. Automation is paused."}
             </p>
 
-            {/* Subtle writing-to-disk style line */}
             {automationActive && (
               <div className="mt-5 flex items-center gap-2">
                 <div
@@ -494,6 +572,21 @@ export function HomeClient({
                 <span className="text-[10px]" style={{ color: "#22C55E" }}>live</span>
               </div>
             )}
+
+            {/* Actions this week */}
+            {stats.autonomousActionsThisWeek > 0 && (
+              <div
+                className="mt-4 pt-4"
+                style={{ borderTop: "1px solid var(--border-subtle)" }}
+              >
+                <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>
+                    {stats.autonomousActionsThisWeek}
+                  </span>{" "}
+                  autonomous action{stats.autonomousActionsThisWeek !== 1 ? "s" : ""} this week
+                </p>
+              </div>
+            )}
           </Card>
         </Stagger>
       </div>
@@ -502,15 +595,47 @@ export function HomeClient({
           ROW 2 — 4 metric tiles
       ══════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-4 gap-4 shrink-0 mb-4" data-tour="metric-tiles">
-        <MetricTile label="Emails sent"   sublabel="this week"      value={stats.emailsSentThisWeek}        color="#60A5FA" orbRgb="96,165,250"  icon={Mail}         delay={100} />
-        <MetricTile label="Confirmed"     sublabel="this week"      value={stats.confirmedThisWeek}         color="#22C55E" orbRgb="34,197,94"   icon={CheckCircle2} delay={140} />
-        <MetricTile label="Monitoring"    sublabel="active policies" value={stats.monitoringCount}          color="#A78BFA" orbRgb="167,139,250" icon={RefreshCcw}   delay={180} />
-        <MetricTile label="Auto-actions"  sublabel="this week"      value={stats.autonomousActionsThisWeek} color="#FBBF24" orbRgb="251,191,36"  icon={TrendingUp}   delay={220} />
-
+        <MetricTile
+          label="Active Renewals"
+          sublabel="currently in pipeline"
+          value={stats.monitoringCount}
+          color="#60A5FA"
+          orbRgb="96,165,250"
+          icon={RefreshCcw}
+          delay={100}
+        />
+        <MetricTile
+          label="Docs Being Chased"
+          sublabel="outstanding requests"
+          value={stats.activeDocChase}
+          color="#F59E0B"
+          orbRgb="251,191,36"
+          icon={FileText}
+          delay={140}
+        />
+        <MetricTile
+          label="Confirmed"
+          sublabel="renewals this week"
+          value={stats.confirmedThisWeek}
+          color="#22C55E"
+          orbRgb="34,197,94"
+          icon={CheckCircle2}
+          delay={180}
+        />
+        <MetricTile
+          label="Time Saved"
+          sublabel="by Hollis this week"
+          value={stats.timeSavedMinutes}
+          valueDisplay={timeSavedDisplay}
+          color="#A78BFA"
+          orbRgb="167,139,250"
+          icon={Timer}
+          delay={220}
+        />
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          ROW 3 — Activity feed + right column (fills space)
+          ROW 3 — Activity feed + right column
       ══════════════════════════════════════════════════════ */}
       <div className="flex gap-4 flex-1 min-h-0">
 
@@ -717,20 +842,25 @@ export function HomeClient({
             </Card>
           </Stagger>
 
-          {/* Inbox CTA card */}
+          {/* Inbox + Doc chase card */}
           <Stagger delay={360}>
             <Card style={{ overflow: "hidden", position: "relative" }}>
               <GradientOrbs orbs={[
-                { rgb: "99,102,241",  opacity: 0.20, size: "80%", x: "92%", y: "-5%",  anim: 4, dur: 22, delay: 4 },
-                { rgb: "148,163,184", opacity: 0.14, size: "62%", x: "12%", y: "96%",  anim: 2, dur: 18, delay: 0 },
+                { rgb: "99,102,241",  opacity: 0.20, size: "80%", x: "92%", y: "-5%", anim: 4, dur: 22, delay: 4 },
+                { rgb: "148,163,184", opacity: 0.14, size: "62%", x: "12%", y: "96%", anim: 2, dur: 18, delay: 0 },
               ]} />
+
+              {/* Inbox row */}
               <div
                 className="flex items-center justify-between px-5 py-3"
                 style={{ borderBottom: "1px solid var(--border-subtle)" }}
               >
-                <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                  Inbox
-                </span>
+                <div className="flex items-center gap-2">
+                  <Inbox size={12} strokeWidth={1.8} style={{ color: "var(--text-secondary)" }} />
+                  <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                    Inbox
+                  </span>
+                </div>
                 <span
                   className="text-[11px] font-medium"
                   style={{
@@ -742,13 +872,17 @@ export function HomeClient({
                 </span>
               </div>
 
+              {/* Doc chase row */}
               <div
                 className="flex items-center justify-between px-5 py-3"
                 style={{ borderBottom: "1px solid var(--border-subtle)" }}
               >
-                <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                  Doc chase
-                </span>
+                <div className="flex items-center gap-2">
+                  <FileText size={12} strokeWidth={1.8} style={{ color: "var(--text-secondary)" }} />
+                  <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                    Doc chase
+                  </span>
+                </div>
                 <span
                   className="text-[11px] font-medium"
                   style={{
@@ -757,6 +891,25 @@ export function HomeClient({
                   }}
                 >
                   {stats.activeDocChase > 0 ? `${stats.activeDocChase} active` : "None active"}
+                </span>
+              </div>
+
+              {/* Emails row */}
+              <div
+                className="flex items-center justify-between px-5 py-3"
+                style={{ borderBottom: "1px solid var(--border-subtle)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <Mail size={12} strokeWidth={1.8} style={{ color: "var(--text-secondary)" }} />
+                  <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                    Emails sent
+                  </span>
+                </div>
+                <span
+                  className="text-[11px] font-medium tabular-nums"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {stats.emailsSentThisWeek} this week
                 </span>
               </div>
 
@@ -774,7 +927,6 @@ export function HomeClient({
                   ((e.currentTarget as HTMLElement).style.background = "transparent")
                 }
               >
-                <Inbox size={14} strokeWidth={1.8} />
                 <span className="text-[13px] font-medium tracking-tight">Go to inbox</span>
                 {stats.inboxPending > 0 && (
                   <span
@@ -784,6 +936,7 @@ export function HomeClient({
                     {stats.inboxPending}
                   </span>
                 )}
+                <ArrowRight size={13} strokeWidth={1.8} />
               </Link>
             </Card>
           </Stagger>

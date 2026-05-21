@@ -182,7 +182,7 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
             alt="Hollis"
             width={28}
             height={28}
-            className="dark:invert"
+            className="invert dark:invert-0"
             style={{ objectFit: "contain" }}
             priority
           />
@@ -193,10 +193,9 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
       <nav className="flex-1 flex flex-col items-center pt-[30px] pb-3 overflow-y-auto">
         {/* Primary nav */}
         <div className="flex flex-col items-center gap-1">
-          {/* Search disabled for now */}
-          {/* <button
+          <button
             onClick={openPanel}
-            title="Search"
+            title="Search (⌘K)"
             className="relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 hover:scale-[1.15]"
             style={{ color: "var(--text-tertiary)" }}
             onMouseEnter={(e) => {
@@ -207,7 +206,7 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
             }}
           >
             <Search size={19} strokeWidth={1.6} />
-          </button> */}
+          </button>
 
           <RailIcon href="/inbox"     icon={Inbox}        label="Inbox"     pathname={pathname} badge={approvalQueueCount} />
           <RailIcon href="/activity"  icon={Activity}     label="Activity"  pathname={pathname} />
