@@ -79,28 +79,28 @@ export function DecisionDetail({
     </div>
   ) : isEditing ? (
     <>
-      <button onClick={onConfirmEdit} disabled={busy} style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 16px", borderRadius: 8, cursor: busy ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 500, background: "var(--accent)", color: "var(--text-inverse)", border: "1px solid var(--accent)", opacity: busy ? 0.5 : 1 }}>
+      <button onClick={onConfirmEdit} disabled={busy} className="btn-press" style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 16px", borderRadius: 8, cursor: busy ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 500, background: "var(--accent)", color: "var(--text-inverse)", border: "1px solid var(--accent)", opacity: busy ? 0.5 : 1, transition: "transform 80ms ease, opacity 150ms ease" }}>
         {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
         Save & approve
       </button>
-      <button onClick={onCancelEdit} disabled={busy} style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+      <button onClick={onCancelEdit} disabled={busy} className="btn-press" style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", transition: "transform 80ms ease, color 150ms ease" }}>
         Cancel
       </button>
     </>
   ) : (
     <>
-      <button onClick={onApprove} disabled={busy} style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 16px", borderRadius: 8, cursor: busy ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 500, background: "var(--accent)", color: "var(--text-inverse)", border: "1px solid var(--accent)", opacity: busy ? 0.5 : 1 }}>
+      <button onClick={onApprove} disabled={busy} className="btn-press" style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 16px", borderRadius: 8, cursor: busy ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 500, background: "var(--accent)", color: "var(--text-inverse)", border: "1px solid var(--accent)", opacity: busy ? 0.5 : 1, transition: "transform 80ms ease, opacity 150ms ease" }}>
         {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
         Approve & send
       </button>
-      <button onClick={onEdit} disabled={busy} style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+      <button onClick={onEdit} disabled={busy} className="btn-press" style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", transition: "transform 80ms ease, color 150ms ease" }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
       >
         <Pencil size={12} /> Edit draft
       </button>
       <span style={{ flex: 1 }} />
-      <button onClick={onReject} disabled={busy} style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+      <button onClick={onReject} disabled={busy} className="btn-press" style={{ height: 36, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", transition: "transform 80ms ease, color 150ms ease, border-color 150ms ease" }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--danger)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(204,41,41,0.4)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; }}
       >

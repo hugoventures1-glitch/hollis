@@ -20,8 +20,8 @@ export default function InboxLoading() {
       <header style={{ padding: "28px 32px 0", flexShrink: 0 }}>
         {/* Title row */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 22 }}>
-          <div className="h-6 w-14 rounded bg-border animate-pulse" />
-          <div className="h-3.5 w-48 rounded bg-surface-raised animate-pulse" />
+          <div className="h-6 w-14 rounded bg-border animate-hollis-shimmer" />
+          <div className="h-3.5 w-48 rounded bg-surface-raised animate-hollis-shimmer" />
         </div>
 
         {/* Tab strip — 4 tabs matching All / Decisions / To-Dos / Doc Chase */}
@@ -29,7 +29,7 @@ export default function InboxLoading() {
           {[44, 64, 52, 68].map((w, i) => (
             <div
               key={i}
-              className="animate-pulse"
+              className="animate-hollis-shimmer"
               style={{ padding: "10px 0", marginBottom: -1 }}
             >
               <div className="h-2.5 rounded bg-border" style={{ width: w }} />
@@ -40,7 +40,7 @@ export default function InboxLoading() {
 
       {/* Day label */}
       <div style={{ padding: "20px 32px 6px 28px" }}>
-        <div className="h-2 w-10 rounded bg-surface-raised animate-pulse" />
+        <div className="h-2 w-10 rounded bg-surface-raised animate-hollis-shimmer" />
       </div>
 
       {/* List rows */}
@@ -48,7 +48,7 @@ export default function InboxLoading() {
         {rows.map((r, i) => (
           <div
             key={i}
-            className="animate-pulse"
+            className="animate-hollis-shimmer"
             style={{
               display: "grid",
               gridTemplateColumns: "minmax(0, 1fr) auto auto",

@@ -34,6 +34,7 @@ function ListRow({
   return (
     <button
       onClick={() => onOpen(row)}
+      className="btn-press"
       style={{
         width: "100%", textAlign: "left", border: "none",
         display: "flex", alignItems: "center", gap: 10,
@@ -41,7 +42,7 @@ function ListRow({
         background: selected ? "var(--surface)" : "transparent",
         borderTop: "1px solid var(--border-subtle)",
         borderLeft: `3px solid ${selected ? borderColor : "transparent"}`,
-        cursor: "pointer", transition: "background 100ms, border-left-color 100ms",
+        cursor: "pointer", transition: "background 100ms, border-left-color 100ms, transform var(--duration-micro) ease",
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
@@ -101,6 +102,7 @@ function EscalationRow({
   return (
     <button
       onClick={() => onOpen(row)}
+      className="btn-press"
       style={{
         width: "100%", textAlign: "left", border: "none",
         display: "flex", alignItems: "center", gap: 10,
@@ -108,7 +110,7 @@ function EscalationRow({
         background: selected ? "rgba(220,38,38,0.09)" : "rgba(220,38,38,0.04)",
         borderTop: "1px solid rgba(220,38,38,0.12)",
         borderLeft: "3px solid var(--danger)",
-        cursor: "pointer", transition: "background 100ms",
+        cursor: "pointer", transition: "background 100ms, transform var(--duration-micro) ease",
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.09)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = selected ? "rgba(220,38,38,0.09)" : "rgba(220,38,38,0.04)"; }}

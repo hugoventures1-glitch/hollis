@@ -7,9 +7,9 @@ export default function ActivityLoading() {
         className="h-[56px] shrink-0 flex items-center justify-between px-6"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
-        <div className="h-2.5 w-14 rounded bg-border animate-pulse" />
+        <div className="h-2.5 w-14 rounded bg-border animate-hollis-shimmer" />
         <div
-          className="flex items-center gap-0.5 p-0.5 rounded-md animate-pulse"
+          className="flex items-center gap-0.5 p-0.5 rounded-md animate-hollis-shimmer"
           style={{ background: "var(--hover-overlay)", border: "1px solid var(--border)" }}
         >
           <div className="w-10 h-6 rounded bg-hover-overlay" />
@@ -22,7 +22,7 @@ export default function ActivityLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-xl p-4 flex flex-col gap-2 animate-pulse"
+            className="rounded-xl p-4 flex flex-col gap-2 animate-hollis-shimmer"
             style={{ background: "var(--surface)", border: "1px solid var(--surface-raised)", minHeight: 80 }}
           >
             <div className="h-2 w-16 rounded bg-surface-raised" />
@@ -36,7 +36,7 @@ export default function ActivityLoading() {
         {Array.from({ length: 3 }).map((_, si) => (
           <div
             key={si}
-            className="rounded-xl overflow-hidden animate-pulse"
+            className="rounded-xl overflow-hidden animate-hollis-shimmer"
             style={{ background: "var(--background)", border: "1px solid var(--surface-raised)" }}
           >
             {/* Session header */}

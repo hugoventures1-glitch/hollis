@@ -7,8 +7,8 @@ export default function DocumentsLoading() {
         className="flex items-center justify-between px-6 shrink-0"
         style={{ height: 56, borderBottom: "1px solid var(--border)" }}
       >
-        <div className="h-2.5 w-28 rounded bg-border animate-pulse" />
-        <div className="h-8 w-28 rounded-md animate-pulse" style={{ background: "var(--border)" }} />
+        <div className="h-2.5 w-28 rounded bg-border animate-hollis-shimmer" />
+        <div className="h-8 w-28 rounded-md animate-hollis-shimmer" style={{ background: "var(--border)" }} />
       </div>
 
       {/* Filter tabs — below header */}
@@ -17,7 +17,7 @@ export default function DocumentsLoading() {
         style={{ height: 48, borderBottom: "1px solid var(--border)" }}
       >
         {[["All", true], ["Active", false], ["Received", false]].map(([label, active], i) => (
-          <div key={i} className="flex items-center gap-1.5 animate-pulse">
+          <div key={i} className="flex items-center gap-1.5 animate-hollis-shimmer">
             <div
               className="h-3 rounded bg-border"
               style={{ width: i === 0 ? 24 : i === 1 ? 44 : 60, opacity: (active as boolean) ? 1 : 0.5 }}
@@ -32,7 +32,7 @@ export default function DocumentsLoading() {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-4 px-6 animate-pulse shrink-0"
+            className="flex items-center gap-4 px-6 animate-hollis-shimmer shrink-0"
             style={{ height: 60, borderBottom: "1px solid var(--surface)" }}
           >
             {/* Icon box */}

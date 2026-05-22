@@ -8,12 +8,12 @@ export default function SettingsLoading() {
         style={{ borderRight: "1px solid var(--border-subtle)" }}
       >
         {/* "Settings" label */}
-        <div className="h-2 w-14 rounded bg-surface-raised animate-pulse mb-4 ml-2" />
+        <div className="h-2 w-14 rounded bg-surface-raised animate-hollis-shimmer mb-4 ml-2" />
         {/* 9 tab items */}
         {Array.from({ length: 9 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-2.5 px-2.5 rounded-[4px] animate-pulse"
+            className="flex items-center gap-2.5 px-2.5 rounded-[4px] animate-hollis-shimmer"
             style={{ height: 36, background: i === 0 ? "var(--border)" : "transparent" }}
           >
             <div
@@ -33,12 +33,12 @@ export default function SettingsLoading() {
 
       {/* Right content area */}
       <div className="flex-1 overflow-hidden px-10 py-8 flex flex-col gap-6">
-        <div className="h-5 w-12 rounded bg-border animate-pulse" />
+        <div className="h-5 w-12 rounded bg-border animate-hollis-shimmer" />
         <div className="flex flex-col gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-xl p-5 flex flex-col gap-2 animate-pulse"
+              className="rounded-xl p-5 flex flex-col gap-2 animate-hollis-shimmer"
               style={{ background: "var(--surface)", border: "1px solid var(--surface-raised)" }}
             >
               <div className="h-3 rounded bg-border" style={{ width: 120 }} />

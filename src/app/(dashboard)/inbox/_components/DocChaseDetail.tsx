@@ -8,6 +8,7 @@ import {
 import type { DocChaseReplyItem } from "../page";
 import { PILL, type DisplayRow, timeAgo } from "./inbox-types";
 import { DetailHeader, SectionDivider, AttachmentCard } from "./InboxShared";
+import { useToast } from "@/components/actions/MicroToast";
 
 // ── DocChase detail panel ────────────────────────────────────────────────────
 
@@ -16,16 +17,15 @@ function DocChaseDetailPanel({
   onMarkReceived,
   onReplySent,
   onRejected,
-  addToast,
   onRestoreItem,
 }: {
   item: DocChaseReplyItem;
   onMarkReceived: (id: string) => void;
   onReplySent: (id: string) => void;
   onRejected: (id: string) => void;
-  addToast: (message: string, type: "success" | "error") => void;
   onRestoreItem?: (item: DocChaseReplyItem) => void;
 }) {
+  const { toast } = useToast();
   const [signedUrl,        setSignedUrl]        = useState<string | null>(null);
   const [urlLoading,       setUrlLoading]       = useState(false);
   const [urlError,         setUrlError]         = useState<string | null>(null);
@@ -108,11 +108,11 @@ function DocChaseDetailPanel({
     fetch(`/api/doc-chase/${item.id}/send-reply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject: draftSubject, body: draftBody }) })
       .then(async (res) => {
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed to send reply"); }
-        addToast(`Reply sent to ${item.client_name}`, "success");
+        toast(`Reply sent to ${item.client_name}`, "success");
       })
       .catch(() => {
         onRestoreItem?.(snapshot);
-        addToast(`Failed to send reply — item restored to inbox`, "error");
+        toast(`Failed to send reply — item restored to inbox`, "error");
       });
   }
 
@@ -151,11 +151,11 @@ function DocChaseDetailPanel({
     fetch(`/api/doc-chase/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "cancelled" }) })
       .then(async (res) => {
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed to reject"); }
-        addToast(`Rejected — no reply sent to ${item.client_name}`, "success");
+        toast(`Rejected — no reply sent to ${item.client_name}`, "success");
       })
       .catch(() => {
         onRestoreItem?.(snapshot);
-        addToast(`Failed to reject — item restored to inbox`, "error");
+        toast(`Failed to reject — item restored to inbox`, "error");
       });
   }
 
@@ -430,12 +430,11 @@ function DocChaseDetailPanel({
 
 export function DocChaseDetail({
   row, item, onBack, onMarkReceived, onReplySent, onRejected,
-  learningApproved, learningThreshold, addToast, onRestoreItem,
+  learningApproved, learningThreshold, onRestoreItem,
 }: {
   row: DisplayRow; item: DocChaseReplyItem; onBack: () => void;
   onMarkReceived: (id: string) => void; onReplySent: (id: string) => void; onRejected: (id: string) => void;
   learningApproved?: number; learningThreshold?: number;
-  addToast: (message: string, type: "success" | "error") => void;
   onRestoreItem?: (item: DocChaseReplyItem) => void;
 }) {
   return (
@@ -446,7 +445,7 @@ export function DocChaseDetail({
           {row.headline}
         </h1>
       </div>
-      <DocChaseDetailPanel item={item} onMarkReceived={onMarkReceived} onReplySent={onReplySent} onRejected={onRejected} addToast={addToast} onRestoreItem={onRestoreItem} />
+      <DocChaseDetailPanel item={item} onMarkReceived={onMarkReceived} onReplySent={onReplySent} onRejected={onRejected} onRestoreItem={onRestoreItem} />
     </div>
   );
 }

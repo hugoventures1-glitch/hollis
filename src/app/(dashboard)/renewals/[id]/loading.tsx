@@ -8,13 +8,13 @@ export default function RenewalDetailLoading() {
         style={{ borderBottom: "1px solid var(--border)" }}
       >
         {/* Breadcrumb skeleton */}
-        <div className="flex items-center gap-2 animate-pulse">
+        <div className="flex items-center gap-2 animate-hollis-shimmer">
           <div className="h-2.5 w-16 rounded bg-border" />
           <div className="h-2.5 w-2 rounded bg-surface-raised" />
           <div className="h-2.5 w-40 rounded bg-border" />
         </div>
         {/* StageBadge on the right */}
-        <div className="ml-auto h-5 w-20 rounded-full bg-surface-raised animate-pulse" />
+        <div className="ml-auto h-5 w-20 rounded-full bg-surface-raised animate-hollis-shimmer" />
       </div>
 
       {/* Scrollable body */}
@@ -23,7 +23,7 @@ export default function RenewalDetailLoading() {
 
           {/* Policy summary card */}
           <div
-            className="rounded-xl p-6 animate-pulse"
+            className="rounded-xl p-6 animate-hollis-shimmer"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           >
             <div className="flex items-start justify-between gap-4 mb-6">
@@ -50,7 +50,7 @@ export default function RenewalDetailLoading() {
 
           {/* RenewalOverrideControls skeleton */}
           <div
-            className="rounded-xl p-5 animate-pulse"
+            className="rounded-xl p-5 animate-hollis-shimmer"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           >
             <div className="h-3 w-32 rounded bg-border mb-4" />
@@ -62,7 +62,7 @@ export default function RenewalDetailLoading() {
 
           {/* PolicyTimelinePanel skeleton */}
           <div
-            className="rounded-xl p-5 animate-pulse"
+            className="rounded-xl p-5 animate-hollis-shimmer"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           >
             <div className="h-3 w-40 rounded bg-border mb-4" />
@@ -79,12 +79,12 @@ export default function RenewalDetailLoading() {
 
           {/* Campaign Timeline section */}
           <div>
-            <div className="h-2.5 w-36 rounded bg-border mb-4 animate-pulse" />
+            <div className="h-2.5 w-36 rounded bg-border mb-4 animate-hollis-shimmer" />
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-xl p-5 animate-pulse"
+                  className="rounded-xl p-5 animate-hollis-shimmer"
                   style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
                 >
                   <div className="flex items-start justify-between gap-4">

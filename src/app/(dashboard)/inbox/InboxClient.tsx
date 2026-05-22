@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTour } from "@/components/tour/TourProvider";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { useToast } from "@/components/actions/MicroToast";
 import { LEARNING_MODE_THRESHOLD } from "@/lib/agent/tier-constants";
 import type { InboxItem, DocChaseReplyItem } from "./page";
 import { deriveType, type DisplayRow } from "./_components/inbox-types";
@@ -38,9 +38,9 @@ export default function InboxClient({
   });
   const [learningApproved,  setLearningApproved]  = useState(0);
   const [learningThreshold, setLearningThreshold] = useState(LEARNING_MODE_THRESHOLD);
-  const [toasts,           setToasts]          = useState<{ id: string; message: string; type: "success" | "error" }[]>([]);
 
   const { signalReady } = useTour();
+  const { toast } = useToast();
   const signaledRef = useRef(false);
 
   useEffect(() => {
@@ -49,12 +49,6 @@ export default function InboxClient({
       signalReady();
     }
   }, [signalReady]);
-
-  function addToast(message: string, type: "success" | "error") {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4500);
-  }
 
   async function fetchLearningCount() {
     try {
@@ -107,13 +101,13 @@ export default function InboxClient({
     }).then(async (res) => {
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed"); }
       if (action === "rejected") {
-        addToast(`Rejected — no email sent to ${clientName}`, "success");
+        toast(`Rejected — no email sent to ${clientName}`, "success");
       } else {
-        addToast(`Email sent to ${clientName}`, "success");
+        toast(`Email sent to ${clientName}`, "success");
       }
     }).catch(() => {
       if (snapshot) setItems((prev) => [snapshot, ...prev]);
-      addToast(`Failed — item restored to inbox`, "error");
+      toast(`Failed — item restored to inbox`, "error");
     });
   }
 
@@ -141,7 +135,6 @@ export default function InboxClient({
           onReplySent={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); clearSelection(); }}
           onRejected={(id) => { setDocChaseReplies((prev) => prev.filter((r) => r.id !== id)); clearSelection(); }}
           onRestoreItem={(item) => setDocChaseReplies((prev) => [item, ...prev])}
-          addToast={addToast}
         />
       );
     }
@@ -196,10 +189,10 @@ export default function InboxClient({
               body: JSON.stringify({ resolution }),
             }).then(async (res) => {
               if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Failed to resolve escalation"); }
-              addToast(toastMessages[resolution] ?? "Resolved.", "success");
+              toast(toastMessages[resolution] ?? "Resolved.", "success");
             }).catch(() => {
               if (snapshot) setItems((prev) => [snapshot, ...prev]);
-              addToast("Failed to resolve — item restored to inbox", "error");
+              toast("Failed to resolve — item restored to inbox", "error");
             });
           }}
         />
@@ -234,7 +227,14 @@ export default function InboxClient({
     <>
       <FlashingDotStyle />
       <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        {selectedRow ? renderDetail() : (
+        {selectedRow ? (
+          <div
+            key={selectedRow.id}
+            style={{ height: "100%", animation: "hollis-fade-up 180ms cubic-bezier(0,0,0.2,1) both" }}
+          >
+            {renderDetail()}
+          </div>
+        ) : (
           <ListView
             allItems={items}
             docChaseReplies={docChaseReplies}
@@ -246,16 +246,6 @@ export default function InboxClient({
         )}
       </div>
 
-      {toasts.length > 0 && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 8, zIndex: 9999 }}>
-          {toasts.map((t) => (
-            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: t.type === "error" ? "#f87171" : "var(--text-primary)", background: "var(--surface)", border: `1px solid ${t.type === "error" ? "rgba(248,113,113,0.35)" : "var(--border)"}`, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", animation: "escalation-slide-in 200ms ease-out forwards" }}>
-              {t.type === "error" ? <AlertTriangle size={13} /> : <CheckCircle2 size={13} />}
-              {t.message}
-            </div>
-          ))}
-        </div>
-      )}
     </>
   );
 }

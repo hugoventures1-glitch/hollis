@@ -7,7 +7,7 @@ export default function ClientsLoading() {
         className="h-[56px] shrink-0 flex items-center px-6"
         style={{ borderBottom: "1px solid var(--surface)" }}
       >
-        <div className="h-2.5 w-8 rounded bg-border animate-pulse" />
+        <div className="h-2.5 w-8 rounded bg-border animate-hollis-shimmer" />
       </header>
 
       {/* Search + Tabs bar — 60px */}
@@ -17,7 +17,7 @@ export default function ClientsLoading() {
       >
         {/* Search box */}
         <div
-          className="rounded-xl shrink-0 animate-pulse"
+          className="rounded-xl shrink-0 animate-hollis-shimmer"
           style={{ width: 280, height: 44, background: "#0E0E0E", border: "1px solid var(--border)" }}
         />
         {/* Tabs pill */}
@@ -28,7 +28,7 @@ export default function ClientsLoading() {
           {[40, 84, 96].map((w, i) => (
             <div
               key={i}
-              className="rounded-md animate-pulse"
+              className="rounded-md animate-hollis-shimmer"
               style={{
                 width: w,
                 height: 28,
@@ -45,7 +45,7 @@ export default function ClientsLoading() {
         {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center px-6 animate-pulse"
+            className="flex items-center px-6 animate-hollis-shimmer"
             style={{ height: 52, borderBottom: "1px solid var(--surface)" }}
           >
             <div className="h-3 rounded bg-surface-raised" style={{ width: 160 }} />

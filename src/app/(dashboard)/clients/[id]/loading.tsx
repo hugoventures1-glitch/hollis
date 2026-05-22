@@ -7,12 +7,12 @@ export default function ClientDetailLoading() {
         className="flex items-center justify-between px-8 shrink-0"
         style={{ height: 56, borderBottom: "1px solid var(--surface-raised)" }}
       >
-        <div className="flex items-center gap-2 animate-pulse">
+        <div className="flex items-center gap-2 animate-hollis-shimmer">
           <div className="h-2.5 w-12 rounded bg-surface-raised" />
           <div className="h-2.5 w-2 rounded bg-surface-raised" />
           <div className="h-2.5 w-40 rounded bg-surface-raised" />
         </div>
-        <div className="h-8 w-28 rounded-md bg-surface-raised animate-pulse" style={{ border: "1px solid var(--border)" }} />
+        <div className="h-8 w-28 rounded-md bg-surface-raised animate-hollis-shimmer" style={{ border: "1px solid var(--border)" }} />
       </div>
 
       {/* Body */}
@@ -20,7 +20,7 @@ export default function ClientDetailLoading() {
 
         {/* Client info card — 3-col grid */}
         <div
-          className="rounded-2xl p-6 animate-pulse"
+          className="rounded-2xl p-6 animate-hollis-shimmer"
           style={{ background: "var(--surface)", border: "1px solid var(--surface-raised)" }}
         >
           <div className="flex items-start justify-between mb-5">
@@ -45,7 +45,7 @@ export default function ClientDetailLoading() {
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-xl px-5 py-4 flex items-center gap-4 animate-pulse"
+              className="rounded-xl px-5 py-4 flex items-center gap-4 animate-hollis-shimmer"
               style={{ background: "var(--surface)", border: "1px solid var(--surface-raised)" }}
             >
               <div className="flex-1 flex flex-col gap-1.5">
@@ -63,11 +63,11 @@ export default function ClientDetailLoading() {
 
         {/* Timeline/audit section */}
         <div className="flex flex-col gap-1.5 mt-2">
-          <div className="h-2.5 w-20 rounded bg-surface-raised animate-pulse mb-2" />
+          <div className="h-2.5 w-20 rounded bg-surface-raised animate-hollis-shimmer mb-2" />
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 animate-pulse"
+              className="flex items-center gap-3 animate-hollis-shimmer"
               style={{ height: 40 }}
             >
               <div className="w-2 h-2 rounded-full shrink-0 bg-surface-raised" />

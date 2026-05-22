@@ -7,6 +7,7 @@ import { UnifiedPanelProvider } from "@/contexts/UnifiedPanelContext";
 import { ProfileCompletionBanner } from "@/components/onboarding/ProfileCompletionBanner";
 import FeedbackButton from "@/components/feedback/FeedbackButton";
 import { TourProvider } from "@/components/tour/TourProvider";
+import { NavProgressBar } from "@/components/nav/NavProgressBar";
 
 
 export default async function DashboardLayout({
@@ -56,6 +57,7 @@ export default async function DashboardLayout({
             autonomousActive={autonomousActive}
           />
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <NavProgressBar />
             {profileIncomplete && <ProfileCompletionBanner />}
             <main className="flex-1 overflow-hidden">{children}</main>
           </div>

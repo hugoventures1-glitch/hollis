@@ -12,8 +12,8 @@ export default function RenewalsLoading() {
       >
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="py-6 flex flex-col gap-2 items-center">
-            <div className="h-8 w-10 rounded-md bg-border animate-pulse" />
-            <div className="h-2 w-16 rounded bg-surface-raised animate-pulse" />
+            <div className="h-8 w-10 rounded-md bg-border animate-hollis-shimmer" />
+            <div className="h-2 w-16 rounded bg-surface-raised animate-hollis-shimmer" />
           </div>
         ))}
       </div>
@@ -25,7 +25,7 @@ export default function RenewalsLoading() {
       >
         {/* Search box — 280px wide, rounded-xl */}
         <div
-          className="rounded-xl shrink-0 animate-pulse"
+          className="rounded-xl shrink-0 animate-hollis-shimmer"
           style={{ width: 280, height: 44, background: "var(--background)", border: "1px solid var(--border)" }}
         />
         <div className="flex-1" />
@@ -37,7 +37,7 @@ export default function RenewalsLoading() {
           {[110, 88, 76].map((w, i) => (
             <div
               key={i}
-              className="rounded-md animate-pulse"
+              className="rounded-md animate-hollis-shimmer"
               style={{
                 width: w,
                 height: 28,
@@ -54,7 +54,7 @@ export default function RenewalsLoading() {
         {Array.from({ length: 9 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center px-14 animate-pulse"
+            className="flex items-center px-14 animate-hollis-shimmer"
             style={{ height: 56, borderBottom: "1px solid var(--border-subtle)" }}
           >
             <div className="h-3 rounded bg-surface-raised" style={{ width: 180 }} />

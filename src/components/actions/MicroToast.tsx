@@ -60,8 +60,8 @@ export function ToastCard({ item, onDismiss }: ToastCardProps) {
         pointerEvents: "auto",
         cursor: "pointer",
         opacity: item.visible ? 1 : 0,
-        transform: item.visible ? "translateX(0)" : "translateX(16px)",
-        transition: "opacity 150ms ease-out, transform 150ms ease-out",
+        transform: item.visible ? "translateY(0) scale(1)" : "translateY(12px) scale(0.97)",
+        transition: "opacity 150ms cubic-bezier(0,0,0.2,1), transform 200ms cubic-bezier(0.16,1,0.3,1)",
       }}
       onClick={() => onDismiss(item.id)}
       title="Click to dismiss"

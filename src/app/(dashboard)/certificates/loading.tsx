@@ -7,16 +7,16 @@ export default function CertificatesLoading() {
         className="flex items-center justify-between px-10 shrink-0"
         style={{ height: 56, borderBottom: "1px solid var(--border)" }}
       >
-        <div className="h-2.5 w-24 rounded bg-border animate-pulse" />
+        <div className="h-2.5 w-24 rounded bg-border animate-hollis-shimmer" />
         <div className="flex items-center gap-3">
-          <div className="h-8 w-28 rounded-md animate-pulse" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
-          <div className="h-8 w-24 rounded-md bg-hover-overlay animate-pulse" />
+          <div className="h-8 w-28 rounded-md animate-hollis-shimmer" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
+          <div className="h-8 w-24 rounded-md bg-hover-overlay animate-hollis-shimmer" />
         </div>
       </div>
 
       {/* Stats strip — horizontal, divided by borders */}
       <div
-        className="flex items-center gap-0 px-10 py-7 shrink-0 animate-pulse"
+        className="flex items-center gap-0 px-10 py-7 shrink-0 animate-hollis-shimmer"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
         {[["Issued", 32], ["Pending Requests", 80], ["Coverage Gaps", 80]].map(([label, w], i) => (
@@ -33,7 +33,7 @@ export default function CertificatesLoading() {
         style={{ height: 48, borderBottom: "1px solid var(--border)" }}
       >
         {[["Requests", true], ["Certificates", false]].map(([label, active], i) => (
-          <div key={i} className="flex items-center gap-1.5 animate-pulse">
+          <div key={i} className="flex items-center gap-1.5 animate-hollis-shimmer">
             <div
               className="h-3 rounded bg-border"
               style={{ width: i === 0 ? 60 : 80, opacity: active ? 1 : 0.5 }}
@@ -47,7 +47,7 @@ export default function CertificatesLoading() {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center px-10 animate-pulse"
+            className="flex items-center px-10 animate-hollis-shimmer"
             style={{ height: 56, borderBottom: "1px solid var(--surface)" }}
           >
             <div className="h-3 rounded bg-surface-raised" style={{ width: 160 }} />
