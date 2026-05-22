@@ -234,7 +234,6 @@ export default function InboxClient({
     <>
       <FlashingDotStyle />
       <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-
         {selectedRow ? renderDetail() : (
           <ListView
             allItems={items}
