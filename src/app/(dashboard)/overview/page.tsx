@@ -123,6 +123,9 @@ export default async function OverviewPage() {
         monitoringCount: monitoringRes.count ?? 0,
         autonomousActionsThisWeek: autonomousActionsRes.count ?? 0,
         activeDocChase: docChaseRes.count ?? 0,
+        timeSavedMinutes:
+          ((emailsSentRes.count ?? 0) * 5) +
+          ((autonomousActionsRes.count ?? 0) * 8),
       }}
       urgentRenewals={(urgentRenewalsRes.data ?? []) as {
         id: string;

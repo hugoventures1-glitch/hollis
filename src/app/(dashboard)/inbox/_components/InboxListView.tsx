@@ -36,8 +36,8 @@ function ListRow({
       onClick={() => onOpen(row)}
       style={{
         width: "100%", textAlign: "left", border: "none",
-        display: "flex", alignItems: "flex-start", gap: 10,
-        padding: "11px 14px 11px 11px",
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "10px 14px 10px 11px",
         background: selected ? "var(--surface)" : "transparent",
         borderTop: "1px solid var(--border-subtle)",
         borderLeft: `3px solid ${selected ? borderColor : "transparent"}`,
@@ -52,45 +52,37 @@ function ListRow({
         if (!selected) { el.style.background = "transparent"; el.style.borderLeftColor = "transparent"; }
       }}
     >
-      <div style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, marginTop: 5, background: unread ? "#3b82f6" : "transparent" }} />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Top: client name + pill + time */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-          <span style={{
-            fontSize: 13, fontWeight: unread ? 700 : 600,
-            color: "var(--text-primary)", letterSpacing: "-0.005em",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            flex: 1, minWidth: 0,
-          }}>
-            {row.client}
-          </span>
-          {row.hasAttachment && <Paperclip size={10} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />}
-          <TypePill type={row.type} unread={unread} />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-tertiary)", whiteSpace: "nowrap", flexShrink: 0 }}>
-            {row.timeAgoStr}
-          </span>
-        </div>
-        {/* Bottom: headline + expiry badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{
-            fontSize: 12, color: "var(--text-secondary)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            flex: 1, minWidth: 0,
-          }}>
-            {row.headline}
-          </span>
-          {row.expiryDays !== null && (
-            <span style={{
-              fontSize: 10.5, fontWeight: isUrgent ? 600 : 500,
-              padding: "1px 5px", borderRadius: 999, whiteSpace: "nowrap", flexShrink: 0,
-              background: isUrgent ? "rgba(220,38,38,0.10)" : "rgba(0,0,0,0.06)",
-              color: isUrgent ? "var(--danger)" : "var(--text-tertiary)",
-            }}>
-              {row.expiryDays}d
-            </span>
-          )}
-        </div>
+      <div style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: unread ? "#3b82f6" : "transparent" }} />
+      <span style={{
+        fontSize: 13, fontWeight: unread ? 700 : 600,
+        color: "var(--text-primary)", letterSpacing: "-0.005em",
+        whiteSpace: "nowrap", flexShrink: 0, width: 180,
+        overflow: "hidden", textOverflow: "ellipsis",
+      }}>
+        {row.client}
+      </span>
+      <span style={{
+        fontSize: 12, color: "var(--text-secondary)",
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        flex: 1, minWidth: 0,
+      }}>
+        {row.headline}
+      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, flexWrap: "nowrap", justifyContent: "flex-end", minWidth: 240 }}>
+        {row.hasAttachment && <Paperclip size={10} style={{ color: "var(--text-tertiary)" }} />}
+        <TypePill type={row.type} unread={unread} />
+        <span style={{
+          fontSize: 10.5, fontWeight: isUrgent ? 600 : 500,
+          padding: "1px 5px", borderRadius: 999, whiteSpace: "nowrap",
+          background: row.expiryDays !== null ? (isUrgent ? "rgba(220,38,38,0.10)" : "rgba(0,0,0,0.06)") : "transparent",
+          color: isUrgent ? "var(--danger)" : "var(--text-tertiary)",
+          minWidth: 36, textAlign: "center",
+        }}>
+          {row.expiryDays !== null ? `${row.expiryDays}d` : ""}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-tertiary)", whiteSpace: "nowrap", minWidth: 52, textAlign: "right" }}>
+          {row.timeAgoStr}
+        </span>
       </div>
     </button>
   );
@@ -111,8 +103,8 @@ function EscalationRow({
       onClick={() => onOpen(row)}
       style={{
         width: "100%", textAlign: "left", border: "none",
-        display: "flex", alignItems: "flex-start", gap: 10,
-        padding: "11px 14px 11px 11px",
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "10px 14px 10px 11px",
         background: selected ? "rgba(220,38,38,0.09)" : "rgba(220,38,38,0.04)",
         borderTop: "1px solid rgba(220,38,38,0.12)",
         borderLeft: "3px solid var(--danger)",
@@ -123,32 +115,28 @@ function EscalationRow({
     >
       <div
         className="escalation-dot"
-        style={{ width: 7, height: 7, borderRadius: 999, background: "var(--danger)", marginTop: 5, flexShrink: 0 }}
+        style={{ width: 7, height: 7, borderRadius: 999, background: "var(--danger)", flexShrink: 0 }}
       />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Top: client + pill + time */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-          <span style={{
-            fontSize: 13, fontWeight: unread ? 700 : 600,
-            color: "var(--text-primary)", letterSpacing: "-0.005em",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            flex: 1, minWidth: 0,
-          }}>
-            {row.client}
-          </span>
-          <TypePill type="escalation" unread={unread} />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-tertiary)", whiteSpace: "nowrap", flexShrink: 0 }}>
-            {row.timeAgoStr}
-          </span>
-        </div>
-        {/* Bottom: reason */}
-        <span style={{
-          fontSize: 12, color: "var(--text-secondary)",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          display: "block",
-        }}>
-          {reason}
+      <span style={{
+        fontSize: 13, fontWeight: unread ? 700 : 600,
+        color: "var(--text-primary)", letterSpacing: "-0.005em",
+        whiteSpace: "nowrap", flexShrink: 0, width: 180,
+        overflow: "hidden", textOverflow: "ellipsis",
+      }}>
+        {row.client}
+      </span>
+      <span style={{
+        fontSize: 12, color: "var(--text-secondary)",
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        flex: 1, minWidth: 0,
+      }}>
+        {reason}
+      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, flexWrap: "nowrap", justifyContent: "flex-end", minWidth: 240 }}>
+        <TypePill type="escalation" unread={unread} />
+        <span style={{ minWidth: 36 }} />
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-tertiary)", whiteSpace: "nowrap", minWidth: 52, textAlign: "right" }}>
+          {row.timeAgoStr}
         </span>
       </div>
     </button>
