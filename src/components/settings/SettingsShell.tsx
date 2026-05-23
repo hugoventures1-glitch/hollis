@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTour } from "@/components/tour/TourProvider";
-import { User, Building2, Mail, Bell, Settings, Upload, Bot, Clock, CalendarRange } from "lucide-react";
+import { User, Building2, Mail, Bell, Settings, Upload, Bot, Clock, CalendarRange, Sparkles } from "lucide-react";
 import type { AgentProfile } from "@/types/settings";
 import { ProfileSection } from "./ProfileSection";
 import { AgencySection } from "./AgencySection";
@@ -14,22 +14,24 @@ import { ImportSection } from "./ImportSection";
 import { HollisSection } from "./HollisSection";
 import { LeadTimesSection } from "./LeadTimesSection";
 import { TimelineSection } from "./TimelineSection";
+import { EmailSamplesSection } from "./EmailSamplesSection";
 
-type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "renewals" | "timeline" | "account" | "import";
+type Tab = "hollis" | "profile" | "agency" | "email" | "notifications" | "renewals" | "timeline" | "account" | "import" | "writing-style";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "hollis",        label: "Hollis",             icon: Bot       },
-  { id: "profile",       label: "Profile",            icon: User      },
-  { id: "agency",        label: "Agency",             icon: Building2 },
-  { id: "email",         label: "Email & Signatures", icon: Mail      },
-  { id: "notifications", label: "Notifications",      icon: Bell      },
-  { id: "renewals",      label: "Renewal Timing",     icon: Clock         },
-  { id: "timeline",      label: "Timeline",           icon: CalendarRange },
-  { id: "account",       label: "Account",            icon: Settings      },
-  { id: "import",        label: "Import Data",        icon: Upload    },
+  { id: "hollis",         label: "Hollis",             icon: Bot         },
+  { id: "profile",        label: "Profile",            icon: User        },
+  { id: "agency",         label: "Agency",             icon: Building2   },
+  { id: "email",          label: "Email & Signatures", icon: Mail        },
+  { id: "writing-style",  label: "Writing Style",      icon: Sparkles    },
+  { id: "notifications",  label: "Notifications",      icon: Bell        },
+  { id: "renewals",       label: "Renewal Timing",     icon: Clock       },
+  { id: "timeline",       label: "Timeline",           icon: CalendarRange },
+  { id: "account",        label: "Account",            icon: Settings    },
+  { id: "import",         label: "Import Data",        icon: Upload      },
 ];
 
-const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "notifications", "renewals", "timeline", "account", "import"];
+const VALID_TABS: Tab[] = ["hollis", "profile", "agency", "email", "writing-style", "notifications", "renewals", "timeline", "account", "import"];
 
 interface Props {
   profile: Partial<AgentProfile>;
@@ -54,7 +56,7 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
     router.replace(`/settings?tab=${id}`, { scroll: false });
   }
 
-  const isFullWidth = activeTab === "import" || activeTab === "timeline";
+  const isFullWidth = activeTab === "import" || activeTab === "timeline" || activeTab === "writing-style";
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
@@ -90,8 +92,14 @@ export function SettingsShell({ profile, userEmail, planName, initialTab }: Prop
 
       {/* Right content — full-width for import/timeline, constrained for everything else */}
       {isFullWidth ? (
-        <div className="flex-1 overflow-hidden">
-          {activeTab === "import" ? <ImportSection /> : <TimelineSection />}
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === "import" && <ImportSection />}
+          {activeTab === "timeline" && <TimelineSection />}
+          {activeTab === "writing-style" && (
+            <div className="max-w-[640px] px-8 pt-10 pb-10">
+              <EmailSamplesSection />
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTour } from "@/components/tour/TourProvider";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
+import type { OnboardingStatus } from "@/types/settings";
 import {
   Inbox,
   ArrowRight,
@@ -54,6 +56,7 @@ interface Props {
   urgentRenewals: UrgentRenewal[];
   recentActivity: ActivityEvent[];
   automationActive: boolean;
+  onboardingStatus: OnboardingStatus;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -383,6 +386,7 @@ export function HomeClient({
   urgentRenewals,
   recentActivity,
   automationActive,
+  onboardingStatus,
 }: Props) {
   const [mounted, setMounted] = useState(false);
   const { signalReady } = useTour();
@@ -633,6 +637,13 @@ export function HomeClient({
           delay={220}
         />
       </div>
+
+      {/* ══════════════════════════════════════════════════════
+          ROW 2.5 — Onboarding checklist (hidden when complete)
+      ══════════════════════════════════════════════════════ */}
+      {!onboardingStatus.all_complete && (
+        <OnboardingChecklist status={onboardingStatus} />
+      )}
 
       {/* ══════════════════════════════════════════════════════
           ROW 3 — Activity feed + right column

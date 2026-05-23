@@ -49,3 +49,21 @@ export interface AgentProfile {
 }
 
 export type AgentProfilePatch = Partial<Omit<AgentProfile, "id" | "user_id" | "signal_token" | "created_at" | "updated_at">>;
+
+export interface BrokerEmailSample {
+  id: string;
+  user_id: string;
+  subject: string | null;
+  body: string;
+  created_at: string;
+}
+
+export interface OnboardingStatus {
+  profile_complete: boolean;
+  email_configured: boolean;
+  templates_approved: boolean;
+  policies_imported: boolean;
+  email_samples_imported: boolean;
+  email_samples_count: number;
+  all_complete: boolean;
+}

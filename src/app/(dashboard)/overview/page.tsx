@@ -37,6 +37,10 @@ export default async function OverviewPage() {
     recentActivityRes,
     autonomousActionsRes,
     docChaseRes,
+    onboardingProfileRes,
+    onboardingTemplatesRes,
+    onboardingPoliciesRes,
+    onboardingSamplesRes,
   ] = await Promise.all([
     supabase
       .from("agent_profiles")
@@ -106,10 +110,55 @@ export default async function OverviewPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("status", "active"),
+
+    // Onboarding: profile fields
+    supabase
+      .from("agent_profiles")
+      .select("first_name, last_name, email_from_name, email_signature")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+
+    // Onboarding: templates
+    supabase
+      .from("email_templates")
+      .select("is_approved")
+      .eq("user_id", user.id),
+
+    // Onboarding: policies count
+    supabase
+      .from("policies")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
+
+    // Onboarding: email samples count
+    supabase
+      .from("broker_email_samples")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
   ]);
 
   const firstName = profileRes.data?.first_name ?? null;
   const automationPaused = profileRes.data?.automation_paused ?? false;
+
+  const obProfile = onboardingProfileRes.data;
+  const obTemplates = onboardingTemplatesRes.data ?? [];
+  const profileComplete = !!obProfile?.first_name?.trim() && !!obProfile?.last_name?.trim();
+  const emailConfigured = !!obProfile?.email_from_name?.trim() && !!obProfile?.email_signature?.trim();
+  const templatesApproved = obTemplates.length >= 4 && obTemplates.every((t) => t.is_approved);
+  const policiesImported = (onboardingPoliciesRes.count ?? 0) > 0;
+  const emailSamplesCount = onboardingSamplesRes.count ?? 0;
+  const emailSamplesImported = emailSamplesCount >= 20;
+  const allComplete = profileComplete && emailConfigured && templatesApproved && policiesImported && emailSamplesImported;
+
+  const onboardingStatus = {
+    profile_complete: profileComplete,
+    email_configured: emailConfigured,
+    templates_approved: templatesApproved,
+    policies_imported: policiesImported,
+    email_samples_imported: emailSamplesImported,
+    email_samples_count: emailSamplesCount,
+    all_complete: allComplete,
+  };
 
   return (
     <HomeClient
@@ -142,6 +191,7 @@ export default async function OverviewPage() {
         policies: { client_name: string } | { client_name: string }[] | null;
       }[]}
       automationActive={!automationPaused}
+      onboardingStatus={onboardingStatus}
     />
   );
 }
