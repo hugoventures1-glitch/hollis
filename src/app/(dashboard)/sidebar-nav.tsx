@@ -182,7 +182,7 @@ export default function SidebarNav({ profile, autonomousActive }: { profile: Sid
             alt="Hollis"
             width={28}
             height={28}
-            className="invert dark:invert-0"
+            className="brightness-0 dark:invert"
             style={{ objectFit: "contain" }}
             priority
           />

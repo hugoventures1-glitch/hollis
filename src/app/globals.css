@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Wire Tailwind's dark: variant to next-themes' .dark class on <html> */
+@variant dark (&:is(.dark *));
+
 /* ── Design tokens ─────────────────────────────────────────────── */
 /* Light mode is the default (:root). Dark mode overrides in html.dark. */
 :root {
