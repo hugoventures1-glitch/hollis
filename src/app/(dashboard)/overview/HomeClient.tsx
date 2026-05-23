@@ -692,7 +692,7 @@ export function HomeClient({
                   return (
                     <div
                       key={event.id}
-                      className="flex items-center gap-4 px-6"
+                      className="flex items-center gap-4 px-6 transition-transform duration-150 ease-out hover:scale-[1.02] hover:z-10"
                       style={{
                         paddingTop: 14,
                         paddingBottom: 14,
