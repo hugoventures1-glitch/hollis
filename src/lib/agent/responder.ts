@@ -13,6 +13,7 @@
  */
 
 import { getAnthropicClient } from "@/lib/anthropic/client";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Policy } from "@/types/renewals";
 import type { GenerateContext } from "@/lib/renewals/generate";
 
@@ -42,6 +43,25 @@ function outboundHistoryBlock(ctx?: GenerateContext): string {
   return `\nWhat Hollis has previously sent to this client (most recent first):\n${ctx.outboundHistory.trim()}\n`;
 }
 
+async function writingStyleBlock(brokerId: string): Promise<string> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("broker_email_samples")
+      .select("subject, body")
+      .eq("user_id", brokerId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (!data || data.length === 0) return "";
+    const examples = data
+      .map((s) => (s.subject ? `Subject: ${s.subject}\n\n${s.body}` : s.body))
+      .join("\n\n---\n\n");
+    return `\nExamples of how this broker writes client emails (match this tone and style exactly):\n\n${examples}\n`;
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Generate a professional reply to a soft_query signal.
  * rawSignal is the verbatim client email/message text.
@@ -52,6 +72,7 @@ export async function generateQueryResponse(
   ctx?: GenerateContext,
 ): Promise<{ subject: string; body: string }> {
   const client = getAnthropicClient();
+  const styleBlock = await writingStyleBlock(policy.user_id);
 
   const prompt = `You are drafting a reply on behalf of an insurance agent to a client who has a question about their policy.
 
@@ -63,7 +84,7 @@ Policy context:
 ${premiumLine(policy)}
 - Agent: ${policy.agent_name ?? ""}
 - Agent email: ${policy.agent_email ?? ""}
-${outboundHistoryBlock(ctx)}${standingOrdersBlock(ctx)}
+${outboundHistoryBlock(ctx)}${standingOrdersBlock(ctx)}${styleBlock}
 The client wrote:
 "${rawSignal}"
 
@@ -126,6 +147,7 @@ export async function generateAckEmail(
   ctx?: GenerateContext,
 ): Promise<{ subject: string; body: string }> {
   const client = getAnthropicClient();
+  const styleBlock = await writingStyleBlock(policy.user_id);
 
   const prompt = `You are writing a brief acknowledgment email on behalf of an insurance agent.
 
@@ -135,7 +157,7 @@ Policy context:
 - Carrier: ${policy.carrier ?? ""}
 - Agent: ${policy.agent_name ?? ""}
 - Agent email: ${policy.agent_email ?? ""}
-${standingOrdersBlock(ctx)}
+${standingOrdersBlock(ctx)}${styleBlock}
 Situation: ${INTENT_TONES[intent]}
 
 Rules:
