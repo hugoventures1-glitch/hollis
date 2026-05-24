@@ -132,7 +132,7 @@ export function FilterTab({
         <span style={{
           fontSize: 11, fontWeight: 600, lineHeight: 1,
           background: active ? "var(--text-primary)" : "rgba(0,0,0,0.08)",
-          color: active ? "#fff" : "var(--text-tertiary)",
+          color: active ? "var(--bg-primary, #fff)" : "var(--text-tertiary)",
           padding: "2px 5px", borderRadius: 999,
           fontVariantNumeric: "tabular-nums",
         }}>
